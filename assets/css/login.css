@@ -1,0 +1,56 @@
+/* ================== LOGIN (SIN VENTANA FLOTANTE) ================== */
+
+body.page-login{
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;   /* para empujar footer abajo */
+  background: #f0f2f5;
+  margin: 0;
+}
+
+/* Contenedor general (el que envuelve el contenido del login) */
+.login-page{
+  flex: 1;                  /* ocupa todo el alto disponible */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+}
+
+/* Este reemplaza la "tarjeta": se ve igual de ancho pero sin shadow ni bordes redondos */
+.login-card{
+  width: min(650px, 100%);
+  background: transparent;  /* quita el fondo blanco de la tarjeta */
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Mantiene el layout interno igual */
+.login-card .card-body{
+  padding: 2.5rem 3rem;
+  background: transparent;  /* sin cuadro */
+}
+
+/* Título */
+.login-title{
+  color: #004176;
+  font-weight: 700;
+}
+
+/* Inputs */
+.form-control{
+  border-radius: 10px;
+}
+
+/* Footer abajo del todo (full width) */
+.login-footer{
+  margin-top: auto;
+  width: 100%;
+  background-color: #004176;
+  color: #ffffff;
+  text-align: center;
+  padding: 0.9rem 1rem;
+  font-size: 0.95rem;
+  border-radius: 0;         /* sin bordes redondos */
+}

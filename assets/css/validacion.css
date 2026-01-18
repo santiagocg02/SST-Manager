@@ -1,0 +1,74 @@
+/* ================== VALIDACION MENU ================== */
+
+body.page-validacion{
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f0f2f5;
+}
+
+/* Contenedor principal (centrado) */
+.validacion-container{
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+/* Caja tipo “contenido” (sin card) */
+.validacion-content{
+  width: 100%;
+  max-width: 900px;
+  text-align: center;
+}
+
+/* Título y texto */
+.validacion-content h2{
+  font-size: 2rem;
+  font-weight: 700;
+  color: #004176;
+  margin-bottom: 10px;
+}
+
+.validacion-content p{
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 28px;
+}
+
+/* Botones Menú (estilo como Iniciar/Cancelar) */
+.validacion-actions{
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+}
+
+.validacion-actions .btn{
+  border-radius: 14px;        /* look parecido al login */
+  padding: 16px 34px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  min-width: 320px;           /* para que queden grandes */
+}
+
+/* Footer abajo del todo (como login-footer) */
+.validacion-footer{
+  background-color: #004176;
+  color: #ffffff;
+  text-align: center;
+  padding: 0.8rem 1rem;
+  font-size: 0.95rem;
+  width: 100%;
+  margin-top: auto;           /* CLAVE: lo empuja al fondo */
+}
+
+/* Responsive */
+@media (max-width: 720px){
+  .validacion-actions .btn{
+    min-width: 100%;
+  }
+}

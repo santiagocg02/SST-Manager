@@ -1,0 +1,39 @@
+/* ================== GLOBAL ================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Fondo general por defecto (textura) */
+body {
+  background: url("../img/texture.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* pages centradas con tarjeta */
+body.page-login,
+body.page-validacion,
+body.page-user-admin,
+body.page-menu-admin {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f2f5;
+}
+
+/* Mensaje de error */
+.alert {
+  background: #ffe1e1;
+  color: #b30000;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #ffb3b3;
+  margin-top: 4px;
+  text-align: center;
+}

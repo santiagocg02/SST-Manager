@@ -1,0 +1,94 @@
+/* ================== BOTONES GENERALES ================== */
+
+/* Botón verde principal (Iniciar / Menú administración / Agregar) */
+.btn-iniciar,
+.btn-menu,
+.btn-add,
+.btn-success-custom {
+  background-color: #1fa339;
+  color: #ffffff;
+  padding: 0.6rem 2.4rem;
+  border: none;
+  border-radius: 50px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.btn-iniciar:hover,
+.btn-menu:hover,
+.btn-add:hover,
+.btn-success-custom:hover {
+  background-color: #18832e;
+  color: #ffffff;
+}
+
+.btn-iniciar:active,
+.btn-menu:active,
+.btn-add:active,
+.btn-success-custom:active {
+  transform: scale(0.97);
+}
+
+/* ================== BOTÓN AZUL PRINCIPAL ================== */
+/* Cancelar / Menú empresa / Salir */
+
+.btn-cancelar,
+.btn-menu-alt,
+.btn-salir,
+.btn-primary-custom {
+  background-color: #004176;
+  color: #ffffff;
+  padding: 0.6rem 2.4rem;
+  border: none;
+  border-radius: 50px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+  transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+  text-decoration: none;
+}
+
+.btn-cancelar:hover,
+.btn-menu-alt:hover,
+.btn-salir:hover,
+.btn-primary-custom:hover {
+  background-color: #00325a;
+  color: #ffffff;
+}
+
+.btn-cancelar:active,
+.btn-menu-alt:active,
+.btn-salir:active,
+.btn-primary-custom:active {
+  transform: scale(0.97);
+}
+
+/* ================== BOTÓN GRIS SECUNDARIO ================== */
+/* Ej: Agregar calificación */
+
+.btn-secondary-custom {
+  background-color: #e0e0e0;
+  color: #333333;
+  padding: 0.6rem 2.4rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px #cfcfcf;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.btn-secondary-custom:hover {
+  background-color: #d4d4d4;
+}
+
+/* ================== BOTONES FULL WIDTH (opcional) ================== */
+.btn-block {
+  width: 100%;
+}

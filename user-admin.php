@@ -18,7 +18,11 @@ if (!isset($_SESSION["usuario"]) || $_SESSION["rol"] !== "admin") {
     rel="stylesheet">
 
   <!-- Tu CSS -->
-  <link rel="stylesheet" href="assets/css/style.css">
+   
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/user-admin.css">
+  <link rel="stylesheet" href="assets/css/responsive.css">
+
 </head>
 <body class="bg-light">
 
