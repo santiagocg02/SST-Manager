@@ -166,7 +166,7 @@ if (!isset($_SESSION["usuario"])) {
     <table>
       <thead>
         <tr>
-          <th style="width:20%;">TAMAÑP EMPRESA</th>
+          <th style="width:20%;">TAMAÑO EMPRESA</th>
           <th style="width:20%;">CANTIDAD EMPLEADOS</th>
           <th style="width:20%;">CANTIDAD POR SEDE</th>
           <th style="width:20%;">APLICACION</th>

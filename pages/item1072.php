@@ -178,7 +178,7 @@ input:checked + .slider:before {
   <div class="phva-grid">
 
     <div class="phva-field">
-      <label>CICLO AL PHVA</label>
+      <label>CICLO PHVA</label>
       <select id="cicloPHVA">
         <option value=""></option>
         <option>Planear</option>
@@ -189,7 +189,7 @@ input:checked + .slider:before {
     </div>
 
     <div class="phva-field">
-      <label>ESTANDAR</label>
+      <label>CATEGORIA</label>
       <select id="estandar">
         <option value=""></option>
         <option>RUC</option>
@@ -199,7 +199,7 @@ input:checked + .slider:before {
     </div>
 
     <div class="phva-field">
-      <label>ESTANDAR</label>
+      <label>TIPO</label>
       <select id="estandar">
         <option value=""></option>
         <option>RUC</option>
@@ -275,11 +275,13 @@ input:checked + .slider:before {
     <table>
       <thead>
         <tr>
-          <th style="width:22%;">ITEM DEL<br>ESTANDAR</th>
-          <th style="width:22%;">FRECUENCIA</th>
-          <th style="width:22%;">ESTANDAR</th>
-          <th style="width:22%;">CICLO AL PHVA</th>
-          <th style="width:12%;">ESTADO</th>
+          <th style="width:10%;">CICLO PHVA </th>
+          <th style="width:15%;">CATEGORIA</th>
+          <th style="width:18%;">TIPO </th>
+          <th style="width:18%;">ITEM DEL<br>ESTANDAR</th>
+          <th style="width:18%;">ITEM </th>
+          <th style="width:18%;">CRITERIO </th>
+          <th style="width:18%;">MODO DE VERIFICACION </th>
         </tr>
       </thead>
       <tbody id="tablaBody"></tbody>
