@@ -16,7 +16,70 @@ if (!isset($_SESSION["usuario"])) {
 
   <style>
     html, body { height: 100%; margin: 0; }
+/* Estructura del Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
 
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* El slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+}
+
+/* Colores de estado */
+input:checked + .slider {
+  background-color: #28a745; /* Verde para activo */
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #28a745;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+/* Forma redondeada */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.switch-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
     .phva-wrap{
       padding: 18px;
       background:#f4f4f1;
@@ -51,7 +114,7 @@ if (!isset($_SESSION["usuario"])) {
       letter-spacing:.4px;
       font-size:14px;
     }
-
+    .phva-field textarea,
     .phva-field input,
     .phva-field select{
       width:100%;
@@ -115,42 +178,13 @@ if (!isset($_SESSION["usuario"])) {
   <div class="phva-grid">
 
     <div class="phva-field">
-      <label>ITEM DEL ESTANDAR</label>
-      <input type="text" id="itemEstandar">
-    </div>
-
-    <div class="phva-field">
-      <label>FRECUENCIA</label>
-      <select id="frecuencia">
+      <label>CICLO AL PHVA</label>
+      <select id="cicloPHVA">
         <option value=""></option>
-        <option>Diaria</option>
-        <option>Semanal</option>
-        <option>Mensual</option>
-        <option>Trimestral</option>
-        <option>Semestral</option>
-        <option>Anual</option>
-      </select>
-    </div>
-
-    <div class="phva-field">
-      <label>RESPONSABLE</label>
-      <select id="responsable">
-        <option value=""></option>
-        <option>Administrador</option>
-        <option>SST</option>
-        <option>Talento Humano</option>
-        <option>Operaciones</option>
-      </select>
-    </div>
-
-    <div class="phva-field">
-      <label>RESCURSO</label>
-      <select id="recurso">
-        <option value=""></option>
-        <option>Humano</option>
-        <option>Tecnológico</option>
-        <option>Financiero</option>
-        <option>Infraestructura</option>
+        <option>Planear</option>
+        <option>Hacer</option>
+        <option>Verificar</option>
+        <option>Actuar</option>
       </select>
     </div>
 
@@ -165,31 +199,71 @@ if (!isset($_SESSION["usuario"])) {
     </div>
 
     <div class="phva-field">
-      <label>CICLO AL PHVA</label>
-      <select id="cicloPHVA">
+      <label>ESTANDAR</label>
+      <select id="estandar">
         <option value=""></option>
-        <option>Planear</option>
-        <option>Hacer</option>
-        <option>Verificar</option>
-        <option>Actuar</option>
+        <option>RUC</option>
+        <option>SST</option>
+        <option>Calidad</option>
       </select>
-    </div>
-
-    <div class="phva-field">
-      <label>SOPORTE</label>
-      <input type="text" id="soporte">
     </div>
 
     <div class="phva-field">
       <label>ESTADO</label>
-      <select id="estado">
-        <option value=""></option>
-        <option>Activo</option>
-        <option>Pendiente</option>
-        <option>Inactivo</option>
-      </select>
+      <div class="switch-container">
+      <label class="switch">
+        <input type="checkbox" id="status" checked>
+        <span class="slider round"></span>
+        </label>
+        <span id="status-label">Activo</span>
+      </div>
     </div>
 
+    <div class="phva-field">
+      <label>ITEM DEL ESTANDAR</label>
+      <textarea 
+        id="itemEstandar" 
+        name="itemEstandar" 
+        rows="6" 
+        style="resize: vertical; height: 98px;"
+        placeholder="Ej: 1.1.1">
+      </textarea>
+    </div>
+
+    <div class="phva-field">
+      <label>ITEM</label>
+      <textarea 
+        id="item" 
+        name="item" 
+        rows="6" 
+        style="resize: vertical; height: 98px;"
+        placeholder="Ej: 1.1.1">
+      </textarea>
+    </div>
+
+    <div class="phva-field">
+      <label>CRITERIO</label>
+      <textarea 
+        id="criterio" 
+        name="criterio" 
+        rows="6" 
+        style="resize: vertical; height: 98px;"
+        placeholder="Ej: 1.1.1">
+      </textarea>
+    </div>
+
+    <div class="phva-field">
+      <label>MODO DE VERIFICACION</label>
+      <textarea 
+        id="modo" 
+        name="modo" 
+        rows="6" 
+        style="resize: vertical; height: 98px;"
+        placeholder="Ej: 1.1.1">
+      </textarea>
+    </div>
+    
+    
     <div class="phva-actions" style="grid-column: 3 / span 2;">
       <button class="btn-pill btn-add" id="btnAgregar" type="button">Agregar</button>
       <button class="btn-pill btn-cancel" id="btnCancelar" type="button">Cancelar</button>
