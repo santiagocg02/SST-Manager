@@ -146,7 +146,7 @@ html, body { height:100%; margin:0; }
   <!-- BOTONES -->
   <div class="cal-actions">
     <button class="btn-add" id="btnAgregar">Agregar</button>
-    <button class="btn-cancel" id="btnCancelar">Cancelar</button>
+    <button class="btn-cancel" href="menu-admin.php" id="btnCancelar">Cancelar</button>
   </div>
 
   <!-- TABLA ÚNICA -->

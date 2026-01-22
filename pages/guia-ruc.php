@@ -163,7 +163,7 @@ if (!isset($_SESSION["usuario"])) {
 
       <div class="ruc-actions" style="grid-column: 3 / span 2;">
         <button class="btn-pill btn-add" id="btnAgregar" type="button">Agregar</button>
-        <button class="btn-pill btn-cancel" id="btnCancelar" type="button">Cancelar</button>
+        <button class="btn-pill btn-cancel" href="menu-admin.php" id="btnCancelar" type="button">Cancelar</button>
       </div>
     </div>
 

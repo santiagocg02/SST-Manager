@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-if (!isset($_SESSION["usuario"]) || $_SESSION["rol"] !== "admin") {
+if (!isset($_SESSION["usuario"]) || $_SESSION["rol"] !== "Master") {
     header("Location: index.php");
     exit;
 }

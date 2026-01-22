@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once 'includes/ConexionAPI.php'; // Asegúrate de que la ruta sea correcta
 
 $mensaje = "";
 
@@ -7,18 +8,44 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $usuario    = trim($_POST["usuario"] ?? "");
     $contrasena = trim($_POST["contrasena"] ?? "");
 
-    // Credenciales de ejemplo
-    $usuario_valido    = "admin";
-    $contrasena_valida = "1234";
+    if (!empty($usuario) && !empty($contrasena)) {
+        $api = new ConexionAPI();
+        
+        $datosLogin = [
+            "email" => $usuario, 
+            "password" => $contrasena
+        ];
 
-    if ($usuario === $usuario_valido && $contrasena === $contrasena_valida) {
-        $_SESSION["usuario"] = $usuario;
-        $_SESSION["rol"]     = "admin";
+        // Petición al backend
+        $respuesta = $api->solicitar("index.php?action=login", "POST", $datosLogin);
 
-        header("Location: validacion-menu.php");
-        exit;
+        if ($respuesta['status'] === 200) {
+            // El JSON decodificado está en $respuesta['data']
+            $datosAPI = $respuesta['data'];
+
+            // 1. Guardar Token (está en la raíz del JSON)
+            $_SESSION["token"] = $datosAPI['token'] ?? null; 
+            
+            // 2. Guardar Usuario (usamos el del formulario o el nombre que devuelve la API)
+            $_SESSION["usuario"] = $datosAPI['user']['datos_personales']['nombre_completo'] ?? $usuario;
+
+            // 3. CORRECCIÓN PRINCIPAL: Ruta exacta al rol
+            // Entramos a 'user' -> 'seguridad' -> 'rol_sistema'
+            if (isset($datosAPI['user']['seguridad']['rol_sistema'])) {
+                $_SESSION["rol"] = $datosAPI['user']['seguridad']['rol_sistema']; 
+            } else {
+                $_SESSION["rol"] = "user"; // Fallback
+            }
+
+            header("Location: validacion-menu.php");
+            exit;
+            
+        } else {
+            // Error de la API
+            $mensaje = $respuesta['data']['mensaje'] ?? "Credenciales incorrectas.";
+        }
     } else {
-        $mensaje = "Usuario o contraseña incorrectos.";
+        $mensaje = "Por favor, completa todos los campos.";
     }
 }
 ?>
