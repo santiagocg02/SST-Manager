@@ -60,6 +60,18 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
         .row-modulo-padre { background-color: #e9ecef !important; font-weight: bold; color: #0b4f7a; }
         .indent-hijo { padding-left: 45px !important; }
         .table-permissions thead th { background: #0b4f7a; color: white; position: sticky; top: 0; z-index: 10; }
+        .modal-header-custom {
+    background-color: #0b4f7a; /* Azul corporativo */
+    color: #ffffff;            /* Texto blanco para contraste */
+    padding: 15px;
+    border-bottom: 2px solid #003366;
+}
+
+/* Estilo para el texto específico */
+.modal-header-custom h5 {
+    font-weight: bold;
+    margin: 0;
+}
     </style>
 </head>
 <body class="cal-wrap">
@@ -171,7 +183,7 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
 <div class="modal fade" id="modalPermisos" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
+            <div class="modal-header modal-header-custom">
                 <h5 class="modal-title" id="tituloModal">Configuración de Accesos por Plan</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>

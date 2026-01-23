@@ -62,6 +62,14 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
         .row-modulo-padre { background-color: #e9ecef !important; font-weight: bold; color: #0b4f7a; }
         .indent-hijo { padding-left: 45px !important; }
         .table-permissions thead th { background: #0b4f7a; color: white; position: sticky; top: 0; z-index: 10; }
+        .table-custom thead th {
+    background-color: #0b4f7a !important; /* Azul profesional */
+    color: #ffffff !important;            /* Texto blanco */
+    border-bottom: 2px solid #003366;   /* Línea de separación sutil */
+    text-transform: uppercase;           /* Mantiene el estilo de la imagen */
+    padding: 12px 15px;
+    font-weight: 600;
+}
     </style>
 </head>
 <body class="cal-wrap">
@@ -156,7 +164,7 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
 <div class="modal fade" id="modalPermisos" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
+            <div class="modal-header modal-header-custom">
                 <h5 class="modal-title" id="tituloModal">Configuración de Accesos</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
