@@ -113,8 +113,8 @@ if (!isset($_SESSION["usuario"]) || ($_SESSION["rol"] ?? '') !== "Master") {
                  data-bs-parent="#adminMenu">
               <div class="accordion-body py-2">
                 <a href="pages/seguridad/modulo.php" target="contentFrame" class="admin-subitem">Módulos</a>
-                <a href="#" class="admin-subitem">Planes</a>
-                <a href="#" class="admin-subitem">Servicios</a>
+                <a href="pages/seguridad/perfil.php" target="contentFrame" class="admin-subitem">perfiles</a>
+                <a href="#" class="admin-subitem">Planes</a>                
                 <a href="#" class="admin-subitem">Usuarios</a>
               </div>
             </div>
