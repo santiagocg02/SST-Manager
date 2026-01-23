@@ -112,7 +112,7 @@ if (!isset($_SESSION["usuario"]) || ($_SESSION["rol"] ?? '') !== "Master") {
                  aria-labelledby="headingSeguridad"
                  data-bs-parent="#adminMenu">
               <div class="accordion-body py-2">
-                <a href="#" class="admin-subitem">Módulos</a>
+                <a href="pages/seguridad/modulo.php" target="contentFrame" class="admin-subitem">Módulos</a>
                 <a href="#" class="admin-subitem">Planes</a>
                 <a href="#" class="admin-subitem">Servicios</a>
                 <a href="#" class="admin-subitem">Usuarios</a>
