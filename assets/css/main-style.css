@@ -1,4 +1,4 @@
-/* --- VARIABLES GLOBALES --- */
+/* --- 1. VARIABLES GLOBALES --- */
 :root {
     --primary-blue: #0b4f7a;
     --primary-hover: #083b5c;
@@ -6,11 +6,12 @@
     --danger-red: #dc3545;
     --bg-light: #f4f4f1;
     --white: #ffffff;
+    --header-grey: #4a5568; /* Gris profesional para encabezados */
     --transition: all 0.3s ease;
     --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
-/* --- ESTILOS BASE --- */
+/* --- 2. ESTILOS BASE --- */
 body.cal-wrap {
     padding: 20px;
     background: var(--bg-light);
@@ -18,110 +19,81 @@ body.cal-wrap {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* --- COMPONENTES: SWITCH --- */
-.switch {
+/* --- CONTENEDOR DE SCROLL --- */
+.table-scroll-container {
+    max-height: 400px; /* Altura fija para forzar el scroll */
+    overflow-y: auto;  /* Activa el scroll vertical */
+    overflow-x: hidden;
     position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 20px;
-}
-
-.switch input {
-    opacity: 0; width: 0; height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #ccc;
-    transition: var(--transition);
-    border-radius: 34px;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 14px; width: 14px;
-    left: 3px; bottom: 3px;
-    background-color: white;
-    transition: var(--transition);
-    border-radius: 50%;
-}
-
-input:checked + .slider {
-    background-color: #2196F3;
-}
-
-input:checked + .slider:before {
-    transform: translateX(20px);
-}
-
-/* --- TABLAS Y PERMISOS --- */
-.table-permissions thead th {
-    background: var(--primary-blue) !important;
-    color: var(--white);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.row-modulo-padre {
-    background-color: #e9ecef !important;
-    font-weight: bold;
-    color: var(--primary-blue);
-}
-
-.indent-hijo {
-    padding-left: 45px !important;
-}
-
-/* --- UI COMPONENTS --- */
-.modal-header-custom {
-    background: var(--primary-blue);
-    color: var(--white);
-}
-
-.card-shadow {
-    box-shadow: var(--shadow);
-    border: none;
+    background: #ffffff;
+    border: 1px solid #dee2e6;
     border-radius: 8px;
 }
+
+/* --- ENCABEZADO FIJO (STICKY) --- */
+.table-scroll-container table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100;
+    background-color: #4a5568 !important; /* El gris de tus capturas */
+    color: #ffffff !important;
+    border: none;
+    padding: 12px 8px;
+}
+
+/* --- DISEÑO DEL SCROLLBAR --- */
+.table-scroll-container::-webkit-scrollbar {
+    width: 6px;
+}
+.table-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+.table-scroll-container::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 10px;
+}
+
+
+/* --- 4. COMPONENTES: ACORDEÓN --- */
+.row-hijo {
+    display: none; /* Oculto por defecto */
+    background-color: #fafafa;
+}
+
+.row-hijo.show {
+    display: table-row !important;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+}
+
+.chevron-icon { transition: transform 0.3s; }
+.rotate-icon { transform: rotate(180deg); }
+
+/* --- 5. COMPONENTES: SWITCH --- */
+.switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc; transition: var(--transition); border-radius: 34px;
+}
+.slider:before {
+    position: absolute; content: ""; height: 14px; width: 14px;
+    left: 3px; bottom: 3px; background-color: white; transition: var(--transition); border-radius: 50%;
+}
+input:checked + .slider { background-color: #2196F3; }
+input:checked + .slider:before { transform: translateX(20px); }
+
+/* --- 6. UI & TABLAS --- */
+.card-shadow { box-shadow: var(--shadow); border: none; border-radius: 8px; }
+
+.status-label-active { color: var(--success-green); font-weight: bold; font-size: 0.85rem; }
+.status-label-inactive { color: var(--danger-red); font-weight: bold; font-size: 0.85rem; }
 
 .btn-primary-custom {
     background-color: var(--primary-blue);
     border-color: var(--primary-blue);
     color: white;
-}
-
-.btn-primary-custom:hover {
-    background-color: var(--primary-hover);
-    color: white;
-}
-
-/* --- TABLAS Y ENCABEZADOS --- */
-/* Estilo para los encabezados de todas las tablas del sistema */
-.table thead.table-dark {
-    --bs-table-bg: #546b94;
-    background-color: #4a5568 !important; /* Gris azulado oscuro profesional */
-    border-bottom: 2px solid #2d3748;
-}
-
-.table-permissions thead th {
-    background: #6082bc !important; /* Mismo gris para la tabla de permisos */
-    color: var(--white);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-}
-
-/* Opcional: un gris más claro para las filas al pasar el mouse */
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 0, 0, 0.02);
-}
-
-.status-label-active { color: var(--success-green); font-weight: bold; font-size: 0.85rem; }
-.status-label-inactive { color: var(--danger-red); font-weight: bold; font-size: 0.85rem; }
+} 
