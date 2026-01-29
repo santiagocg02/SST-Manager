@@ -46,22 +46,9 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
     <title>SST Manager - Gestión de Perfiles</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../assets/css/main-style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        :root { --primary-blue: #0b4f7a; } /* Color de la vasija SST-MANAGER */
-        .cal-wrap { padding:20px; background:#f4f4f1; min-height:100vh; }
-        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 34px; transition: .4s; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 4px; bottom: 4px; background: white; border-radius: 50%; transition: .4s; }
-        input:checked + .slider { background: #28a745; }
-        input:checked + .slider:before { transform: translateX(22px); }
-        .row-modulo-padre { background-color: #e9ecef !important; font-weight: bold; color: var(--primary-blue); }
-        .indent-hijo { padding-left: 45px !important; }
-        .table-permissions thead th { background: var(--primary-blue); color: white; position: sticky; top: 0; z-index: 10; }
-        .modal-header-custom { background: var(--primary-blue); color: white; }
-    </style>
-</head>
+</head> 
 <body class="cal-wrap">
 
 <div class="container-fluid">
@@ -170,13 +157,34 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
                                 <td colspan="5" class="p-2 ps-3"><?= htmlspecialchars($pad['nombre_modulo']) ?></td>
                             </tr>
                             <?php foreach ($hijos as $hij): if ($hij['id_padre'] == $pad['id_modulo']): ?>
-                                <tr>
-                                    <td class="indent-hijo py-2"><?= htmlspecialchars($hij['nombre_modulo']) ?></td>
-                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="ver"></td>
-                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="crear"></td>
-                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="editar"></td>
-                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="eliminar"></td>
-                                </tr>
+                               <tr>
+                                <td class="indent-hijo py-2"><?= htmlspecialchars($hij['nombre_modulo']) ?></td>
+                                
+                                <td class="text-center">
+                                    <label class="switch">
+                                        <input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="ver">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                                <td class="text-center">
+                                    <label class="switch">
+                                        <input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="crear">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                                <td class="text-center">
+                                    <label class="switch">
+                                        <input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="editar">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                                <td class="text-center">
+                                    <label class="switch">
+                                        <input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="eliminar">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </td>
+                            </tr>
                             <?php endif; endforeach; ?>
                         <?php endforeach; ?>
                     </tbody>

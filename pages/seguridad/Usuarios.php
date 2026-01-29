@@ -56,18 +56,8 @@ $listaUsuarios = ($respuestaGet['status'] == 200) ? $respuestaGet['data'] : [];
     <title>SST Manager - Gestión de Usuarios</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .cal-wrap { padding:20px; background:#f4f4f1; min-height:100vh; }
-        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 34px; transition: .4s; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 4px; bottom: 4px; background: white; border-radius: 50%; transition: .4s; }
-        input:checked + .slider { background: #004a99; }
-        input:checked + .slider:before { transform: translateX(22px); }
-        .cal-table-container { background: #fff; border-radius: 8px; border: 1px solid #ddd; overflow: hidden; }
-        .table-blue thead { background-color: #004a99; color: white; text-transform: uppercase; font-size: 0.75rem; }
-        .form-label-custom { font-weight: bold; font-size: 0.75rem; text-transform: uppercase; color: #333; }
-    </style>
+      <link rel="stylesheet" href="../../assets/css/main-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="cal-wrap">
     <div class="container-fluid">
@@ -146,8 +136,8 @@ $listaUsuarios = ($respuestaGet['status'] == 200) ? $respuestaGet['data'] : [];
         </form>
 
         <div class="cal-table-container shadow-sm">
-            <table class="table table-hover align-middle mb-0 table-blue">
-                <thead>
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark text-uppercase small">
                     <tr>
                         <th>ID</th>
                         <th>NOMBRE COMPLETO</th>
@@ -162,7 +152,7 @@ $listaUsuarios = ($respuestaGet['status'] == 200) ? $respuestaGet['data'] : [];
                 <tbody>
                     <?php foreach ($listaUsuarios as $u): ?>
                     <tr>
-                        <td class="text-muted">#<?= $u['id'] ?></td>
+                        <td class="text-muted"><?= $u['id'] ?></td>
                         <td class="fw-bold"><?= htmlspecialchars($u['datos_personales']['nombre_completo']) ?></td>
                         <td><?= htmlspecialchars($u['datos_personales']['correo']) ?></td>
                         <td><small><?= $u['identificacion']['tipo'] ?>: <?= $u['identificacion']['numero'] ?></small></td>

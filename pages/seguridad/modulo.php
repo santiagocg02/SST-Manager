@@ -48,19 +48,8 @@ $listaModulos = ($respuestaGet['status'] == 200) ? $respuestaGet['data'] : [];
     <title>SST Manager - Gestión de Módulos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .cal-wrap { padding:20px; background:#f4f4f1; min-height:100vh; }
-        .row-hijo { display: none; background: #fafafa; }
-        .row-hijo.show { display: table-row; }
-        .indent { padding-left: 45px !important; }
-        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 34px; transition: .4s; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 4px; bottom: 4px; background: white; border-radius: 50%; transition: .4s; }
-        input:checked + .slider { background: #28a745; }
-        input:checked + .slider:before { transform: translateX(22px); }
-        .cal-table-container { background: #fff; border-radius: 8px; border: 1px solid #ddd; overflow: hidden; }
-    </style>
+      <link rel="stylesheet" href="../../assets/css/main-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="cal-wrap">
     <div class="container-fluid">
@@ -106,7 +95,7 @@ $listaModulos = ($respuestaGet['status'] == 200) ? $respuestaGet['data'] : [];
 
         <div class="cal-table-container shadow-sm">
             <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+                <thead class="table-dark text-uppercase small">
                     <tr><th width="50"></th><th>TIPO</th><th class="text-center">ICONO</th><th>NOMBRE</th><th>DESCRIPCIÓN</th><th>ESTADO</th><th>ACCIONES</th></tr>
                 </thead>
                 <tbody>
