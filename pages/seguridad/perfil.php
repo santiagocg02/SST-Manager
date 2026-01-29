@@ -11,7 +11,7 @@ $api = new ConexionAPI();
 $token = $_SESSION["token"];
 $mensaje = "";
 
-// 2. LÓGICA: Procesar Perfil (Creación y Actualización)
+// 1. LÓGICA DE PROCESAMIENTO (POST/PUT)
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["nombre_perfil"])) {
     $id = $_POST["id_perfil"] ?? "";
     $datos = [
@@ -24,7 +24,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["nombre_perfil"])) {
     $metodo = !empty($id) ? "PUT" : "POST";
     $resultado = $api->solicitar($endpoint, $metodo, $datos, $token);
 
-    // Ajuste: ConexionAPI suele devolver el código HTTP en 'status'
     if (isset($resultado['status']) && ($resultado['status'] == 200 || $resultado['status'] == 201)) {
         header("Location: perfil.php");
         exit;
@@ -33,16 +32,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["nombre_perfil"])) {
     }
 }
 
-// 3. CARGAR DATOS
-// Nota: Si tu ConexionAPI mete el body en 'data', mantenemos la lógica. 
-// Si devuelve el body directo, ajustamos:
+// 2. CARGA DE DATOS
 $resPerfiles = $api->solicitar("index.php?table=perfiles", "GET", null, $token);
-$listaPerfiles = (isset($resPerfiles['status']) && $resPerfiles['status'] == 200) 
-                 ? $resPerfiles['data'] : [];
+$listaPerfiles = (isset($resPerfiles['status']) && $resPerfiles['status'] == 200) ? $resPerfiles['data'] : [];
 
 $resModulos = $api->solicitar("index.php?table=modulos", "GET", null, $token);
-$listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] == 200) 
-                        ? $resModulos['data'] : [];
+$listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] == 200) ? $resModulos['data'] : [];
 ?>
 <!doctype html>
 <html lang="es">
@@ -51,7 +46,9 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
     <title>SST Manager - Gestión de Perfiles</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
+        :root { --primary-blue: #0b4f7a; } /* Color de la vasija SST-MANAGER */
         .cal-wrap { padding:20px; background:#f4f4f1; min-height:100vh; }
         .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
         .switch input { opacity: 0; width: 0; height: 0; }
@@ -59,17 +56,10 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
         .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 4px; bottom: 4px; background: white; border-radius: 50%; transition: .4s; }
         input:checked + .slider { background: #28a745; }
         input:checked + .slider:before { transform: translateX(22px); }
-        .row-modulo-padre { background-color: #e9ecef !important; font-weight: bold; color: #0b4f7a; }
+        .row-modulo-padre { background-color: #e9ecef !important; font-weight: bold; color: var(--primary-blue); }
         .indent-hijo { padding-left: 45px !important; }
-        .table-permissions thead th { background: #0b4f7a; color: white; position: sticky; top: 0; z-index: 10; }
-        .table-custom thead th {
-    background-color: #0b4f7a !important; /* Azul profesional */
-    color: #ffffff !important;            /* Texto blanco */
-    border-bottom: 2px solid #003366;   /* Línea de separación sutil */
-    text-transform: uppercase;           /* Mantiene el estilo de la imagen */
-    padding: 12px 15px;
-    font-weight: 600;
-}
+        .table-permissions thead th { background: var(--primary-blue); color: white; position: sticky; top: 0; z-index: 10; }
+        .modal-header-custom { background: var(--primary-blue); color: white; }
     </style>
 </head>
 <body class="cal-wrap">
@@ -124,38 +114,28 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($listaPerfiles)): ?>
-                    <?php foreach ($listaPerfiles as $p): ?>
-                        <?php 
-                            $_id     = $p['id_perfil'] ?? '';
-                            $_nombre = $p['nombre_perfil'] ?? '';
-                            $_desc   = $p['descripcion'] ?? '';
-                            $_status = ($p['estado'] == 1) ? 1 : 0;
-                        ?>
-                        <tr>
-                            <td class="ps-3"><?= $_id ?></td>
-                            <td class="fw-bold"><?= htmlspecialchars($_nombre) ?></td>
-                            <td><small class="text-muted"><?= htmlspecialchars($_desc) ?></small></td>
-                            <td class="text-center">
-                                <span class="badge rounded-pill <?= ($_status == 1) ? 'bg-success' : 'bg-danger' ?>">
-                                    <?= ($_status == 1) ? 'Activo' : 'Inactivo' ?>
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-primary px-3" 
-                                        onclick="abrirModalPermisos('<?= $_id ?>', '<?= htmlspecialchars($_nombre) ?>')">
-                                    <i class="fa-solid fa-lock me-1"></i> Permisos
-                                </button>
-                                <button class="btn btn-sm btn-light border ms-1" 
-                                        onclick="cargarPerfil('<?= base64_encode(json_encode($p)) ?>')">
-                                    <i class="fa-solid fa-pencil text-warning"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr><td colspan="5" class="text-center py-4 text-muted">No hay perfiles disponibles.</td></tr>
-                <?php endif; ?>
+                <?php foreach ($listaPerfiles as $p): ?>
+                <tr>
+                    <td class="ps-3"><?= $p['id_perfil'] ?></td>
+                    <td class="fw-bold"><?= htmlspecialchars($p['nombre_perfil']) ?></td>
+                    <td><small class="text-muted"><?= htmlspecialchars($p['descripcion'] ?? '') ?></small></td>
+                    <td class="text-center">
+                        <span class="badge rounded-pill <?= ($p['estado'] == 1) ? 'bg-success' : 'bg-danger' ?>">
+                            <?= ($p['estado'] == 1) ? 'Activo' : 'Inactivo' ?>
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-primary px-3" 
+                                onclick="abrirModalPermisos('<?= $p['id_perfil'] ?>', '<?= htmlspecialchars($p['nombre_perfil']) ?>')">
+                            <i class="fa-solid fa-lock me-1"></i> Permisos
+                        </button>
+                        <button class="btn btn-sm btn-light border ms-1" 
+                                onclick="cargarPerfil('<?= base64_encode(json_encode($p)) ?>')">
+                            <i class="fa-solid fa-pencil text-warning"></i>
+                        </button>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
@@ -184,7 +164,6 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
                         <?php 
                         $padres = array_filter($listaModulosMaestra, fn($m) => empty($m['id_padre']));
                         $hijos = array_filter($listaModulosMaestra, fn($m) => !empty($m['id_padre']));
-                        
                         foreach ($padres as $pad): 
                         ?>
                             <tr class="row-modulo-padre">
@@ -193,10 +172,10 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
                             <?php foreach ($hijos as $hij): if ($hij['id_padre'] == $pad['id_modulo']): ?>
                                 <tr>
                                     <td class="indent-hijo py-2"><?= htmlspecialchars($hij['nombre_modulo']) ?></td>
-                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-perm="ver"></td>
-                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-perm="crear"></td>
-                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-perm="editar"></td>
-                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-perm="eliminar"></td>
+                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="ver"></td>
+                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="crear"></td>
+                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="editar"></td>
+                                    <td class="text-center"><input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="eliminar"></td>
                                 </tr>
                             <?php endif; endforeach; ?>
                         <?php endforeach; ?>
@@ -214,20 +193,18 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    const API_URL = "/sstmanager-backend/public/index.php"; // Endpoint detectado
     const modalPerm = new bootstrap.Modal(document.getElementById('modalPermisos'));
 
     window.cargarPerfil = function(base64) {
-        try {
-            const d = JSON.parse(atob(base64));
-            document.getElementById('id_perfil').value = d.id_perfil || "";
-            document.getElementById('nombre_perfil').value = d.nombre_perfil || "";
-            document.getElementById('descripcion').value = d.descripcion || "";
-            document.getElementById('status').checked = (parseInt(d.estado) === 1);
-            document.getElementById('status-label').textContent = (parseInt(d.estado) === 1) ? "Activo" : "Inactivo";
-            
-            document.getElementById('btnGuardar').innerHTML = '<i class="fa-solid fa-sync me-2"></i>Actualizar';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } catch (e) { console.error("Error al cargar perfil:", e); }
+        const d = JSON.parse(atob(base64));
+        document.getElementById('id_perfil').value = d.id_perfil;
+        document.getElementById('nombre_perfil').value = d.nombre_perfil;
+        document.getElementById('descripcion').value = d.descripcion || "";
+        document.getElementById('status').checked = (parseInt(d.estado) === 1);
+        document.getElementById('status-label').textContent = (parseInt(d.estado) === 1) ? "Activo" : "Inactivo";
+        document.getElementById('btnGuardar').innerHTML = '<i class="fa-solid fa-sync me-2"></i>Actualizar';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     window.abrirModalPermisos = function(id, nombre) {
@@ -235,67 +212,69 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
         document.getElementById('tituloModal').innerHTML = `Accesos para: <strong>${nombre}</strong>`;
         document.querySelectorAll('.check-perm').forEach(c => c.checked = false);
 
-        fetch(`../../api/index.php?table=perfiles&action=permisos&id=${id}`, {
+        fetch(`${API_URL}?table=perfiles&action=permisos&id=${id}`, {
             headers: { 'Authorization': 'Bearer <?= $token ?>' }
         })
         .then(res => res.json())
         .then(data => {
-            // Ajuste: 'data' ahora es el array directo devuelto por el controlador
             if(Array.isArray(data)) {
                 data.forEach(p => {
-                    const marcar = (tipo, val) => {
-                        const ck = document.querySelector(`[data-modulo="${p.id_modulo}"][data-perm="${tipo}"]`);
-                        if(ck) ck.checked = (parseInt(val) === 1);
-                    };
-                    marcar('ver', p.ver); 
-                    marcar('crear', p.crear);
-                    marcar('editar', p.editar); 
-                    marcar('eliminar', p.eliminar);
+                    ['ver', 'crear', 'editar', 'eliminar'].forEach(acc => {
+                        const ck = document.querySelector(`[data-modulo="${p.id_modulo}"][data-perm="${acc}"]`);
+                        if(ck) ck.checked = (parseInt(p[acc]) === 1);
+                    });
                 });
             }
             modalPerm.show();
         })
-        .catch(err => {
-            console.error("Error cargando permisos:", err);
-            modalPerm.show();
-        });
+        .catch(() => modalPerm.show());
     };
 
     window.guardarPermisos = function() {
         const idPerfil = document.getElementById('perm_id_perfil').value;
         const matrix = [];
-        const checks = document.querySelectorAll('.check-perm');
-        const modulosIds = [...new Set([...checks].map(c => c.dataset.modulo))];
-        
+        const padresAActivar = new Set();
+        const modulosIds = [...new Set([...document.querySelectorAll('.check-perm')].map(c => c.dataset.modulo))];
+
         modulosIds.forEach(mId => {
-            matrix.push({
-                id_modulo: mId,
-                ver: document.querySelector(`[data-modulo="${mId}"][data-perm="ver"]`).checked ? 1 : 0,
-                crear: document.querySelector(`[data-modulo="${mId}"][data-perm="crear"]`).checked ? 1 : 0,
-                editar: document.querySelector(`[data-modulo="${mId}"][data-perm="editar"]`).checked ? 1 : 0,
-                eliminar: document.querySelector(`[data-modulo="${mId}"][data-perm="eliminar"]`).checked ? 1 : 0
+            const rowChecks = document.querySelectorAll(`[data-modulo="${mId}"]`);
+            let item = { "id_modulo": parseInt(mId), "ver": 0, "crear": 0, "editar": 0, "eliminar": 0 };
+            let marked = false;
+            rowChecks.forEach(ck => {
+                if(ck.checked) {
+                    item[ck.dataset.perm] = 1; marked = true;
+                    if(ck.dataset.padre) padresAActivar.add(parseInt(ck.dataset.padre));
+                }
             });
+            if(marked) matrix.push(item);
         });
 
-        fetch(`../../api/index.php?table=perfiles&action=permisos&id=${idPerfil}`, {
+        padresAActivar.forEach(pId => {
+            let p = matrix.find(m => m.id_modulo === pId);
+            if(!p) matrix.push({ "id_modulo": pId, "ver": 1, "crear": 0, "editar": 0, "eliminar": 0 });
+            else p.ver = 1;
+        });
+
+        fetch(`${API_URL}?table=perfiles&action=permisos&id=${idPerfil}`, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer <?= $token ?>' 
-            },
-            body: JSON.stringify({ permisos: matrix })
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <?= $token ?>' },
+            body: JSON.stringify(matrix)
         })
         .then(res => res.json())
         .then(res => {
-            // Ajuste: El controlador devuelve { ok: true, mensaje: "..." }
-            if(res.ok) {
-                alert(res.mensaje || "Permisos actualizados!");
-                modalPerm.hide();
+            if(res.status === 200 || res.ok) {
+                // Alerta con SweetAlert2 para evitar "localhost dice"
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'Sincronización de accesos exitosa',
+                    icon: 'success',
+                    confirmButtonColor: '#0b4f7a',
+                    confirmButtonText: 'Aceptar'
+                }).then(() => modalPerm.hide());
             } else {
-                alert("Error: " + (res.error || "No se pudo sincronizar"));
+                Swal.fire({ title: 'Error', text: res.error || 'No se guardó', icon: 'error', confirmButtonColor: '#0b4f7a' });
             }
-        })
-        .catch(err => console.error("Error:", err));
+        });
     };
 
     document.getElementById("status").addEventListener('change', function() {
