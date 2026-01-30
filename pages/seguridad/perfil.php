@@ -89,9 +89,10 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
         </div>
     </div>
 
-    <div class="bg-white rounded shadow-sm border overflow-hidden">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-dark text-uppercase small">
+     <div class="card-shadow border overflow-hidden">
+            <div class="table-scroll-container">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark text-uppercase small">
                 <tr>
                     <th width="80" class="ps-3">ID</th>
                     <th>Nombre</th>
@@ -125,9 +126,9 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
                 <?php endforeach; ?>
             </tbody>
         </table>
+      </div>
+        </div>
     </div>
-</div>
-
 <div class="modal fade" id="modalPermisos" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">

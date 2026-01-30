@@ -18,6 +18,50 @@ body.cal-wrap {
     min-height: 100vh;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
+/* --- ENCABEZADO DE MODALES ESTILO SST-MANAGER --- */
+.modal-header-custom {
+    background-color: #0b4f7a !important; /* El azul principal de tu proyecto */
+    color: #ffffff !important;
+    border-bottom: 2px solid #093d5e; /* Un tono un poco más oscuro para el borde */
+}
+
+/* Ajuste para que el título del modal sea blanco */
+.modal-header-custom .modal-title {
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Ajuste para que la 'X' de cerrar sea blanca */
+.modal-header-custom .btn-close {
+    filter: brightness(0) invert(1); /* Esto vuelve blanca la 'X' oscura de Bootstrap */
+    opacity: 0.8;
+}
+
+.modal-header-custom .btn-close:hover {
+    opacity: 1;
+}
+
+/* --- ESTILO PARA LA TABLA DE PERMISOS DENTRO DEL MODAL --- */
+.table-permissions thead th {
+    background-color: #0b4f7a !important;
+    color: #727679 !important;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.row-modulo-padre {
+    background-color: rgba(11, 79, 122, 0.05) !important; /* Fondo azul muy clarito */
+}
+
+.row-modulo-padre td {
+    color: #0b4f7a !important;
+    font-weight: 700 !important;
+}
+
 
 /* --- CONTENEDOR DE SCROLL --- */
 .table-scroll-container {
