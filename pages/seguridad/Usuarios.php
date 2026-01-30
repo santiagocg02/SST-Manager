@@ -2,6 +2,7 @@
 session_start();
 require_once '../../includes/ConexionAPI.php'; 
 
+// 1. VALIDACIÓN DE SESIÓN BÁSICA
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     header("Location: ../../index.php");
     exit;
@@ -9,20 +10,50 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 
 $api = new ConexionAPI();
 $token = $_SESSION["token"];
+$rolSesion = $_SESSION["rol"] ?? '';
+$perfilIdSesion = $_SESSION["id_perfil"] ?? 0; // ID del perfil del usuario logueado
 $mensaje_error = "";
 
-// 1. CARGAR PERFILES (GET)
+// 2. VALIDACIÓN DINÁMICA DE PERMISOS (MATRIZ)
+$misPermisos = [];
+if ($rolSesion !== "Master"|| $rol === "Administrador") {
+    // Consultar la matriz de permisos para el perfil actual
+    // Ajustado al endpoint de tu imagen: /perfiles/permisos/{id}
+    $resPermisos = $api->solicitar("index.php?table=perfiles_permisos&id_perfil=$perfilIdSesion", "GET", null, $token);
+    
+    if (isset($resPermisos['status']) && $resPermisos['status'] == 200) {
+        // Extraemos los nombres de módulos a los que tiene acceso
+        $misPermisos = array_column($resPermisos['data'], 'id_modulo'); 
+    }
+}
+
+/**
+ * Función para verificar acceso.
+ * Master siempre tiene acceso (true).
+ */
+function tieneAccesoModulo($modulo, $rol, $lista) {
+    if ($rol === "Master" || $rol === "Administrador") return true;
+    return in_array($modulo, $lista);
+}
+
+// Bloqueo de seguridad: Si no tiene el permiso 'Usuarios', redirigir
+if (!tieneAccesoModulo('Usuarios', $rolSesion, $misPermisos)) {
+    header("Location: ../bienvenida.php?error=acceso_denegado");
+    exit;
+}
+
+// 3. CARGAR PERFILES PARA EL SELECT (GET)
 $resPerfiles = $api->solicitar("index.php?table=perfiles", "GET", null, $token);
 $listaPerfiles = (isset($resPerfiles['status']) && $resPerfiles['status'] == 200) ? $resPerfiles['data'] : [];
 
-// 2. PROCESAR FORMULARIO (POST/PUT)
+// 4. PROCESAR FORMULARIO (POST/PUT)
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["email"])) {
     $id = $_POST["id"] ?? "";
-    $rol = $_POST["rol"] ?? "Usuario";
+    $rolForm = $_POST["rol"] ?? "Usuario";
 
-    // Lógica solicitada: Si es Master, el perfil es forzosamente 1 y empresa es null
-    $id_perfil_final = ($rol === "Master") ? 1 : ($_POST["id_perfil"] ?: null);
-    $id_empresa_final = ($rol === "Master") ? 1 : ($_POST["id_empresa"] ?: null);
+    // Si es Master, el perfil es forzosamente 1 y empresa es 1 (según tu lógica previa)
+    $id_perfil_final = ($rolForm === "Master") ? 1 : ($_POST["id_perfil"] ?: null);
+    $id_empresa_final = ($rolForm === "Master") ? 1 : ($_POST["id_empresa"] ?: null);
 
     $datosEnviar = [
         "nombre"           => trim($_POST["nombre"] ?? ""),
@@ -31,7 +62,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["email"])) {
         "tipo_documento"   => $_POST["tipo_documento"] ?? "CC",
         "numero_documento" => trim($_POST["numero_documento"] ?? ""),
         "password"         => !empty($_POST["password"]) ? $_POST["password"] : null,
-        "rol"              => $rol,
+        "rol"              => $rolForm,
         "id_empresa"       => $id_empresa_final,
         "id_perfil"        => $id_perfil_final,
         "estado"           => isset($_POST["status"]) ? 1 : 0
@@ -40,14 +71,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["email"])) {
     $endpoint = "index.php?table=usuarios" . (!empty($id) ? "&id=$id" : "");
     $metodo = !empty($id) ? "PUT" : "POST";
     $resultado = $api->solicitar($endpoint, $metodo, $datosEnviar, $token);
-// Añade esto justo debajo para depurar:
-if (isset($resultado['status']) && $resultado['status'] != 200 && $resultado['status'] != 201) {
-    // Esto mostrará en pantalla el error exacto que la base de datos le da a la API
-    echo "<pre>";
-    print_r($resultado); 
-    echo "</pre>";
-    die(); // Detiene la ejecución para que puedas leerlo
-}
 
     if (isset($resultado['status']) && ($resultado['status'] == 200 || $resultado['status'] == 201)) {
         $_SESSION['alerta_exito'] = !empty($id) ? "Usuario actualizado correctamente." : "Usuario creado con éxito.";
@@ -58,7 +81,7 @@ if (isset($resultado['status']) && $resultado['status'] != 200 && $resultado['st
     }
 }
 
-// 3. CARGAR LISTA DE USUARIOS
+// 5. CARGAR LISTA DE USUARIOS (GET)
 $respuestaGet = $api->solicitar("index.php?table=usuarios", "GET", null, $token);
 $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 200) ? $respuestaGet['data'] : [];
 ?>
@@ -153,10 +176,10 @@ $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 2
         </div>
     </form>
 
-   <div class="card-shadow border overflow-hidden">
-            <div class="table-scroll-container">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-dark text-uppercase small">
+    <div class="card-shadow border overflow-hidden">
+        <div class="table-scroll-container">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark text-uppercase small">
                     <tr>
                         <th class="ps-3">ID</th>
                         <th>Nombre Completo</th>
@@ -191,11 +214,11 @@ $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 2
                     <?php endforeach; ?>
                 </tbody>
             </table>
-       </div>
         </div>
     </div>
+</div>
+
 <script>
-    // OCULTAR/MOSTRAR CAMPOS SEGÚN ROL
     function verificarRol(rol) {
         const esMaster = (rol === 'Master');
         const divPerfil = document.getElementById('div_perfil');
@@ -206,19 +229,17 @@ $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 2
         if(esMaster) {
             divPerfil.style.display = 'none';
             divEmpresa.style.display = 'none';
-            selectPerfil.value = "1"; // Forzamos perfil 1 para Master
-            inputEmpresa.value = "";
+            selectPerfil.value = "1";
+            inputEmpresa.value = "1"; // Según tu lógica: Master empresa 1
         } else {
             divPerfil.style.display = 'block';
             divEmpresa.style.display = 'block';
         }
     }
 
-    // CARGAR DATOS PARA EDITAR
     function cargar(base64Data) {
         try {
             const d = JSON.parse(atob(base64Data));
-            
             document.getElementById('id').value = d.id;
             document.getElementById('nombre').value = d.datos_personales.nombre;
             document.getElementById('apellido').value = d.datos_personales.apellido;
@@ -227,7 +248,6 @@ $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 2
             document.getElementById('numero_documento').value = d.identificacion.numero;
             document.getElementById('rol').value = d.seguridad.rol_sistema;
             
-            // Lógica de perfil al cargar
             if (d.seguridad.rol_sistema === 'Master') {
                 document.getElementById('id_perfil').value = "1";
             } else {
@@ -237,7 +257,6 @@ $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 2
             document.getElementById('id_empresa').value = (d.organizacion && d.organizacion.id_empresa) ? d.organizacion.id_empresa : "";
             document.getElementById('status').checked = (d.estado_cuenta.activo === true);
             
-            // UI Update
             document.getElementById('btnGuardar').innerHTML = '<i class="fa-solid fa-sync me-2"></i>Actualizar Usuario';
             document.getElementById('btnGuardar').className = "btn btn-primary px-4 shadow-sm";
             

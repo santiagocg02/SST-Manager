@@ -30,7 +30,7 @@ $user = isset($_SESSION["usuario"]) ? trim($_SESSION["usuario"]) : '';
     <div class="validacion-content">
       <h2>SSTManager</h2>
 
-      <?php if ($rol == 'Master' || $rol == 'master'): ?>
+      <?php if ($rol == 'Master' || $rol == 'master' || $rol =='Administrador'): ?>
       
           <p>Bienvenido <strong><?php echo $user; ?></strong>. Seleccione el panel a gestionar:</p>
           
