@@ -11,35 +11,49 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 $api = new ConexionAPI();
 $token = $_SESSION["token"];
 $rolSesion = $_SESSION["rol"] ?? '';
-$perfilIdSesion = $_SESSION["id_perfil"] ?? 0; // ID del perfil del usuario logueado
-$mensaje_error = "";
+$perfilIdSesion = $_SESSION["id_perfil"] ?? 0;
 
-// 2. VALIDACIÓN DINÁMICA DE PERMISOS (MATRIZ)
 $misPermisos = [];
-if ($rolSesion !== "Master"|| $rol === "Administrador") {
-    // Consultar la matriz de permisos para el perfil actual
-    // Ajustado al endpoint de tu imagen: /perfiles/permisos/{id}
-    $resPermisos = $api->solicitar("index.php?table=perfiles_permisos&id_perfil=$perfilIdSesion", "GET", null, $token);
-    
-    if (isset($resPermisos['status']) && $resPermisos['status'] == 200) {
-        // Extraemos los nombres de módulos a los que tiene acceso
-        $misPermisos = array_column($resPermisos['data'], 'id_modulo'); 
+
+// Solo el Master se salta la carga porque tiene todo en true por defecto
+if ($rolSesion !== "Master") {
+    $resPermisos = $api->solicitar("perfiles/permisos/$perfilIdSesion/check-all", "GET", null, $token);
+    $datosFinales = isset($resPermisos['data']) ? $resPermisos['data'] : $resPermisos;
+
+    if (is_array($datosFinales)) {
+        foreach ($datosFinales as $perm) {
+            if (isset($perm['id_modulo'])) {
+                $idM = (int)$perm['id_modulo'];
+                $misPermisos[$idM] = [
+                    'ver'      => (int)($perm['ver'] ?? 0),
+                    'crear'    => (int)($perm['crear'] ?? 0),
+                    'editar'   => (int)($perm['editar'] ?? 0),
+                    'eliminar' => (int)($perm['eliminar'] ?? 0)
+                ];
+            }
+        }
     }
 }
 
 /**
- * Función para verificar acceso.
- * Master siempre tiene acceso (true).
+ * Funciones de Validación de Permisos
  */
-function tieneAccesoModulo($modulo, $rol, $lista) {
-    if ($rol === "Master" || $rol === "Administrador") return true;
-    return in_array($modulo, $lista);
+function puedeVer($idModulo, $rol, $permisos) {
+    if ($rol === "Master") return true; 
+    $id = (int)$idModulo;
+    return isset($permisos[$id]) && ($permisos[$id]['ver'] == 1);
 }
 
-// Bloqueo de seguridad: Si no tiene el permiso 'Usuarios', redirigir
-if (!tieneAccesoModulo('Usuarios', $rolSesion, $misPermisos)) {
-    header("Location: ../bienvenida.php?error=acceso_denegado");
-    exit;
+function puedeCrear($idModulo, $rol, $permisos) {
+    if ($rol === "Master") return true;
+    $id = (int)$idModulo;
+    return isset($permisos[$id]) && (int)($permisos[$id]['crear'] ?? 0) === 1;
+}
+
+function puedeEditar($idModulo, $rol, $permisos) {
+    if ($rol === "Master") return true;
+    $id = (int)$idModulo;
+    return isset($permisos[$id]) && (int)($permisos[$id]['editar'] ?? 0) === 1;
 }
 
 // 3. CARGAR PERFILES PARA EL SELECT (GET)
@@ -47,11 +61,11 @@ $resPerfiles = $api->solicitar("index.php?table=perfiles", "GET", null, $token);
 $listaPerfiles = (isset($resPerfiles['status']) && $resPerfiles['status'] == 200) ? $resPerfiles['data'] : [];
 
 // 4. PROCESAR FORMULARIO (POST/PUT)
+$mensaje_error = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["email"])) {
     $id = $_POST["id"] ?? "";
     $rolForm = $_POST["rol"] ?? "Usuario";
 
-    // Si es Master, el perfil es forzosamente 1 y empresa es 1 (según tu lógica previa)
     $id_perfil_final = ($rolForm === "Master") ? 1 : ($_POST["id_perfil"] ?: null);
     $id_empresa_final = ($rolForm === "Master") ? 1 : ($_POST["id_empresa"] ?: null);
 
@@ -84,6 +98,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["email"])) {
 // 5. CARGAR LISTA DE USUARIOS (GET)
 $respuestaGet = $api->solicitar("index.php?table=usuarios", "GET", null, $token);
 $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 200) ? $respuestaGet['data'] : [];
+
+// Definimos el ID del módulo de Usuarios (ejemplo: 5)
+$ID_MODULO = 5; 
 ?>
 <!doctype html>
 <html lang="es">
@@ -95,6 +112,11 @@ $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 2
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../assets/css/main-style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Permisos pasados de PHP a JS
+        const PUEDE_CREAR = <?= puedeCrear($ID_MODULO, $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
+        const PUEDE_EDITAR = <?= puedeEditar($ID_MODULO, $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
+    </script>
 </head>
 <body class="cal-wrap">
 
@@ -219,6 +241,13 @@ $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 2
 </div>
 
 <script>
+    // Validación inicial al cargar la página
+    document.addEventListener("DOMContentLoaded", function() {
+        if (!PUEDE_CREAR) {
+            document.getElementById('btnGuardar').style.display = 'none';
+        }
+    });
+
     function verificarRol(rol) {
         const esMaster = (rol === 'Master');
         const divPerfil = document.getElementById('div_perfil');
@@ -230,7 +259,7 @@ $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 2
             divPerfil.style.display = 'none';
             divEmpresa.style.display = 'none';
             selectPerfil.value = "1";
-            inputEmpresa.value = "1"; // Según tu lógica: Master empresa 1
+            inputEmpresa.value = "1";
         } else {
             divPerfil.style.display = 'block';
             divEmpresa.style.display = 'block';
@@ -240,6 +269,8 @@ $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 2
     function cargar(base64Data) {
         try {
             const d = JSON.parse(atob(base64Data));
+            const btn = document.getElementById('btnGuardar');
+
             document.getElementById('id').value = d.id;
             document.getElementById('nombre').value = d.datos_personales.nombre;
             document.getElementById('apellido').value = d.datos_personales.apellido;
@@ -257,8 +288,12 @@ $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 2
             document.getElementById('id_empresa').value = (d.organizacion && d.organizacion.id_empresa) ? d.organizacion.id_empresa : "";
             document.getElementById('status').checked = (d.estado_cuenta.activo === true);
             
-            document.getElementById('btnGuardar').innerHTML = '<i class="fa-solid fa-sync me-2"></i>Actualizar Usuario';
-            document.getElementById('btnGuardar').className = "btn btn-primary px-4 shadow-sm";
+            // Cambio dinámico de botón con validación de permiso
+            btn.innerHTML = '<i class="fa-solid fa-sync me-2"></i>Actualizar Usuario';
+            btn.className = "btn btn-primary px-4 shadow-sm";
+            
+            // Si es edición y no tiene permiso, ocultamos
+            btn.style.display = PUEDE_EDITAR ? 'inline-block' : 'none';
             
             verificarRol(d.seguridad.rol_sistema);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -268,10 +303,16 @@ $listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 2
     }
 
     function limpiarForm() {
+        const btn = document.getElementById('btnGuardar');
         document.getElementById('formUsuario').reset();
         document.getElementById('id').value = "";
-        document.getElementById('btnGuardar').innerHTML = '<i class="fa-solid fa-save me-2"></i>Guardar Usuario';
-        document.getElementById('btnGuardar').className = "btn btn-success px-4 shadow-sm";
+        
+        btn.innerHTML = '<i class="fa-solid fa-save me-2"></i>Guardar Usuario';
+        btn.className = "btn btn-success px-4 shadow-sm";
+        
+        // Al limpiar para crear nuevo, validamos permiso de creación
+        btn.style.display = PUEDE_CREAR ? 'inline-block' : 'none';
+
         verificarRol('Usuario');
     }
 </script>
