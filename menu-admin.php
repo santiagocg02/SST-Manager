@@ -101,11 +101,11 @@ if ($rolSesion !== "Master") {
             </h2>
             <div id="collapseAdmin" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
               <div class="accordion-body py-2">
-                <?php if(puedeVer(7, $rolSesion, $misPermisos)): ?><a href="pages/tipo-empresa.php" target="contentFrame" class="admin-subitem">Tipos de Empresa</a><?php endif; ?>
-                <?php if(puedeVer(8, $rolSesion, $misPermisos)): ?><a href="pages/item1072.php" target="contentFrame" class="admin-subitem">Item 1072</a><?php endif; ?>
-                <?php if(puedeVer(9, $rolSesion, $misPermisos)): ?><a href="pages/guia-ruc.php" target="contentFrame" class="admin-subitem">Item Guía RUC</a><?php endif; ?>
-                <?php if(puedeVer(10, $rolSesion, $misPermisos)): ?><a href="pages/formulario.php" target="contentFrame" class="admin-subitem">Formularios</a><?php endif; ?>
-                <?php if(puedeVer(11, $rolSesion, $misPermisos)): ?><a href="pages/calificacion.php" target="contentFrame" class="admin-subitem">Calificación</a><?php endif; ?>
+                <?php if(puedeVer(7, $rolSesion, $misPermisos)): ?><a href="pages/administracion/tipo-empresa.php" target="contentFrame" class="admin-subitem">Tipos de Empresa</a><?php endif; ?>
+                <?php if(puedeVer(8, $rolSesion, $misPermisos)): ?><a href="pages/administracion/item1072.php" target="contentFrame" class="admin-subitem">Item 1072</a><?php endif; ?>
+                <?php if(puedeVer(9, $rolSesion, $misPermisos)): ?><a href="pages/administracion/guia-ruc.php" target="contentFrame" class="admin-subitem">Item Guía RUC</a><?php endif; ?>
+                <?php if(puedeVer(10, $rolSesion, $misPermisos)): ?><a href="pages/administracion/formulario.php" target="contentFrame" class="admin-subitem">Formularios</a><?php endif; ?>
+                <?php if(puedeVer(11, $rolSesion, $misPermisos)): ?><a href="pages/administracion/calificacion.php" target="contentFrame" class="admin-subitem">Calificación</a><?php endif; ?>
               </div>
             </div>
           </div>
