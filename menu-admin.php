@@ -120,7 +120,7 @@ if ($rolSesion !== "Master") {
             </h2>
             <div id="collapseEmpresa" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
               <div class="accordion-body py-2">
-                <?php if(puedeVer(13, $rolSesion, $misPermisos)): ?><a href="#" class="admin-subitem">Crear</a><?php endif; ?>
+                <?php if(puedeVer(13, $rolSesion, $misPermisos)): ?><a href="pages/empresa/Empresa.php" target="contentFrame"  class="admin-subitem">Crear</a><?php endif; ?>
               </div>
             </div>
           </div>
