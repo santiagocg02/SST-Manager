@@ -104,8 +104,8 @@ if ($rolSesion !== "Master") {
                 <?php if(puedeVer(7, $rolSesion, $misPermisos)): ?><a href="pages/administracion/tipo-empresa.php" target="contentFrame" class="admin-subitem">Tipos de Empresa</a><?php endif; ?>
                 <?php if(puedeVer(8, $rolSesion, $misPermisos)): ?><a href="pages/administracion/item1072.php" target="contentFrame" class="admin-subitem">Item 1072</a><?php endif; ?>
                 <?php if(puedeVer(9, $rolSesion, $misPermisos)): ?><a href="pages/administracion/guia-ruc.php" target="contentFrame" class="admin-subitem">Item Guía RUC</a><?php endif; ?>
-                <?php if(puedeVer(10, $rolSesion, $misPermisos)): ?><a href="pages/administracion/formulario.php" target="contentFrame" class="admin-subitem">Formularios</a><?php endif; ?>
-                <?php if(puedeVer(11, $rolSesion, $misPermisos)): ?><a href="pages/administracion/calificacion.php" target="contentFrame" class="admin-subitem">Calificación</a><?php endif; ?>
+                  <?php if(puedeVer(11, $rolSesion, $misPermisos)): ?><a href="pages/administracion/calificacion.php" target="contentFrame" class="admin-subitem">Calificación</a><?php endif; ?>
+                    <?php if(puedeVer(10, $rolSesion, $misPermisos)): ?><a href="pages/administracion/formulario.php" target="contentFrame" class="admin-subitem">Formularios</a><?php endif; ?>
               </div>
             </div>
           </div>

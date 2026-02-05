@@ -15,34 +15,45 @@ $mensaje = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $id = $_POST["id"] ?? "";
 
-    $datosEnviar = [
-        "tamano_empresa"       => trim($_POST["tamano_empresa"] ?? ""),
-        "cantidad_empleados"   => trim($_POST["cantidad_empleados"] ?? ""),
-        "cantidad_por_sede"    => trim($_POST["cantidad_por_sede"] ?? ""),
-        "aplicacion"           => trim($_POST["aplicacion"] ?? ""),
-        "estado"               => isset($_POST["status"]) ? 1 : 0
-    ];
+    // ✅ Alineado con Model/DB: tipo_empresa(tamano_empresa, empleados_desde, empleados_hasta, estado)
+    $tamano  = trim($_POST["tamano_empresa"] ?? "");
+    $desde   = isset($_POST["empleados_desde"]) ? (int)$_POST["empleados_desde"] : null;
+    $hasta   = isset($_POST["empleados_hasta"]) ? (int)$_POST["empleados_hasta"] : null;
+    $estado  = isset($_POST["estado"]) ? 1 : 0; // checkbox
 
-    if (!empty($datosEnviar["tamano_empresa"])) {
-        $endpoint = "index.php?table=tipo_empresa" . (!empty($id) ? "&id=$id" : "");
+    // Validaciones básicas (coherentes con controller)
+    if ($tamano === "") {
+        $mensaje = "El tamaño de empresa es obligatorio.";
+    } elseif ($desde === null || $hasta === null) {
+        $mensaje = "Los rangos de empleados son obligatorios.";
+    } elseif ($desde > $hasta) {
+        $mensaje = "El valor 'Desde' no puede ser mayor al valor 'Hasta'.";
+    } else {
+        $datosEnviar = [
+            "tamano_empresa"  => $tamano,
+            "empleados_desde" => $desde,
+            "empleados_hasta" => $hasta,
+            "estado"          => $estado
+        ];
+
+        // Nota: tu router actual es index.php?table=tipo_empresa (&id=...)
+        $endpoint = "index.php?table=tipo_empresa" . (!empty($id) ? "&id=" . urlencode($id) : "");
         $metodo   = !empty($id) ? "PUT" : "POST";
 
         $resultado = $api->solicitar($endpoint, $metodo, $datosEnviar, $token);
 
-        if ($resultado['status'] == 200 || $resultado['status'] == 201) {
+        if (($resultado['status'] ?? 0) == 200 || ($resultado['status'] ?? 0) == 201) {
             header("Location: tipo-empresa.php");
             exit;
         } else {
             $mensaje = "Error: " . json_encode($resultado);
         }
-    } else {
-        $mensaje = "El tamaño de empresa es obligatorio.";
     }
 }
 
 // GET (listar)
 $respuestaGet = $api->solicitar("index.php?table=tipo_empresa", "GET", null, $token);
-$lista = ($respuestaGet['status'] == 200 && isset($respuestaGet['data']) && is_array($respuestaGet['data']))
+$lista = (($respuestaGet['status'] ?? 0) == 200 && isset($respuestaGet['data']) && is_array($respuestaGet['data']))
     ? $respuestaGet['data']
     : [];
 ?>
@@ -90,19 +101,20 @@ $lista = ($respuestaGet['status'] == 200 && isset($respuestaGet['data']) && is_a
             </div>
 
             <div class="col-md-3">
-                <label class="fw-bold small text-muted">CANTIDAD EMPLEADOS DESDE </label>
-                <input type="number" id="cantidad_empleados" name="cantidad_empleados" class="form-control" min="0">
+                <label class="fw-bold small text-muted">CANTIDAD EMPLEADOS DESDE</label>
+                <input type="number" id="empleados_desde" name="empleados_desde" class="form-control" min="0" required>
             </div>
 
             <div class="col-md-3">
                 <label class="fw-bold small text-muted">CANTIDAD EMPLEADOS HASTA</label>
-                <input type="number" id="cantidad_por_sede" name="cantidad_por_sede" class="form-control" min="0">
+                <input type="number" id="empleados_hasta" name="empleados_hasta" class="form-control" min="0" required>
             </div>
 
             <div class="col-md-2 text-center">
                 <label class="fw-bold small d-block text-muted">ESTADO</label>
                 <label class="switch mt-1">
-                    <input type="checkbox" id="status" name="status" checked>
+                    <!-- ✅ name="estado" para que coincida con DB/controller -->
+                    <input type="checkbox" id="status" name="estado" checked>
                     <span class="slider"></span>
                 </label>
             </div>
@@ -141,8 +153,8 @@ $lista = ($respuestaGet['status'] == 200 && isset($respuestaGet['data']) && is_a
                         ?>
                         <tr>
                             <td class="fw-bold"><?= htmlspecialchars($row["tamano_empresa"] ?? "") ?></td>
-                            <td><?= htmlspecialchars($row["cantidad_empleados"] ?? "") ?></td>
-                            <td><?= htmlspecialchars($row["cantidad_por_sede"] ?? "") ?></td>
+                            <td><?= htmlspecialchars($row["empleados_desde"] ?? "") ?></td>
+                            <td><?= htmlspecialchars($row["empleados_hasta"] ?? "") ?></td>
                             <td>
                                 <span class="<?= $estadoCls ?>"><?= $estadoTxt ?></span>
                             </td>
@@ -166,26 +178,28 @@ $lista = ($respuestaGet['status'] == 200 && isset($respuestaGet['data']) && is_a
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    function cargar(base64Data) {
-        const d = JSON.parse(atob(base64Data));
+  function cargar(base64Data) {
+    const d = JSON.parse(atob(base64Data));
 
-        // Ajusta el id real si tu API usa otro nombre:
-        document.getElementById('id').value = d.id_tipo_empresa ?? d.id ?? "";
+    // ✅ id correcto de tu tabla
+    document.getElementById('id').value = d.id_config ?? d.id ?? "";
 
-        document.getElementById('tamano_empresa').value = d.tamano_empresa ?? "";
-        document.getElementById('cantidad_empleados').value = d.cantidad_empleados ?? "";
-        document.getElementById('cantidad_por_sede').value = d.cantidad_por_sede ?? "";
-        document.getElementById('status').checked = (Number(d.estado) === 1);
+    document.getElementById('tamano_empresa').value = d.tamano_empresa ?? "";
+    document.getElementById('empleados_desde').value = d.empleados_desde ?? "";
+    document.getElementById('empleados_hasta').value = d.empleados_hasta ?? "";
 
-        document.getElementById('btnGuardar').textContent = "Actualizar";
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    document.getElementById('status').checked = (Number(d.estado) === 1);
 
-    function limpiarForm() {
-        document.getElementById('formTipoEmpresa').reset();
-        document.getElementById('id').value = "";
-        document.getElementById('btnGuardar').textContent = "Guardar";
-    }
+    document.getElementById('btnGuardar').textContent = "Actualizar";
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function limpiarForm() {
+    document.getElementById('formTipoEmpresa').reset();
+    document.getElementById('id').value = "";
+    document.getElementById('btnGuardar').textContent = "Guardar";
+  }
 </script>
+
 </body>
 </html>

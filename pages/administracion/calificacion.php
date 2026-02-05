@@ -7,7 +7,6 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   exit;
 }
 
-// Si luego conectas API aquí, ya tienes $api y $token listos:
 $api = new ConexionAPI();
 $token = $_SESSION["token"];
 $mensaje = "";
@@ -24,7 +23,6 @@ $mensaje = "";
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
-    /* Para ocultar el detalle (sin depender de tu CSS) */
     .hidden { display: none !important; }
   </style>
 </head>
@@ -46,27 +44,22 @@ $mensaje = "";
       <form id="formCalificacion" onsubmit="return false;">
         <div class="row g-3 align-items-end">
 
-          <!-- Nombre -->
           <div class="col-md-6">
             <label class="fw-bold small text-muted text-uppercase">Nombre calificación</label>
             <input id="nombre" class="form-control" type="text" placeholder="Ej: Cumple / No cumple">
           </div>
 
-          <!-- Botón mostrar detalle -->
           <div class="col-md-3">
             <button type="button" class="btn btn-outline-secondary w-100" id="btnModo">
               AGREGAR CALIFICACIÓN
             </button>
           </div>
 
-          <!-- Espacio -->
           <div class="col-md-3"></div>
-
         </div>
 
-        <!-- DETALLE (OCULTO AL INICIO) -->
+        <!-- DETALLE -->
         <div class="row g-3 mt-0 hidden" id="detalle">
-
           <div class="col-md-6">
             <label class="fw-bold small text-muted text-uppercase">Descripción</label>
             <input id="descripcion" class="form-control" type="text" placeholder="Ej: Evidencia requerida">
@@ -74,7 +67,7 @@ $mensaje = "";
 
           <div class="col-md-3">
             <label class="fw-bold small text-muted text-uppercase">Valor</label>
-            <input id="valor" class="form-control" type="number" min="0" placeholder="Ej: 10">
+            <input id="valor" class="form-control" type="number" min="0" step="0.01" placeholder="Ej: 10">
           </div>
 
           <div class="col-md-3 text-center">
@@ -84,17 +77,11 @@ $mensaje = "";
               <span class="slider"></span>
             </label>
           </div>
-
         </div>
 
-        <!-- BOTONES (A LA IZQUIERDA) -->
         <div class="mt-3">
-          <button type="button" class="btn btn-success px-4 shadow-sm" id="btnAgregar">
-            Guardar
-          </button>
-          <button type="button" class="btn btn-outline-secondary px-4" id="btnCancelar">
-            Limpiar
-          </button>
+          <button type="button" class="btn btn-success px-4 shadow-sm" id="btnAgregar">Guardar</button>
+          <button type="button" class="btn btn-outline-secondary px-4" id="btnCancelar">Limpiar</button>
         </div>
       </form>
     </div>
@@ -112,12 +99,9 @@ $mensaje = "";
           </thead>
           <tbody id="tbody">
             <tr>
-              <td colspan="4" class="text-center text-muted py-4">
-                No hay registros.
-              </td>
+              <td colspan="3" class="text-center text-muted py-4">Cargando...</td>
             </tr>
           </tbody>
-
         </table>
       </div>
     </div>
@@ -125,81 +109,207 @@ $mensaje = "";
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
   <script>
-    let modoDetalle = false;
-    let autoId = 1;
+  const API_URL = "http://localhost/SSTMANAGER-BACKEND/public/index.php?table=calificaciones";
 
-    const $ = (id) => document.getElementById(id);
+  let modoDetalle = false;
+  const $ = (id) => document.getElementById(id);
 
-    // Mostrar el detalle SOLO cuando se hace clic
-    $("btnModo").addEventListener("click", () => {
-      modoDetalle = true;
-      $("detalle").classList.remove("hidden");
+  function getEstadoDetalle() {
+    return $("status").checked ? "Activo" : "Inactivo";
+  }
 
-      // Cambia el encabezado de tabla a modo detalle
+  // Cambia headers segun modo
+  function renderHeader() {
+    if (!modoDetalle) {
       $("thead").innerHTML = `
         <tr>
+          <th width="80">ID</th>
+          <th>NOMBRE</th>
+          <th class="text-center">ESTADO</th>
+        </tr>
+      `;
+    } else {
+      $("thead").innerHTML = `
+        <tr>
+          <th width="80">ID</th>
           <th>CALIFICACIÓN</th>
           <th>DESCRIPCIÓN</th>
           <th>VALOR</th>
           <th class="text-center">ESTADO</th>
         </tr>
       `;
+    }
+  }
+
+  // Render body segun modo
+  function renderRows(data) {
+    const tbody = $("tbody");
+
+    if (!Array.isArray(data) || data.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="${modoDetalle ? 5 : 3}" class="text-center text-muted py-4">
+            No hay registros.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    if (!modoDetalle) {
+      // MODO NORMAL: muestra solo padre
+      tbody.innerHTML = data.map(r => `
+        <tr>
+          <td>${r.id ?? r.id_calificacion ?? ""}</td>
+          <td>${r.nombre ?? ""}</td>
+          <td class="text-center">${r.estado ?? "Activo"}</td>
+        </tr>
+      `).join("");
+      return;
+    }
+
+    // MODO DETALLE: si una calificación tiene varios items, muestra una fila por item
+    const filas = [];
+    data.forEach(r => {
+      const id = r.id ?? r.id_calificacion ?? "";
+      const nombre = r.nombre ?? "";
+
+      const items = Array.isArray(r.items) ? r.items : [];
+
+      if (items.length === 0) {
+        // si no hay detalle, igual mostramos la calificación (sin columnas detalle)
+        filas.push(`
+          <tr>
+            <td>${id}</td>
+            <td>${nombre}</td>
+            <td></td>
+            <td></td>
+            <td class="text-center">${r.estado ?? "Activo"}</td>
+          </tr>
+        `);
+      } else {
+        items.forEach(it => {
+          filas.push(`
+            <tr>
+              <td>${id}</td>
+              <td>${nombre}</td>
+              <td>${it.descripcion ?? ""}</td>
+              <td>${it.valor ?? ""}</td>
+              <td class="text-center">${it.estado ?? r.estado ?? "Activo"}</td>
+            </tr>
+          `);
+        });
+      }
     });
 
-    $("btnAgregar").onclick = () => {
-  const nombre = $("nombre").value.trim();
-
-  if (!nombre) return alert("Ingresa el nombre de la calificación");
-
-  const tbody = $("tbody");
-
-  // ✅ quitar "No hay registros"
-  if (
-    tbody.children.length === 1 &&
-    tbody.children[0].querySelector("td[colspan]")
-  ) {
-    tbody.innerHTML = "";
+    tbody.innerHTML = filas.join("");
   }
 
-  if (!modoDetalle) {
-    tbody.innerHTML += `
+  async function cargarTabla() {
+    renderHeader();
+    const tbody = $("tbody");
+
+    tbody.innerHTML = `
       <tr>
-        <td>${autoId++}</td>
-        <td>${nombre}</td>
-        <td></td>
-      </tr>`;
-  } else {
-    const desc = $("descripcion").value.trim();
-    const valor = $("valor").value.trim();
-    const estado = $("estado").value;
+        <td colspan="${modoDetalle ? 5 : 3}" class="text-center text-muted py-4">
+          Cargando...
+        </td>
+      </tr>
+    `;
 
-    if (!desc || !valor || !estado)
-      return alert("Completa descripción, valor y estado");
-
-    tbody.innerHTML += `
-      <tr>
-        <td>${nombre}</td>
-        <td>${desc}</td>
-        <td>${valor}</td>
-        <td>${estado}</td>
-      </tr>`;
-  }
-
-  limpiar();
-};
-
-
-    $("btnCancelar").addEventListener("click", limpiar);
-
-    function limpiar() {
-      // Limpiar inputs
-      document.querySelectorAll("#formCalificacion input").forEach(el => {
-        if (el.type === "checkbox") el.checked = true;
-        else el.value = "";
-      });
+    try {
+      const res = await fetch(API_URL, { method: "GET", mode: "cors" });
+      const data = await res.json();
+      renderRows(data);
+    } catch (e) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="${modoDetalle ? 5 : 3}" class="text-center text-danger py-4">
+            Error cargando: ${e.message}
+          </td>
+        </tr>
+      `;
     }
-  </script>
+  }
+
+  // BOTÓN: activa modo detalle y muestra inputs ocultos
+  $("btnModo").addEventListener("click", async () => {
+    modoDetalle = true;
+    $("detalle").classList.remove("hidden");
+    await cargarTabla();
+  });
+
+  // Limpiar
+  $("btnCancelar").addEventListener("click", () => {
+    limpiar();
+    // opcional: volver a modo normal al limpiar
+    modoDetalle = false;
+    $("detalle").classList.add("hidden");
+    cargarTabla();
+  });
+
+  function limpiar() {
+    document.querySelectorAll("#formCalificacion input").forEach(el => {
+      if (el.type === "checkbox") el.checked = true;
+      else el.value = "";
+    });
+  }
+
+  // Guardar
+  $("btnAgregar").onclick = async () => {
+    const nombre = $("nombre").value.trim();
+    if (!nombre) return Swal.fire("Falta el nombre", "Ingresa el nombre.", "warning");
+
+    const payload = { nombre, estado: "Activo" };
+
+    if (modoDetalle) {
+      const desc = $("descripcion").value.trim();
+      const valor = $("valor").value;
+
+      if (!desc || valor === "") {
+        return Swal.fire("Campos incompletos", "Completa descripción y valor.", "warning");
+      }
+
+      payload.items = [{
+        descripcion: desc,
+        valor: parseFloat(valor),
+        estado: getEstadoDetalle()
+      }];
+    }
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        return Swal.fire("Error", data.error || "No se pudo guardar.", "error");
+      }
+
+      Swal.fire("✅ Guardado", `ID: ${data.id}`, "success");
+      limpiar();
+      await cargarTabla();
+
+    } catch (e) {
+      Swal.fire("Error", e.message, "error");
+    }
+  };
+
+  // Al cargar la página: modo normal
+  document.addEventListener("DOMContentLoaded", () => {
+    modoDetalle = false;
+    $("detalle").classList.add("hidden");
+    cargarTabla();
+  });
+</script>
+
 
 </body>
 </html>
