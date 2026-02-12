@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../../includes/ConexionAPI.php'; 
+require_once '../../includes/ConexionAPI.php';
 
 // 1. VALIDACIÓN DE SESIÓN Y CARGA DE PERMISOS
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
@@ -40,7 +40,7 @@ $MOD_SST = 15;
 
 // 3. CARGA DE DATOS REALES DESDE API
 $resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
-$listaEmpresas = ($resEmpresas['status'] == 200) ? $resEmpresas['data'] : [];
+$listaEmpresas = ($resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) : [];
 ?>
 <!doctype html>
 <html lang="es">
@@ -83,8 +83,8 @@ $listaEmpresas = ($resEmpresas['status'] == 200) ? $resEmpresas['data'] : [];
             <tbody>
                 <?php foreach ($listaEmpresas as $e): ?>
                 <tr>
-                    <td class="ps-3 small text-muted"><?= htmlspecialchars($e['nit']) ?></td>
-                    <td class="fw-bold"><?= htmlspecialchars($e['nombre_empresa']) ?></td>
+                    <td class="ps-3 small text-muted"><?= htmlspecialchars($e['numero_documento'] ?? '') ?></td>
+                    <td class="fw-bold"><?= htmlspecialchars($e['nombre_empresa'] ?? '') ?></td>
                     <td><?= htmlspecialchars($e['nombre_rl'] ?? 'N/A') ?></td>
                     <td class="small">
                         <i class="fa-solid fa-envelope me-1 text-muted"></i> <?= htmlspecialchars($e['email_contacto'] ?? 'N/A') ?><br>
@@ -92,11 +92,11 @@ $listaEmpresas = ($resEmpresas['status'] == 200) ? $resEmpresas['data'] : [];
                     </td>
                     <td class="text-center">
                         <?php if(puede($MOD_SST, 'crear', $rolSesion, $misPermisos)): ?>
-                            <button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" onclick="abrirModalSST(<?= $e['id_empresa'] ?>, '<?= htmlspecialchars($e['nombre_empresa']) ?>')">
+                            <button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" onclick="abrirModalSST(<?= (int)($e['id_empresa'] ?? 0) ?>, '<?= htmlspecialchars($e['nombre_empresa'] ?? '') ?>')">
                                 <i class="fa-solid fa-user-shield me-1"></i> SST
                             </button>
                         <?php endif; ?>
-                        
+
                         <?php if(puede($MOD_EMPRESA, 'editar', $rolSesion, $misPermisos)): ?>
                             <button class="btn btn-sm btn-light border ms-1 shadow-sm" onclick="cargarParaEditar('<?= base64_encode(json_encode($e)) ?>')">
                                 <i class="fa-solid fa-pencil text-warning"></i>
@@ -122,7 +122,7 @@ $listaEmpresas = ($resEmpresas['status'] == 200) ? $resEmpresas['data'] : [];
             </div>
             <div class="modal-body px-4">
                 <form id="formEmpresa">
-                    <input type="hidden" id="id_empresa" name="id">
+                    <input type="hidden" id="id_empresa">
                     <div class="row g-2">
                         <div class="col-md-5">
                             <label class="label-custom">Nombre empresa / Razón Social</label>
@@ -137,7 +137,7 @@ $listaEmpresas = ($resEmpresas['status'] == 200) ? $resEmpresas['data'] : [];
                         </div>
                         <div class="col-md-5">
                             <label class="label-custom">Número documento</label>
-                            <input type="text" name="nit" id="nit" class="form-control form-control-sm" required>
+                            <input type="text" name="numero_documento" id="numero_documento" class="form-control form-control-sm" required>
                         </div>
                     </div>
 
@@ -159,9 +159,10 @@ $listaEmpresas = ($resEmpresas['status'] == 200) ? $resEmpresas['data'] : [];
                         <div class="col-md-3"><label class="label-custom">Directos</label><input type="number" name="cant_directos" id="cant_directos" class="form-control form-control-sm" value="0"></div>
                         <div class="col-md-3"><label class="label-custom">Contratistas</label><input type="number" name="cant_contratistas" id="cant_contratistas" class="form-control form-control-sm" value="0"></div>
                         <div class="col-md-3"><label class="label-custom">Aprendices</label><input type="number" name="cant_aprendices" id="cant_aprendices" class="form-control form-control-sm" value="0"></div>
-                        <div class="col-md-3"><label class="label-custom">Brigadistas</label><input type="number" name="cant_brigadistas" id="cant_brigadistas" class="form-control form-control-sm" value="0"></div>
+                        <div class="col-md-3"><label class="label-custom">Temporales</label><input type="number" name="cant_brigadistas" id="cant_brigadistas" class="form-control form-control-sm" value="0"></div>
                     </div>
-                    <input type="hidden" name="id_plan" value="1"> 
+
+                    <input type="hidden" name="id_plan" value="1">
                 </form>
             </div>
             <div class="modal-footer border-0">
@@ -205,95 +206,131 @@ $listaEmpresas = ($resEmpresas['status'] == 200) ? $resEmpresas['data'] : [];
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const modalEmpresa = new bootstrap.Modal(document.getElementById('modalFormEmpresa'));
-    const modalSST = new bootstrap.Modal(document.getElementById('modalSST'));
+  const modalEmpresa = new bootstrap.Modal(document.getElementById('modalFormEmpresa'));
+  const modalSST = new bootstrap.Modal(document.getElementById('modalSST'));
 
-    function abrirModalCrear() {
-        document.getElementById('formEmpresa').reset();
-        document.getElementById('id_empresa').value = "";
-        document.getElementById('tituloModalEmpresa').innerText = "Registrar Nueva Empresa";
-        modalEmpresa.show();
+  // ✅ Backend real (en tu caso está en /public/index.php)
+  const API_URL = "http://localhost/sstmanager-backend/public/index.php";
+
+  function abrirModalCrear() {
+    document.getElementById('formEmpresa').reset();
+    document.getElementById('id_empresa').value = "";
+    document.getElementById('tituloModalEmpresa').innerText = "Registrar Nueva Empresa";
+    modalEmpresa.show();
+  }
+
+  function cargarParaEditar(base64) {
+    try {
+      const d = JSON.parse(atob(base64));
+      document.getElementById('tituloModalEmpresa').innerText =
+        "Editar Empresa: " + (d.nombre_empresa ?? '');
+
+      document.getElementById('id_empresa').value = d.id_empresa ?? "";
+      document.getElementById('nombre_empresa').value = d.nombre_empresa ?? "";
+      document.getElementById('tipo_documento').value = d.tipo_documento || 'NIT';
+      document.getElementById('numero_documento').value = d.numero_documento ?? "";
+      document.getElementById('direccion').value = d.direccion || "";
+      document.getElementById('telefono').value = d.telefono || "";
+      document.getElementById('email_contacto').value = d.email_contacto || "";
+      document.getElementById('nombre_rl').value = d.nombre_rl || "";
+      document.getElementById('documento_rl').value = d.documento_rl || "";
+      document.getElementById('cant_directos').value = d.cant_directos || 0;
+      document.getElementById('cant_contratistas').value = d.cant_contratistas || 0;
+      document.getElementById('cant_aprendices').value = d.cant_aprendices || 0;
+      document.getElementById('cant_brigadistas').value = d.cant_brigadistas || 0;
+
+      modalEmpresa.show();
+    } catch (e) {
+      console.error("Error al cargar datos:", e);
     }
+  }
 
-    function cargarParaEditar(base64) {
-        try {
-            const d = JSON.parse(atob(base64));
-            document.getElementById('tituloModalEmpresa').innerText = "Editar Empresa: " + d.nombre_empresa;
-            
-            // Asignación directa según el JSON plano
-            document.getElementById('id_empresa').value = d.id_empresa;
-            document.getElementById('nombre_empresa').value = d.nombre_empresa;
-            document.getElementById('tipo_documento').value = d.tipo_documento || 'NIT';
-            document.getElementById('nit').value = d.nit;
-            document.getElementById('direccion').value = d.direccion || "";
-            document.getElementById('telefono').value = d.telefono || "";
-            document.getElementById('email_contacto').value = d.email_contacto || "";
-            document.getElementById('nombre_rl').value = d.nombre_rl || "";
-            document.getElementById('documento_rl').value = d.documento_rl || "";
-            document.getElementById('cant_directos').value = d.cant_directos || 0;
-            document.getElementById('cant_contratistas').value = d.cant_contratistas || 0;
-            document.getElementById('cant_aprendices').value = d.cant_aprendices || 0;
-            document.getElementById('cant_brigadistas').value = d.cant_brigadistas || 0;
-            
-            modalEmpresa.show();
-        } catch (e) {
-            console.error("Error al cargar datos:", e);
-        }
+  function abrirModalSST(id, nombre) {
+    document.getElementById('formSST').reset();
+    document.getElementById('sst_id_empresa').value = id;
+    document.getElementById('sst_nombre_empresa').value = nombre;
+    modalSST.show();
+  }
+
+  async function guardarEmpresa() {
+    const form = document.getElementById('formEmpresa');
+    if (!form.checkValidity()) return form.reportValidity();
+
+    const data = Object.fromEntries(new FormData(form).entries());
+    const id = document.getElementById('id_empresa').value;
+
+    const url = `${API_URL}?table=empresas${id ? '&id=' + id : ''}`;
+    const method = id ? 'PUT' : 'POST';
+
+    try {
+      const resp = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer <?= $token ?>'
+        },
+        body: JSON.stringify(data)
+      });
+
+      const text = await resp.text();
+      let res;
+      try { res = JSON.parse(text); }
+      catch {
+        console.log("RESPUESTA NO JSON:", text);
+        Swal.fire('Error', 'La API devolvió HTML o error. Revisa consola.', 'error');
+        return;
+      }
+
+      if (res.id || res.ok) {
+        Swal.fire('¡Éxito!', res.mensaje || 'Empresa guardada', 'success')
+          .then(() => location.reload());
+      } else {
+        Swal.fire('Error', res.error || 'No se pudo guardar', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      Swal.fire('Error', 'No se pudo conectar con la API', 'error');
     }
+  }
 
-    function abrirModalSST(id, nombre) {
-        document.getElementById('formSST').reset();
-        document.getElementById('sst_id_empresa').value = id;
-        document.getElementById('sst_nombre_empresa').value = nombre;
-        modalSST.show();
+  async function guardarSST() {
+    const form = document.getElementById('formSST');
+    if (!form.checkValidity()) return form.reportValidity();
+
+    const data = Object.fromEntries(new FormData(form).entries());
+
+    try {
+      const resp = await fetch(`${API_URL}?table=personal_sst`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer <?= $token ?>'
+        },
+        body: JSON.stringify(data)
+      });
+
+      const text = await resp.text();
+      let res;
+      try { res = JSON.parse(text); }
+      catch {
+        console.log("RESPUESTA NO JSON:", text);
+        Swal.fire('Error', 'La API devolvió HTML o error. Revisa consola.', 'error');
+        return;
+      }
+
+      if (res.id || res.ok) {
+        Swal.fire('¡Asociado!', 'Profesional SST vinculado correctamente', 'success')
+          .then(() => modalSST.hide());
+      } else {
+        Swal.fire('Error', res.error || 'No se pudo asociar', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      Swal.fire('Error', 'No se pudo conectar con la API', 'error');
     }
-
-    async function guardarEmpresa() {
-        const form = document.getElementById('formEmpresa');
-        if(!form.checkValidity()) return form.reportValidity();
-
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
-        const id = document.getElementById('id_empresa').value;
-
-        const url = `../../api/index.php?table=empresas${id ? '&id='+id : ''}`;
-        const method = id ? 'PUT' : 'POST';
-
-        try {
-            const resp = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <?= $token ?>' },
-                body: JSON.stringify(data)
-            });
-            const res = await resp.json();
-            if(res.id || res.ok) {
-                Swal.fire('¡Éxito!', res.mensaje || 'Empresa guardada', 'success').then(() => location.reload());
-            } else {
-                Swal.fire('Error', res.error || 'No se pudo guardar', 'error');
-            }
-        } catch(e) { console.error(e); }
-    }
-
-    async function guardarSST() {
-        const form = document.getElementById('formSST');
-        if(!form.checkValidity()) return form.reportValidity();
-
-        const data = Object.fromEntries(new FormData(form).entries());
-
-        try {
-            const resp = await fetch('../../api/index.php?table=personal_sst', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <?= $token ?>' },
-                body: JSON.stringify(data)
-            });
-            const res = await resp.json();
-            if(res.id) {
-                Swal.fire('¡Asociado!', 'Profesional SST vinculado correctamente', 'success').then(() => modalSST.hide());
-            } else {
-                Swal.fire('Error', res.error || 'No se pudo asociar', 'error');
-            }
-        } catch(e) { console.error(e); }
-    }
+  }
 </script>
+
+
 </body>
 </html>
