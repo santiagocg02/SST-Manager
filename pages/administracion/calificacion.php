@@ -24,6 +24,7 @@ $mensaje = "";
 
   <style>
     .hidden { display: none !important; }
+    .btn-icon { display:inline-flex; align-items:center; gap:8px; }
   </style>
 </head>
 
@@ -39,49 +40,42 @@ $mensaje = "";
       <div class="alert alert-danger"><?= htmlspecialchars($mensaje) ?></div>
     <?php endif; ?>
 
-    <!-- CARD FORM -->
+    <!-- CARD FORM (solo nombre) -->
     <div class="bg-white p-4 rounded card-shadow mb-4 border">
       <form id="formCalificacion" onsubmit="return false;">
-        <div class="row g-3 align-items-end">
 
-          <div class="col-md-6">
-            <label class="fw-bold small text-muted text-uppercase">Nombre calificación</label>
-            <input id="nombre" class="form-control" type="text" placeholder="Ej: Cumple / No cumple">
-          </div>
+  <!-- INPUT -->
+  <div class="row g-3">
+    <div class="col-md-12">
+      <label class="fw-bold small text-muted text-uppercase">
+        Nombre calificación
+      </label>
 
-          <div class="col-md-3">
-            <button type="button" class="btn btn-outline-secondary w-100" id="btnModo">
-              AGREGAR CALIFICACIÓN
-            </button>
-          </div>
+      <input id="nombre" class="form-control" type="text"
+             placeholder="Ej: Cumple / No cumple">
+    </div>
+  </div>
 
-          <div class="col-md-3"></div>
-        </div>
+  <!-- BOTONES ABAJO A LA IZQUIERDA -->
+  <div class="mt-3 d-flex gap-2">
+    <button type="button"
+            class="btn btn-success px-4 shadow-sm btn-icon"
+            id="btnAgregar">
+      <i class="fa-solid fa-plus"></i>
+      Agregar calificación
+    </button>
 
-        <!-- DETALLE -->
-        <div class="row g-3 mt-0 hidden" id="detalle">
-          <div class="col-md-6">
-            <label class="fw-bold small text-muted text-uppercase">Descripción</label>
-            <input id="descripcion" class="form-control" type="text" placeholder="Ej: Evidencia requerida">
-          </div>
+    <button type="button"
+            class="btn btn-outline-secondary px-4"
+            id="btnCancelar">
+      Limpiar
+    </button>
+  </div>
 
-          <div class="col-md-3">
-            <label class="fw-bold small text-muted text-uppercase">Valor</label>
-            <input id="valor" class="form-control" type="number" min="0" step="0.01" placeholder="Ej: 10">
-          </div>
+</form>
 
-          <div class="col-md-3 text-center">
-            <label class="fw-bold small d-block text-muted text-uppercase">Estado</label>
-            <label class="switch mt-1">
-              <input type="checkbox" id="status" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div>
 
-        <div class="mt-3">
-          <button type="button" class="btn btn-success px-4 shadow-sm" id="btnAgregar">Guardar</button>
-          <button type="button" class="btn btn-outline-secondary px-4" id="btnCancelar">Limpiar</button>
+
         </div>
       </form>
     </div>
@@ -93,13 +87,16 @@ $mensaje = "";
           <thead class="table-dark text-uppercase small" id="thead">
             <tr>
               <th width="80">ID</th>
-              <th>NOMBRE</th>
-              <th class="text-center">ESTADO</th>
+              <th>CALIFICACIÓN</th>
+              <th>DESCRIPCIÓN</th>
+              <th width="120">VALOR</th>
+              <th class="text-center" width="120">ESTADO</th>
+              <th class="text-center" width="120">ACCIONES</th>
             </tr>
           </thead>
           <tbody id="tbody">
             <tr>
-              <td colspan="3" class="text-center text-muted py-4">Cargando...</td>
+              <td colspan="6" class="text-center text-muted py-4">Cargando...</td>
             </tr>
           </tbody>
         </table>
@@ -108,208 +105,358 @@ $mensaje = "";
 
   </div>
 
+  <!-- MODAL (Nombre + Descripción, Valor, Estado) -->
+  <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">
+            <i class="fa-solid fa-square-pen me-2"></i>
+            Calificación
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-12">
+              <label class="fw-bold small text-muted text-uppercase">Nombre calificación</label>
+              <input id="modalNombre" class="form-control" type="text" placeholder="Ej: Cumple / No cumple">
+              <small class="text-muted">Este nombre también se puede editar desde aquí.</small>
+            </div>
+
+            <div class="col-md-6">
+              <label class="fw-bold small text-muted text-uppercase">Descripción</label>
+              <input id="descripcion" class="form-control" type="text" placeholder="Ej: Evidencia requerida">
+            </div>
+
+            <div class="col-md-3">
+              <label class="fw-bold small text-muted text-uppercase">Valor</label>
+              <input id="valor" class="form-control" type="number" min="0" step="0.01" placeholder="Ej: 10">
+            </div>
+
+            <div class="col-md-3 text-center">
+              <label class="fw-bold small d-block text-muted text-uppercase">Estado</label>
+              <label class="switch mt-1">
+                <input type="checkbox" id="status" checked>
+                <span class="slider"></span>
+              </label>
+              <div class="small text-muted mt-1" id="lblEstadoModal">Activo</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-success btn-icon" id="btnGuardarModal">
+            <i class="fa-solid fa-floppy-disk"></i>
+            Guardar
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-  const API_URL = "http://localhost/SSTMANAGER-BACKEND/public/index.php?table=calificaciones";
+    const API_URL = "http://localhost/SSTMANAGER-BACKEND/public/index.php?table=calificaciones";
+    const $ = (id) => document.getElementById(id);
 
-  let modoDetalle = false;
-  const $ = (id) => document.getElementById(id);
+    const modalEl = document.getElementById("modalDetalle");
+    const modal = new bootstrap.Modal(modalEl);
 
-  function getEstadoDetalle() {
-    return $("status").checked ? "Activo" : "Inactivo";
-  }
+    // contexto para editar
+    // { mode: "add"|"edit", id_calificacion, id_detalle }
+    let editContext = null;
 
-  // Cambia headers segun modo
-  function renderHeader() {
-    if (!modoDetalle) {
-      $("thead").innerHTML = `
-        <tr>
-          <th width="80">ID</th>
-          <th>NOMBRE</th>
-          <th class="text-center">ESTADO</th>
-        </tr>
-      `;
-    } else {
-      $("thead").innerHTML = `
-        <tr>
-          <th width="80">ID</th>
-          <th>CALIFICACIÓN</th>
-          <th>DESCRIPCIÓN</th>
-          <th>VALOR</th>
-          <th class="text-center">ESTADO</th>
-        </tr>
-      `;
-    }
-  }
-
-  // Render body segun modo
-  function renderRows(data) {
-    const tbody = $("tbody");
-
-    if (!Array.isArray(data) || data.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="${modoDetalle ? 5 : 3}" class="text-center text-muted py-4">
-            No hay registros.
-          </td>
-        </tr>
-      `;
-      return;
+    function esc(str) {
+      return String(str ?? "").replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      })[m]);
     }
 
-    if (!modoDetalle) {
-      // MODO NORMAL: muestra solo padre
-      tbody.innerHTML = data.map(r => `
-        <tr>
-          <td>${r.id ?? r.id_calificacion ?? ""}</td>
-          <td>${r.nombre ?? ""}</td>
-          <td class="text-center">${r.estado ?? "Activo"}</td>
-        </tr>
-      `).join("");
-      return;
+    function getEstadoDetalle() {
+      return $("status").checked ? "Activo" : "Inactivo";
     }
 
-    // MODO DETALLE: si una calificación tiene varios items, muestra una fila por item
-    const filas = [];
-    data.forEach(r => {
-      const id = r.id ?? r.id_calificacion ?? "";
-      const nombre = r.nombre ?? "";
+    function syncEstadoLabel() {
+      $("lblEstadoModal").textContent = getEstadoDetalle();
+    }
+    $("status").addEventListener("change", syncEstadoLabel);
 
-      const items = Array.isArray(r.items) ? r.items : [];
+    function limpiarModal() {
+      $("modalNombre").value = "";
+      $("descripcion").value = "";
+      $("valor").value = "";
+      $("status").checked = true;
+      syncEstadoLabel();
+    }
 
-      if (items.length === 0) {
-        // si no hay detalle, igual mostramos la calificación (sin columnas detalle)
-        filas.push(`
+    function limpiarForm() {
+      $("nombre").value = "";
+    }
+
+    function badgeEstado(estado) {
+      const st = (estado ?? "Activo").toString().toLowerCase();
+      const esActivo = st.includes("activo");
+      return `<span class="badge ${esActivo ? "bg-success" : "bg-secondary"}">${esActivo ? "Activo" : "Inactivo"}</span>`;
+    }
+
+    // Render filas (1 fila por item)
+    function renderRows(data) {
+      const tbody = $("tbody");
+
+      if (!Array.isArray(data) || data.length === 0) {
+        tbody.innerHTML = `
           <tr>
-            <td>${id}</td>
-            <td>${nombre}</td>
-            <td></td>
-            <td></td>
-            <td class="text-center">${r.estado ?? "Activo"}</td>
+            <td colspan="6" class="text-center text-muted py-4">No hay registros.</td>
           </tr>
-        `);
-      } else {
-        items.forEach(it => {
+        `;
+        return;
+      }
+
+      const filas = [];
+
+      data.forEach(r => {
+        const idCal = r.id ?? r.id_calificacion ?? "";
+        const nombre = r.nombre ?? "";
+        const items = Array.isArray(r.items) ? r.items : [];
+
+        if (items.length === 0) {
+          // sin detalle: mostramos fila base + editar (solo nombre, sin detalle)
           filas.push(`
             <tr>
-              <td>${id}</td>
-              <td>${nombre}</td>
-              <td>${it.descripcion ?? ""}</td>
-              <td>${it.valor ?? ""}</td>
-              <td class="text-center">${it.estado ?? r.estado ?? "Activo"}</td>
+              <td>${esc(idCal)}</td>
+              <td>${esc(nombre)}</td>
+              <td class="text-muted">—</td>
+              <td class="text-muted">—</td>
+              <td class="text-center">${badgeEstado(r.estado ?? "Activo")}</td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-secondary btn-icon"
+                        onclick="abrirModalEditarSoloNombre('${esc(idCal)}','${esc(nombre)}','${esc(r.estado ?? "Activo")}')">
+                  <i class="fa-solid fa-pen-to-square"></i> Editar
+                </button>
+              </td>
+            </tr>
+          `);
+          return;
+        }
+
+        // con detalle: 1 fila por item
+        items.forEach(it => {
+          const idDet = it.id_detalle ?? it.id ?? "";
+          filas.push(`
+            <tr>
+              <td>${esc(idCal)}</td>
+              <td>${esc(nombre)}</td>
+              <td>${esc(it.descripcion ?? "")}</td>
+              <td>${esc(it.valor ?? "")}</td>
+              <td class="text-center">${badgeEstado(it.estado ?? r.estado ?? "Activo")}</td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-light border shadow-sm" btn-icon"
+                        onclick="abrirModalEditar('${esc(idCal)}','${esc(idDet)}','${esc(nombre)}','${esc(it.descripcion ?? "")}','${esc(it.valor ?? "")}','${esc(it.estado ?? r.estado ?? "Activo")}')">
+                  <i class="fa-solid fa-pencil text-warning"></i>
+                </button>
+              </td>
             </tr>
           `);
         });
-      }
-    });
+      });
 
-    tbody.innerHTML = filas.join("");
-  }
+      tbody.innerHTML = filas.join("");
+    }
 
-  async function cargarTabla() {
-    renderHeader();
-    const tbody = $("tbody");
-
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="${modoDetalle ? 5 : 3}" class="text-center text-muted py-4">
-          Cargando...
-        </td>
-      </tr>
-    `;
-
-    try {
-      const res = await fetch(API_URL, { method: "GET", mode: "cors" });
-      const data = await res.json();
-      renderRows(data);
-    } catch (e) {
+    async function cargarTabla() {
+      const tbody = $("tbody");
       tbody.innerHTML = `
         <tr>
-          <td colspan="${modoDetalle ? 5 : 3}" class="text-center text-danger py-4">
-            Error cargando: ${e.message}
-          </td>
+          <td colspan="6" class="text-center text-muted py-4">Cargando...</td>
         </tr>
       `;
+
+      try {
+        const res = await fetch(API_URL, { method: "GET", mode: "cors" });
+        const data = await res.json();
+        renderRows(data);
+      } catch (e) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center text-danger py-4">Error cargando: ${esc(e.message)}</td>
+          </tr>
+        `;
+      }
     }
-  }
 
-  // BOTÓN: activa modo detalle y muestra inputs ocultos
-  $("btnModo").addEventListener("click", async () => {
-    modoDetalle = true;
-    $("detalle").classList.remove("hidden");
-    await cargarTabla();
-  });
+    // Botón principal: "Agregar calificación" abre modal para CREAR
+    $("btnAgregar").onclick = () => {
+      const nombre = $("nombre").value.trim();
+      if (!nombre) {
+        return Swal.fire("Falta el nombre", "Ingresa el nombre de la calificación.", "warning");
+      }
 
-  // Limpiar
-  $("btnCancelar").addEventListener("click", () => {
-    limpiar();
-    // opcional: volver a modo normal al limpiar
-    modoDetalle = false;
-    $("detalle").classList.add("hidden");
-    cargarTabla();
-  });
+      editContext = { mode: "add", id_calificacion: null, id_detalle: null };
 
-  function limpiar() {
-    document.querySelectorAll("#formCalificacion input").forEach(el => {
-      if (el.type === "checkbox") el.checked = true;
-      else el.value = "";
+      $("modalTitle").innerHTML = `<i class="fa-solid fa-plus me-2"></i> Agregar calificación`;
+     $("btnGuardarModal").className = "btn btn-success btn-icon";
+      $("btnGuardarModal").innerHTML = `<i class="fa-solid fa-plus me-1"></i> Crear`;
+      limpiarModal();
+
+      // pasa nombre del input principal al modal
+      $("modalNombre").value = nombre;
+
+      modal.show();
+    };
+
+    // Limpiar
+    $("btnCancelar").addEventListener("click", () => {
+      limpiarForm();
     });
-  }
 
-  // Guardar
-  $("btnAgregar").onclick = async () => {
-    const nombre = $("nombre").value.trim();
-    if (!nombre) return Swal.fire("Falta el nombre", "Ingresa el nombre.", "warning");
+    // Editar (nombre + detalle)
+    window.abrirModalEditar = (idCal, idDet, nombre, desc, valor, estado) => {
+      editContext = { mode: "edit", id_calificacion: idCal, id_detalle: idDet };
 
-    const payload = { nombre, estado: "Activo" };
+      $("modalTitle").innerHTML = `<i class="fa-solid fa-pen-to-square me-2"></i> Editar calificación`;
+      $("btnGuardarModal").className = "btn btn-success btn-icon";
+      $("btnGuardarModal").innerHTML = `<i class="fa-solid fa-floppy-disk me-1"></i> Actualizar`;
 
-    if (modoDetalle) {
+      $("modalNombre").value = nombre ?? "";
+      $("descripcion").value = desc ?? "";
+      $("valor").value = valor ?? "";
+      $("status").checked = (estado ?? "Activo").toString().toLowerCase().includes("activo");
+      syncEstadoLabel();
+
+      modal.show();
+    };
+
+    // Editar solo nombre (cuando no hay items)
+    window.abrirModalEditarSoloNombre = (idCal, nombre, estado) => {
+      editContext = { mode: "edit_no_item", id_calificacion: idCal, id_detalle: null };
+
+      $("modalTitle").innerHTML = `<i class="fa-solid fa-pen-to-square me-2"></i> Editar calificación`;
+      $("btnGuardarModal").innerHTML = `<i class="fa-solid fa-floppy-disk me-1"></i> Actualizar`;
+
+      $("modalNombre").value = nombre ?? "";
+      $("descripcion").value = "";
+      $("valor").value = "";
+      $("status").checked = (estado ?? "Activo").toString().toLowerCase().includes("activo");
+      syncEstadoLabel();
+
+      modal.show();
+    };
+
+    // Guardar desde modal (crear o editar)
+    $("btnGuardarModal").onclick = async () => {
+      const nombre = $("modalNombre").value.trim();
+      if (!nombre) return Swal.fire("Falta el nombre", "Ingresa el nombre de la calificación.", "warning");
+
       const desc = $("descripcion").value.trim();
       const valor = $("valor").value;
 
-      if (!desc || valor === "") {
-        return Swal.fire("Campos incompletos", "Completa descripción y valor.", "warning");
+      // Si es edición sin item, permitimos guardar solo nombre (sin obligar desc/valor)
+      const esSoloNombre = editContext && editContext.mode === "edit_no_item";
+
+      if (!esSoloNombre) {
+        if (!desc || valor === "") {
+          return Swal.fire("Campos incompletos", "Completa descripción y valor.", "warning");
+        }
       }
 
-      payload.items = [{
-        descripcion: desc,
-        valor: parseFloat(valor),
-        estado: getEstadoDetalle()
-      }];
-    }
+      try {
+        // CREATE (POST)
+        if (!editContext || editContext.mode === "add") {
+          const payload = {
+            nombre,
+            estado: "Activo",
+            items: [{
+              descripcion: desc,
+              valor: parseFloat(valor),
+              estado: getEstadoDetalle()
+            }]
+          };
 
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        mode: "cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+          const res = await fetch(API_URL, {
+            method: "POST",
+            mode: "cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
 
-      const data = await res.json();
+          const data = await res.json();
+          if (!res.ok) return Swal.fire("Error", data.error || "No se pudo guardar.", "error");
 
-      if (!res.ok) {
-        return Swal.fire("Error", data.error || "No se pudo guardar.", "error");
+          modal.hide();
+          Swal.fire("✅ Guardado", `ID: ${data.id}`, "success");
+
+          limpiarModal();
+          limpiarForm();
+          await cargarTabla();
+          return;
+        }
+
+        // EDIT (PUT) — actualiza nombre y, si hay item, también detalle
+        const urlPut = API_URL + "&id=" + encodeURIComponent(editContext.id_calificacion);
+
+        // Si es solo nombre:
+        if (editContext.mode === "edit_no_item") {
+          const payload = { nombre };
+
+          const res = await fetch(urlPut, {
+            method: "PUT",
+            mode: "cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await res.json();
+          if (!res.ok) return Swal.fire("Error", data.error || "No se pudo actualizar.", "error");
+
+          modal.hide();
+          Swal.fire("✅ Actualizado", "Se guardó el nombre.", "success");
+          limpiarModal();
+          await cargarTabla();
+          return;
+        }
+
+        // Edit con item:
+        const payload = {
+          nombre,
+          items: [{
+            id_detalle: editContext.id_detalle,
+            descripcion: desc,
+            valor: parseFloat(valor),
+            estado: getEstadoDetalle()
+          }]
+        };
+
+        const res = await fetch(urlPut, {
+          method: "PUT",
+          mode: "cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) return Swal.fire("Error", data.error || "No se pudo actualizar.", "error");
+
+        modal.hide();
+        Swal.fire("✅ Actualizado", "Se guardaron los cambios.", "success");
+        limpiarModal();
+        await cargarTabla();
+
+      } catch (e) {
+        Swal.fire("Error", e.message, "error");
       }
+    };
 
-      Swal.fire("✅ Guardado", `ID: ${data.id}`, "success");
-      limpiar();
-      await cargarTabla();
-
-    } catch (e) {
-      Swal.fire("Error", e.message, "error");
-    }
-  };
-
-  // Al cargar la página: modo normal
-  document.addEventListener("DOMContentLoaded", () => {
-    modoDetalle = false;
-    $("detalle").classList.add("hidden");
-    cargarTabla();
-  });
-</script>
-
+    document.addEventListener("DOMContentLoaded", () => {
+      syncEstadoLabel();
+      cargarTabla();
+    });
+  </script>
 
 </body>
 </html>

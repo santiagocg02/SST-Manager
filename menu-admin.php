@@ -12,17 +12,13 @@ $token = $_SESSION["token"];
 $rolSesion = $_SESSION["rol"] ?? '';
 $perfilIdSesion = $_SESSION["id_perfil"] ?? 0;
 
-    $misPermisos = [];
-
-    // Solo el Master se salta la carga porque tiene todo en true por defecto
 $misPermisos = [];
 
+// Solo el Master se salta la carga porque tiene todo en true por defecto
 if ($rolSesion !== "Master") {
-    // 1. Realizamos la petición al endpoint
     $resPermisos = $api->solicitar("perfiles/permisos/$perfilIdSesion/check-all", "GET", null, $token);
-    
-    // 2. IMPORTANTE: Validamos si la data viene envuelta en una llave 'data'
-    // Muchos controladores genéricos devuelven ['status' => 200, 'data' => [...]]
+
+    // A veces viene envuelto en 'data'
     $datosFinales = isset($resPermisos['data']) ? $resPermisos['data'] : $resPermisos;
 
     if (is_array($datosFinales)) {
@@ -30,29 +26,24 @@ if ($rolSesion !== "Master") {
             if (isset($perm['id_modulo'])) {
                 $idM = (int)$perm['id_modulo'];
                 $misPermisos[$idM] = [
-                    'ver'      => (int)($perm['ver'] ?? 0),
-                    'crear'    => (int)($perm['crear'] ?? 0),
-                    'editar'   => (int)($perm['editar'] ?? 0),
+                    'ver' => (int)($perm['ver'] ?? 0),
+                    'crear' => (int)($perm['crear'] ?? 0),
+                    'editar' => (int)($perm['editar'] ?? 0),
                     'eliminar' => (int)($perm['eliminar'] ?? 0)
                 ];
             }
         }
     }
 }
-    /**
-     * Función de visibilidad mejorada
-     */
-    function puedeVer($idModulo, $rol, $permisos) {
-        // Los roles de alto nivel saltan la validación
-        if ($rol === "Master") {
-            return true; 
-        }
-        
-        $id = (int)$idModulo;
-        // Retorna true solo si el módulo existe en el array y tiene ver == 1
-       return isset($permisos[$id]) && ($permisos[$id]['ver'] == 1);
-    }
-    
+
+/**
+ * Visibilidad por permisos
+ */
+function puedeVer($idModulo, $rol, $permisos) {
+    if ($rol === "Master") return true;
+    $id = (int)$idModulo;
+    return isset($permisos[$id]) && ($permisos[$id]['ver'] == 1);
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -60,17 +51,39 @@ if ($rolSesion !== "Master") {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SSTManager - Menú Detallado</title>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"> 
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/menu-admin.css">
+
+  <style>
+    /* ITEM ACTIVO (subrayado/indicador verde) */
+    .admin-subitem.active{
+      color:#198754 !important;
+      font-weight:600;
+      border-left:4px solid #198754;
+      padding-left:12px !important;
+      background:rgba(25,135,84,.08);
+    }
+
+    /* Botón padre activo */
+    .accordion-button.active-parent{
+      background:#198754 !important;
+      color:#fff !important;
+    }
+
+    .admin-subitem:hover{
+      background:rgba(25,135,84,.05);
+    }
+  </style>
+
   <script>
-    // Imprimimos los datos procesados en PHP hacia la consola del navegador
     console.group("SSTManager - Debug de Permisos");
     console.log("Rol de Sesión:", "<?= $rolSesion ?>");
     console.log("Perfil ID:", "<?= $perfilIdSesion ?>");
     console.log("Matriz de Permisos:", <?= json_encode($misPermisos) ?>);
     console.groupEnd();
-</script>
+  </script>
 </head>
 
 <body class="page-menu-admin">
@@ -99,13 +112,15 @@ if ($rolSesion !== "Master") {
                 Administración
               </button>
             </h2>
-            <div id="collapseAdmin" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
+
+            <!-- IMPORTANTE: sin data-bs-parent para que NO se cierre -->
+            <div id="collapseAdmin" class="accordion-collapse collapse">
               <div class="accordion-body py-2">
                 <?php if(puedeVer(7, $rolSesion, $misPermisos)): ?><a href="pages/administracion/tipo-empresa.php" target="contentFrame" class="admin-subitem">Tipos de Empresa</a><?php endif; ?>
                 <?php if(puedeVer(8, $rolSesion, $misPermisos)): ?><a href="pages/administracion/item1072.php" target="contentFrame" class="admin-subitem">Item 1072</a><?php endif; ?>
                 <?php if(puedeVer(9, $rolSesion, $misPermisos)): ?><a href="pages/administracion/guia-ruc.php" target="contentFrame" class="admin-subitem">Item Guía RUC</a><?php endif; ?>
-                  <?php if(puedeVer(11, $rolSesion, $misPermisos)): ?><a href="pages/administracion/calificacion.php" target="contentFrame" class="admin-subitem">Calificación</a><?php endif; ?>
-                    <?php if(puedeVer(10, $rolSesion, $misPermisos)): ?><a href="pages/administracion/formulario.php" target="contentFrame" class="admin-subitem">Formularios</a><?php endif; ?>
+                <?php if(puedeVer(11, $rolSesion, $misPermisos)): ?><a href="pages/administracion/calificacion.php" target="contentFrame" class="admin-subitem">Calificación</a><?php endif; ?>
+                <?php if(puedeVer(10, $rolSesion, $misPermisos)): ?><a href="pages/administracion/formulario.php" target="contentFrame" class="admin-subitem">Formularios</a><?php endif; ?>
               </div>
             </div>
           </div>
@@ -118,9 +133,10 @@ if ($rolSesion !== "Master") {
                 Empresa
               </button>
             </h2>
-            <div id="collapseEmpresa" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
+
+            <div id="collapseEmpresa" class="accordion-collapse collapse">
               <div class="accordion-body py-2">
-                <?php if(puedeVer(13, $rolSesion, $misPermisos)): ?><a href="pages/empresa/Empresa.php" target="contentFrame"  class="admin-subitem">Crear</a><?php endif; ?>
+                <?php if(puedeVer(13, $rolSesion, $misPermisos)): ?><a href="pages/empresa/Empresa.php" target="contentFrame" class="admin-subitem">Crear</a><?php endif; ?>
               </div>
             </div>
           </div>
@@ -133,7 +149,8 @@ if ($rolSesion !== "Master") {
                 Seguridad
               </button>
             </h2>
-            <div id="collapseSeguridad" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
+
+            <div id="collapseSeguridad" class="accordion-collapse collapse">
               <div class="accordion-body py-2">
                 <?php if(puedeVer(2, $rolSesion, $misPermisos)): ?><a href="pages/seguridad/modulo.php" target="contentFrame" class="admin-subitem">Módulos</a><?php endif; ?>
                 <?php if(puedeVer(3, $rolSesion, $misPermisos)): ?><a href="pages/seguridad/perfil.php" target="contentFrame" class="admin-subitem">Perfiles</a><?php endif; ?>
@@ -148,7 +165,8 @@ if ($rolSesion !== "Master") {
       </aside>
 
       <main class="admin-content">
-        <iframe id="contentFrame" name="contentFrame" src="pages/bienvenida.php" class="admin-iframe"></iframe>
+        <!-- BIENVENIDA POR DEFECTO -->
+        <iframe id="contentFrame" name="contentFrame" src="administracion/pages/bienvenida.php" class="admin-iframe"></iframe>
       </main>
     </div>
 
@@ -158,5 +176,65 @@ if ($rolSesion !== "Master") {
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // ===== MENU ACTIVO + SUBMENU FIJO (CON IFRAME) =====
+    // IMPORTANTE: Usamos sessionStorage para que al abrir una NUEVA pestaña vuelva a bienvenida
+
+    // Limpia el valor viejo si alguna vez usaste localStorage (una sola vez)
+    // localStorage.removeItem("menuActivo");
+
+    const menuLinks = document.querySelectorAll(".admin-subitem");
+    const frame = document.getElementById("contentFrame");
+
+    function activarMenu(link) {
+      menuLinks.forEach(l => l.classList.remove("active"));
+      link.classList.add("active");
+
+      const href = link.getAttribute("href");
+      sessionStorage.setItem("menuActivo", href);
+
+      // abrir y mantener abierto el submenu padre
+      const collapse = link.closest(".accordion-collapse");
+      if (collapse) {
+        collapse.classList.add("show");
+
+        const btn = collapse.previousElementSibling.querySelector(".accordion-button");
+        if (btn) {
+          btn.classList.remove("collapsed");
+          btn.classList.add("active-parent");
+          btn.setAttribute("aria-expanded", "true");
+        }
+      }
+    }
+
+    // Click: marca activo (el iframe lo cambia el target="contentFrame")
+    menuLinks.forEach(link => {
+      link.addEventListener("click", function() {
+        activarMenu(this);
+      });
+    });
+
+    // Al cargar: si no hay nada guardado, mostramos bienvenida (administracion/pages/bienvenida.php)
+    document.addEventListener("DOMContentLoaded", () => {
+      const guardado = sessionStorage.getItem("menuActivo");
+
+      if (!guardado) {
+        frame.src = "pages/bienvenida.php";
+        return;
+      }
+
+      const link = Array.from(menuLinks).find(l => l.getAttribute("href") === guardado);
+
+      if (link) {
+        activarMenu(link);
+        frame.src = guardado;
+      } else {
+        // por si el link guardado ya no existe por permisos
+        frame.src = "pages/bienvenida.php";
+      }
+    });
+  </script>
+
 </body>
 </html>

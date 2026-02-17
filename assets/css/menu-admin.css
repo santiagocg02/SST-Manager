@@ -149,3 +149,24 @@ body.page-menu-admin {
   letter-spacing: 0.3px;
   z-index: 1000;
 }
+
+/* ITEM ACTIVO */
+.admin-subitem.active {
+  color: #198754 !important;
+  font-weight: 600;
+  border-left: 4px solid #198754;
+  padding-left: 12px !important;
+  background: rgba(25,135,84,0.08);
+}
+
+/* efecto hover */
+.admin-subitem:hover {
+  background: rgba(25,135,84,0.05);
+}
+
+/* acordeón abierto cuando hay item activo */
+.accordion-button.active-parent {
+  background: #198754 !important;
+  color: white !important;
+}
+
