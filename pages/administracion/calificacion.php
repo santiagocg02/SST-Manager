@@ -23,8 +23,9 @@ $mensaje = "";
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
-    .hidden { display: none !important; }
-    .btn-icon { display:inline-flex; align-items:center; gap:8px; }
+    .btn-icon{display:inline-flex;align-items:center;gap:8px}
+    .btn-pill{border-radius:999px}
+    .hidden{display:none!important}
   </style>
 </head>
 
@@ -40,43 +41,29 @@ $mensaje = "";
       <div class="alert alert-danger"><?= htmlspecialchars($mensaje) ?></div>
     <?php endif; ?>
 
-    <!-- CARD FORM (solo nombre) -->
+    <!-- CARD FORM: SOLO NOMBRE + GUARDAR/LIMPIAR -->
     <div class="bg-white p-4 rounded card-shadow mb-4 border">
       <form id="formCalificacion" onsubmit="return false;">
 
-  <!-- INPUT -->
-  <div class="row g-3">
-    <div class="col-md-12">
-      <label class="fw-bold small text-muted text-uppercase">
-        Nombre calificación
-      </label>
-
-      <input id="nombre" class="form-control" type="text"
-             placeholder="Ej: Cumple / No cumple">
-    </div>
-  </div>
-
-  <!-- BOTONES ABAJO A LA IZQUIERDA -->
-  <div class="mt-3 d-flex gap-2">
-    <button type="button"
-            class="btn btn-success px-4 shadow-sm btn-icon"
-            id="btnAgregar">
-      <i class="fa-solid fa-plus"></i>
-      Agregar calificación
-    </button>
-
-    <button type="button"
-            class="btn btn-outline-secondary px-4"
-            id="btnCancelar">
-      Limpiar
-    </button>
-  </div>
-
-</form>
-
-
-
+        <div class="row g-3">
+          <div class="col-md-12">
+            <label class="fw-bold small text-muted text-uppercase">Nombre calificación</label>
+            <input id="nombre" class="form-control" type="text" placeholder="Ej: Cumple / No cumple">
+          </div>
         </div>
+
+        <!-- BOTONES ABAJO A LA IZQUIERDA -->
+        <div class="mt-3 d-flex gap-2">
+          <button type="button" class="btn btn-success px-4 shadow-sm btn-icon" id="btnGuardarPadre">
+            <i class="fa-solid fa-floppy-disk"></i>
+            Guardar
+          </button>
+
+          <button type="button" class="btn btn-outline-secondary px-4" id="btnCancelar">
+            Limpiar
+          </button>
+        </div>
+
       </form>
     </div>
 
@@ -91,7 +78,7 @@ $mensaje = "";
               <th>DESCRIPCIÓN</th>
               <th width="120">VALOR</th>
               <th class="text-center" width="120">ESTADO</th>
-              <th class="text-center" width="120">ACCIONES</th>
+              <th class="text-center" width="170">ACCIONES</th>
             </tr>
           </thead>
           <tbody id="tbody">
@@ -105,7 +92,7 @@ $mensaje = "";
 
   </div>
 
-  <!-- MODAL (Nombre + Descripción, Valor, Estado) -->
+  <!-- MODAL (Nombre + Detalle) -->
   <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
@@ -120,10 +107,10 @@ $mensaje = "";
 
         <div class="modal-body">
           <div class="row g-3">
+
             <div class="col-md-12">
               <label class="fw-bold small text-muted text-uppercase">Nombre calificación</label>
               <input id="modalNombre" class="form-control" type="text" placeholder="Ej: Cumple / No cumple">
-              <small class="text-muted">Este nombre también se puede editar desde aquí.</small>
             </div>
 
             <div class="col-md-6">
@@ -144,11 +131,13 @@ $mensaje = "";
               </label>
               <div class="small text-muted mt-1" id="lblEstadoModal">Activo</div>
             </div>
+
           </div>
         </div>
 
         <div class="modal-footer">
           <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <!-- VERDE (mismo estilo que agregar calificación) -->
           <button class="btn btn-success btn-icon" id="btnGuardarModal">
             <i class="fa-solid fa-floppy-disk"></i>
             Guardar
@@ -168,8 +157,10 @@ $mensaje = "";
     const modalEl = document.getElementById("modalDetalle");
     const modal = new bootstrap.Modal(modalEl);
 
-    // contexto para editar
-    // { mode: "add"|"edit", id_calificacion, id_detalle }
+    // context:
+    // add_detail: agrega/actualiza detalle para una calificación existente
+    // edit: edita nombre + detalle
+    // edit_no_item: edita solo nombre
     let editContext = null;
 
     function esc(str) {
@@ -178,16 +169,11 @@ $mensaje = "";
       })[m]);
     }
 
-    function getEstadoDetalle() {
-      return $("status").checked ? "Activo" : "Inactivo";
-    }
-
-    function syncEstadoLabel() {
-      $("lblEstadoModal").textContent = getEstadoDetalle();
-    }
+    function getEstadoDetalle(){ return $("status").checked ? "Activo" : "Inactivo"; }
+    function syncEstadoLabel(){ $("lblEstadoModal").textContent = getEstadoDetalle(); }
     $("status").addEventListener("change", syncEstadoLabel);
 
-    function limpiarModal() {
+    function limpiarModal(){
       $("modalNombre").value = "";
       $("descripcion").value = "";
       $("valor").value = "";
@@ -195,259 +181,251 @@ $mensaje = "";
       syncEstadoLabel();
     }
 
-    function limpiarForm() {
-      $("nombre").value = "";
-    }
+    function limpiarForm(){ $("nombre").value = ""; }
 
-    function badgeEstado(estado) {
+    function badgeEstado(estado){
       const st = (estado ?? "Activo").toString().toLowerCase();
-      const esActivo = st.includes("activo");
-      return `<span class="badge ${esActivo ? "bg-success" : "bg-secondary"}">${esActivo ? "Activo" : "Inactivo"}</span>`;
+      const ok = st.includes("activo");
+      return `<span class="badge ${ok ? "bg-success" : "bg-secondary"}">${ok ? "Activo" : "Inactivo"}</span>`;
     }
 
-    // Render filas (1 fila por item)
-    function renderRows(data) {
+    // ================== TABLA ==================
+    function renderRows(data){
       const tbody = $("tbody");
 
       if (!Array.isArray(data) || data.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="text-center text-muted py-4">No hay registros.</td>
-          </tr>
-        `;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No hay registros.</td></tr>`;
         return;
       }
 
       const filas = [];
 
-      data.forEach(r => {
+      data.forEach(r=>{
         const idCal = r.id ?? r.id_calificacion ?? "";
         const nombre = r.nombre ?? "";
         const items = Array.isArray(r.items) ? r.items : [];
 
-        if (items.length === 0) {
-          // sin detalle: mostramos fila base + editar (solo nombre, sin detalle)
-          filas.push(`
-            <tr>
-              <td>${esc(idCal)}</td>
-              <td>${esc(nombre)}</td>
-              <td class="text-muted">—</td>
-              <td class="text-muted">—</td>
-              <td class="text-center">${badgeEstado(r.estado ?? "Activo")}</td>
-              <td class="text-center">
-                <button class="btn btn-sm btn-outline-secondary btn-icon"
-                        onclick="abrirModalEditarSoloNombre('${esc(idCal)}','${esc(nombre)}','${esc(r.estado ?? "Activo")}')">
-                  <i class="fa-solid fa-pen-to-square"></i> Editar
-                </button>
-              </td>
-            </tr>
-          `);
-          return;
-        }
+        // Para UI simple: mostramos 1ra fila de detalle si existe
+        const it = items[0] ?? null;
 
-        // con detalle: 1 fila por item
-        items.forEach(it => {
-          const idDet = it.id_detalle ?? it.id ?? "";
-          filas.push(`
-            <tr>
-              <td>${esc(idCal)}</td>
-              <td>${esc(nombre)}</td>
-              <td>${esc(it.descripcion ?? "")}</td>
-              <td>${esc(it.valor ?? "")}</td>
-              <td class="text-center">${badgeEstado(it.estado ?? r.estado ?? "Activo")}</td>
-              <td class="text-center">
-                <button class="btn btn-sm btn-light border shadow-sm" btn-icon"
-                        onclick="abrirModalEditar('${esc(idCal)}','${esc(idDet)}','${esc(nombre)}','${esc(it.descripcion ?? "")}','${esc(it.valor ?? "")}','${esc(it.estado ?? r.estado ?? "Activo")}')">
-                  <i class="fa-solid fa-pencil text-warning"></i>
-                </button>
-              </td>
-            </tr>
-          `);
-        });
+        const desc = it?.descripcion ?? "";
+        const val  = it?.valor ?? "";
+        const est  = it?.estado ?? r.estado ?? "Activo";
+        const idDet = it?.id_detalle ?? it?.id ?? "";
+
+        filas.push(`
+          <tr>
+            <td>${esc(idCal)}</td>
+            <td>${esc(nombre)}</td>
+            <td>${esc(desc || "—")}</td>
+            <td>${esc(val || "—")}</td>
+            <td class="text-center">${badgeEstado(est)}</td>
+            <td class="d-flex align-items-center justify-content-center gap-2">
+
+              <!-- BOTÓN AGREGAR CALIFICACIÓN -->
+              <button class="btn btn-success btn-sm rounded-pill d-flex align-items-center gap-2"
+                      title="Agregar calificación"
+                      onclick="abrirModalAgregarDetalle('${esc(idCal)}','${esc(nombre)}','${esc(idDet)}','${esc(desc)}','${esc(val)}','${esc(est)}')">
+
+                <i class="fa-solid fa-clipboard-check"></i>
+                Agregar
+              </button>
+
+              <!-- BOTÓN EDITAR -->
+              <button class="btn btn-sm btn-light border shadow-sm" type="button"
+                      title="Editar"
+                      onclick="abrirModalEditar('${esc(idCal)}','${esc(idDet)}','${esc(nombre)}','${esc(desc)}','${esc(val)}','${esc(est)}')">
+
+                 <i class="fa-solid fa-pencil text-warning"></i>
+              </button>
+
+            </td>
+          </tr>
+        `);
       });
 
       tbody.innerHTML = filas.join("");
     }
 
-    async function cargarTabla() {
+    async function cargarTabla(){
       const tbody = $("tbody");
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="6" class="text-center text-muted py-4">Cargando...</td>
-        </tr>
-      `;
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Cargando...</td></tr>`;
 
-      try {
-        const res = await fetch(API_URL, { method: "GET", mode: "cors" });
+      try{
+        const res = await fetch(API_URL, { method:"GET", mode:"cors" });
         const data = await res.json();
         renderRows(data);
-      } catch (e) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="text-center text-danger py-4">Error cargando: ${esc(e.message)}</td>
-          </tr>
-        `;
+      }catch(e){
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Error cargando: ${esc(e.message)}</td></tr>`;
       }
     }
 
-    // Botón principal: "Agregar calificación" abre modal para CREAR
-    $("btnAgregar").onclick = () => {
+    // ================== BOTONES FORM ==================
+    // Guardar (PADRE): crea calificación sin detalle
+    $("btnGuardarPadre").onclick = async () => {
       const nombre = $("nombre").value.trim();
-      if (!nombre) {
-        return Swal.fire("Falta el nombre", "Ingresa el nombre de la calificación.", "warning");
+      if(!nombre) return Swal.fire("Falta el nombre","Ingresa el nombre.","warning");
+
+      const payload = { nombre, estado: "Activo" };
+
+      try{
+        const res = await fetch(API_URL, {
+          method:"POST",
+          mode:"cors",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if(!res.ok) return Swal.fire("Error", data.error || "No se pudo guardar.", "error");
+
+        Swal.fire("✅ Guardado", `ID: ${data.id}`, "success");
+        limpiarForm();
+        await cargarTabla();
+      }catch(e){
+        Swal.fire("Error", e.message, "error");
       }
+    };
 
-      editContext = { mode: "add", id_calificacion: null, id_detalle: null };
+    $("btnCancelar").onclick = () => limpiarForm();
 
-      $("modalTitle").innerHTML = `<i class="fa-solid fa-plus me-2"></i> Agregar calificación`;
-     $("btnGuardarModal").className = "btn btn-success btn-icon";
-      $("btnGuardarModal").innerHTML = `<i class="fa-solid fa-plus me-1"></i> Crear`;
+    // ================== MODALES ==================
+
+    // Botón verde en ACCIONES: abre modal para agregar/actualizar detalle
+    window.abrirModalAgregarDetalle = (idCal, nombre, idDet, desc, valor, estado) => {
+      editContext = { mode: "add_detail", id_calificacion: idCal, id_detalle: idDet || null };
+
+      $("modalTitle").innerHTML = `<i class="fa-solid fa-user me-2"></i> SST · Detalle de calificación`;
+      $("btnGuardarModal").className = "btn btn-success btn-icon";
+      $("btnGuardarModal").innerHTML = `<i class="fa-solid fa-plus me-1"></i> Guardar`;
+
       limpiarModal();
+      $("modalNombre").value = nombre ?? "";
 
-      // pasa nombre del input principal al modal
-      $("modalNombre").value = nombre;
+      // Si ya existe detalle, precarga para editarlo
+      $("descripcion").value = desc ?? "";
+      $("valor").value = valor ?? "";
+      $("status").checked = (estado ?? "Activo").toLowerCase().includes("activo");
+      syncEstadoLabel();
 
       modal.show();
     };
 
-    // Limpiar
-    $("btnCancelar").addEventListener("click", () => {
-      limpiarForm();
-    });
-
-    // Editar (nombre + detalle)
+    // Editar (lápiz): nombre + detalle
     window.abrirModalEditar = (idCal, idDet, nombre, desc, valor, estado) => {
-      editContext = { mode: "edit", id_calificacion: idCal, id_detalle: idDet };
+      // Si no hay detalle, se comporta como editar solo nombre (y permite dejar desc/valor vacíos)
+      editContext = { mode: idDet ? "edit" : "edit_no_item", id_calificacion: idCal, id_detalle: idDet || null };
 
       $("modalTitle").innerHTML = `<i class="fa-solid fa-pen-to-square me-2"></i> Editar calificación`;
       $("btnGuardarModal").className = "btn btn-success btn-icon";
       $("btnGuardarModal").innerHTML = `<i class="fa-solid fa-floppy-disk me-1"></i> Actualizar`;
 
+      limpiarModal();
       $("modalNombre").value = nombre ?? "";
+
       $("descripcion").value = desc ?? "";
       $("valor").value = valor ?? "";
-      $("status").checked = (estado ?? "Activo").toString().toLowerCase().includes("activo");
+      $("status").checked = (estado ?? "Activo").toLowerCase().includes("activo");
       syncEstadoLabel();
 
       modal.show();
     };
 
-    // Editar solo nombre (cuando no hay items)
-    window.abrirModalEditarSoloNombre = (idCal, nombre, estado) => {
-      editContext = { mode: "edit_no_item", id_calificacion: idCal, id_detalle: null };
-
-      $("modalTitle").innerHTML = `<i class="fa-solid fa-pen-to-square me-2"></i> Editar calificación`;
-      $("btnGuardarModal").innerHTML = `<i class="fa-solid fa-floppy-disk me-1"></i> Actualizar`;
-
-      $("modalNombre").value = nombre ?? "";
-      $("descripcion").value = "";
-      $("valor").value = "";
-      $("status").checked = (estado ?? "Activo").toString().toLowerCase().includes("activo");
-      syncEstadoLabel();
-
-      modal.show();
-    };
-
-    // Guardar desde modal (crear o editar)
+    // Guardar modal (según contexto)
     $("btnGuardarModal").onclick = async () => {
       const nombre = $("modalNombre").value.trim();
-      if (!nombre) return Swal.fire("Falta el nombre", "Ingresa el nombre de la calificación.", "warning");
+      if(!nombre) return Swal.fire("Falta el nombre","Ingresa el nombre.","warning");
 
       const desc = $("descripcion").value.trim();
       const valor = $("valor").value;
 
-      // Si es edición sin item, permitimos guardar solo nombre (sin obligar desc/valor)
-      const esSoloNombre = editContext && editContext.mode === "edit_no_item";
+      const urlPut = (id) => API_URL + "&id=" + encodeURIComponent(id);
 
-      if (!esSoloNombre) {
-        if (!desc || valor === "") {
-          return Swal.fire("Campos incompletos", "Completa descripción y valor.", "warning");
-        }
-      }
+      try{
+        // 1) Add/Update detalle en calificación existente
+        if(editContext?.mode === "add_detail"){
+          if(!desc || valor === "") return Swal.fire("Campos incompletos","Completa descripción y valor.","warning");
 
-      try {
-        // CREATE (POST)
-        if (!editContext || editContext.mode === "add") {
           const payload = {
             nombre,
-            estado: "Activo",
             items: [{
+              ...(editContext.id_detalle ? { id_detalle: editContext.id_detalle } : {}),
               descripcion: desc,
               valor: parseFloat(valor),
               estado: getEstadoDetalle()
             }]
           };
 
-          const res = await fetch(API_URL, {
-            method: "POST",
-            mode: "cors",
-            headers: { "Content-Type": "application/json" },
+          const res = await fetch(urlPut(editContext.id_calificacion), {
+            method:"PUT",
+            mode:"cors",
+            headers:{ "Content-Type":"application/json" },
             body: JSON.stringify(payload)
           });
 
           const data = await res.json();
-          if (!res.ok) return Swal.fire("Error", data.error || "No se pudo guardar.", "error");
+          if(!res.ok) return Swal.fire("Error", data.error || "No se pudo guardar.", "error");
 
           modal.hide();
-          Swal.fire("✅ Guardado", `ID: ${data.id}`, "success");
-
-          limpiarModal();
-          limpiarForm();
+          Swal.fire("✅ Guardado", "Detalle actualizado.", "success");
           await cargarTabla();
           return;
         }
 
-        // EDIT (PUT) — actualiza nombre y, si hay item, también detalle
-        const urlPut = API_URL + "&id=" + encodeURIComponent(editContext.id_calificacion);
-
-        // Si es solo nombre:
-        if (editContext.mode === "edit_no_item") {
+        // 2) Edit solo nombre
+        if(editContext?.mode === "edit_no_item"){
           const payload = { nombre };
 
-          const res = await fetch(urlPut, {
-            method: "PUT",
-            mode: "cors",
-            headers: { "Content-Type": "application/json" },
+          const res = await fetch(urlPut(editContext.id_calificacion), {
+            method:"PUT",
+            mode:"cors",
+            headers:{ "Content-Type":"application/json" },
             body: JSON.stringify(payload)
           });
 
           const data = await res.json();
-          if (!res.ok) return Swal.fire("Error", data.error || "No se pudo actualizar.", "error");
+          if(!res.ok) return Swal.fire("Error", data.error || "No se pudo actualizar.", "error");
 
           modal.hide();
-          Swal.fire("✅ Actualizado", "Se guardó el nombre.", "success");
-          limpiarModal();
+          Swal.fire("✅ Actualizado", "Nombre actualizado.", "success");
           await cargarTabla();
           return;
         }
 
-        // Edit con item:
-        const payload = {
-          nombre,
-          items: [{
-            id_detalle: editContext.id_detalle,
-            descripcion: desc,
-            valor: parseFloat(valor),
-            estado: getEstadoDetalle()
-          }]
-        };
+        // 3) Edit nombre + detalle
+        if(editContext?.mode === "edit"){
+          if(!desc || valor === "") return Swal.fire("Campos incompletos","Completa descripción y valor.","warning");
 
-        const res = await fetch(urlPut, {
-          method: "PUT",
-          mode: "cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+          const payload = {
+            nombre,
+            items: [{
+              id_detalle: editContext.id_detalle,
+              descripcion: desc,
+              valor: parseFloat(valor),
+              estado: getEstadoDetalle()
+            }]
+          };
 
-        const data = await res.json();
-        if (!res.ok) return Swal.fire("Error", data.error || "No se pudo actualizar.", "error");
+          const res = await fetch(urlPut(editContext.id_calificacion), {
+            method:"PUT",
+            mode:"cors",
+            headers:{ "Content-Type":"application/json" },
+            body: JSON.stringify(payload)
+          });
 
-        modal.hide();
-        Swal.fire("✅ Actualizado", "Se guardaron los cambios.", "success");
-        limpiarModal();
-        await cargarTabla();
+          const data = await res.json();
+          if(!res.ok) return Swal.fire("Error", data.error || "No se pudo actualizar.", "error");
 
-      } catch (e) {
+          modal.hide();
+          Swal.fire("✅ Actualizado", "Cambios guardados.", "success");
+          await cargarTabla();
+          return;
+        }
+
+        // fallback (no debería)
+        Swal.fire("Ups", "No hay contexto de operación.", "warning");
+
+      }catch(e){
         Swal.fire("Error", e.message, "error");
       }
     };
