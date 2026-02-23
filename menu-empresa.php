@@ -90,7 +90,6 @@ function puedeVer($idModulo, $rol, $permisos) {
 <body class="page-menu-admin">
 
   <div class="admin-frame">
-    <div class="admin-topbar text-uppercase small">Menu Empresa</div>
 
     <div class="admin-header d-flex justify-content-between align-items-center pe-4">
       <div class="admin-title text-uppercase fw-bold">SSTManager</div>
@@ -139,9 +138,8 @@ function puedeVer($idModulo, $rol, $permisos) {
 
       <div id="collapseModulos" class="accordion-collapse collapse">
         <div class="accordion-body py-2">
-          <!-- placeholders (luego los conectamos) -->
           <?php if (puedeVer(21, $rolSesion, $misPermisos)): ?>
-            <a href="pages/modulos/bienvenida.php" target="contentFrame" class="admin-subitem">Ver módulos</a>
+            <a href="pages-empresa/modulos/planear.php" target="contentFrame" class="admin-subitem">Planear</a>
           <?php endif; ?>
         </div>
       </div>

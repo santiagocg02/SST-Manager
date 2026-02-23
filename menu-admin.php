@@ -89,7 +89,7 @@ function puedeVer($idModulo, $rol, $permisos) {
 <body class="page-menu-admin">
 
   <div class="admin-frame">
-    <div class="admin-topbar text-uppercase small">Menu Administrador</div>
+    
 
     <div class="admin-header d-flex justify-content-between align-items-center pe-4">
       <div class="admin-title text-uppercase fw-bold">SSTManager</div>

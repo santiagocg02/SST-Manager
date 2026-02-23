@@ -1,0 +1,296 @@
+/* ✅ Fuerza scroll aunque el layout global bloquee el body */
+.planear-page-scroll{
+  height: calc(100vh - 0px); /* si tienes navbar fija, ajusta a 70px */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Si tu app tiene navbar fija arriba, usa esto:
+.planear-page-scroll{ height: calc(100vh - 70px); }
+*/
+
+:root{
+  --soft-bg:#f6f8fb;
+  --card-radius:14px;
+  --line: rgba(0,0,0,.08);
+  --head:#0d6efd;
+  --ink:#111827;
+  --muted:#6b7280;
+}
+
+.planear-page-scroll{
+  background: var(--soft-bg);
+}
+
+.page-wrap{ padding: 18px; }
+
+/* Cards */
+.card-soft{
+  border: 1px solid var(--line);
+  border-radius: var(--card-radius);
+  box-shadow: 0 10px 25px rgba(17,24,39,.06);
+  background:#fff;
+}
+
+/* Header */
+.planear-hero{
+  overflow: hidden;
+  position: relative;
+}
+.planear-hero::before{
+  content:"";
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:6px;
+  background: var(--head);
+}
+.hero-inner{ padding: 18px; }
+
+.sheet-title{
+  font-weight: 900;
+  letter-spacing: .6px;
+  margin:0;
+}
+.sheet-subtitle{
+  color: var(--muted);
+  margin: 2px 0 0;
+  font-size: .95rem;
+}
+
+/* Progreso */
+.score-box{
+  border:1px dashed rgba(13,110,253,.35);
+  border-radius: 12px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(13,110,253,.06), rgba(255,255,255,0));
+  min-width: 260px;
+}
+.progress-pill{
+  height: 10px;
+  border-radius: 999px;
+  overflow:hidden;
+}
+
+.muted-small{
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+/* Toolbar */
+.table-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.toolbar-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight: 900;
+}
+.searchbox{
+  width: 320px;
+  max-width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.12);
+}
+.btn-reset{
+  border-radius: 12px;
+}
+
+/* Tabla */
+.excel-table{
+  border: 1px solid var(--line);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  background:#fff;
+}
+
+.table thead th{
+  position: sticky;
+  top: 0; /* si el scroll es del contenedor, funciona perfecto */
+  z-index: 3;
+  background: #f1f5ff;
+  border-bottom: 1px solid rgba(13,110,253,.25);
+  font-size: .82rem;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color:#1f3b8a;
+}
+
+.table tbody td{
+  vertical-align: middle;
+  border-color: rgba(0,0,0,.06);
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.table tbody tr:hover{
+  background: rgba(13,110,253,.04);
+}
+
+.col-item{ width: 120px; white-space: nowrap; }
+.col-soporte{ width: 110px; }
+.col-cal{ width: 320px; }
+
+.item-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-weight: 900;
+  color:#0b2f80;
+}
+.item-chip .dot{
+  width:8px; height:8px;
+  background: rgba(13,110,253,.9);
+  border-radius:999px;
+  display:inline-block;
+}
+
+.btn-icon{
+  border-radius: 12px;
+  padding: 6px 10px;
+}
+
+/* Calificación chips */
+.cal-wrap{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap: wrap;
+}
+.cal-option{
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+  user-select:none;
+  transition: .15s ease;
+  font-size: .85rem;
+  font-weight: 700;
+}
+.cal-option:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(17,24,39,.08);
+}
+.cal-option input{
+  margin:0;
+  transform: translateY(1px);
+}
+.cal-si{ border-color: rgba(25,135,84,.35); }
+.cal-proc{ border-color: rgba(255,193,7,.5); }
+.cal-no{ border-color: rgba(220,53,69,.35); }
+.cal-na{ border-color: rgba(108,117,125,.35); }
+
+/* Panel derecha */
+.panel-block{
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff;
+}
+.panel-title{
+  font-weight: 900;
+  letter-spacing: .4px;
+  color:#1f3b8a;
+  margin-bottom: 10px;
+}
+.panel-list .panel-item{ padding: 6px 0; }
+
+.mini-legend{
+  border:1px solid rgba(0,0,0,.1);
+  border-radius: 10px;
+  overflow:hidden;
+  font-size: .85rem;
+}
+.mini-legend-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding: 6px 10px;
+  border-bottom:1px solid rgba(0,0,0,.08);
+  background:#fff;
+}
+.mini-legend-row:last-child{ border-bottom:none; }
+.mini-label{ min-width: 90px; font-weight: 700; }
+.mini-val{ font-weight: 900; }
+
+.mini-dot{
+  width: 14px; height: 14px;
+  border-radius: 999px;
+  display:inline-block;
+  border:1px solid rgba(0,0,0,.15);
+}
+.mini-dot.ok{ background:#198754; }
+.mini-dot.warn{ background:#ffc107; }
+.mini-dot.no{ background:#dc3545; }
+
+/* % cumplimiento */
+.cumpl-wrap{ display:flex; flex-direction:column; gap:12px; }
+.cumpl-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.cumpl-icon{
+  width: 52px;
+  height: 40px;
+  border: 2px solid rgba(13,110,253,.45);
+  border-radius: 10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#1f3b8a;
+  background: rgba(13,110,253,.05);
+}
+.cumpl-eq{ font-weight: 900; color:#1f3b8a; }
+.cumpl-badge{
+  min-width: 90px;
+  text-align:center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 900;
+  border: 2px dashed rgba(0,0,0,.12);
+}
+.cumpl-badge.ok{ background:#9ae14a; }
+.cumpl-badge.warn{ background:#ffcc33; }
+
+/* Logo */
+.logo-box{
+  border: 2px dashed rgba(0,0,0,.25);
+  border-radius: 14px;
+  height: 190px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(0,0,0,.02);
+}
+.logo-text{
+  text-align:center;
+  font-weight: 900;
+  color: rgba(0,0,0,.25);
+  line-height: 1.1;
+  font-size: 2rem;
+}
+
+/* Placeholder gráfico */
+.chart-placeholder{
+  border: 1px dashed rgba(13,110,253,.35);
+  border-radius: 14px;
+  padding: 18px;
+  min-height: 320px;
+  background: linear-gradient(180deg, rgba(13,110,253,.05), rgba(255,255,255,0));
+}
+
+.note{
+  color: var(--muted);
+  font-size: .85rem;
+  margin-top: 10px;
+}
