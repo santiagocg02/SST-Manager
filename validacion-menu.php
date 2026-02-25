@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once 'includes/ConexionAPI.php'; 
 
 // 1. Seguridad
 if (!isset($_SESSION["usuario"])) {
@@ -7,11 +8,16 @@ if (!isset($_SESSION["usuario"])) {
     exit;
 }
 
-// 2. Recuperar el rol y limpiarlo
-// trim() elimina espacios en blanco al inicio o final
+$api = new ConexionAPI();
+
+// 2. Recuperar datos de sesión
 $rol = isset($_SESSION["rol"]) ? trim($_SESSION["rol"]) : '';
 $user = isset($_SESSION["usuario"]) ? trim($_SESSION["usuario"]) : '';
+$token = $_SESSION["token"] ?? ''; // CORRECCIÓN: Definir el token antes de usarlo
 
+// 3. Consultar Empresas
+$resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
+$listaEmpresas = (isset($resEmpresas['status']) && $resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) : [];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -30,19 +36,42 @@ $user = isset($_SESSION["usuario"]) ? trim($_SESSION["usuario"]) : '';
     <div class="validacion-content">
       <h2>SSTManager</h2>
 
-      <?php if ($rol == 'Master' || $rol == 'master' || $rol =='Administrador'): ?>
+      <?php if (in_array(strtolower($rol), ['master', 'administrador'])): ?>
       
-          <p>Bienvenido <strong><?php echo $user; ?></strong>. Seleccione el panel a gestionar:</p>
+          <p>Bienvenido <strong><?= htmlspecialchars($user) ?></strong>. Seleccione el panel a gestionar:</p>
           
-          <div class="validacion-actions">
-            <a href="menu-admin.php" class="btn btn-menu">Menú Administración</a>
-            <a href="menu-empresa.php" class="btn btn-menu-alt">Menú Empresa</a>
+         <div class="row align-items-end justify-content-center mt-4">
+  
+            <div class="col-md-5 mb-3 mb-md-0">
+              <a href="menu-admin.php" class="btn btn-success w-100 py-2 fs-5 shadow-sm" style="border-radius: 8px;">
+                Menú Administración
+              </a>
+            </div>
+
+            <div class="col-md-5 text-start">
+              <form action="menu-empresa.php" method="GET" class="d-flex flex-column gap-2 mb-0">
+                  <div>
+                      <label class="form-label fw-bold small text-uppercase text-primary mb-1">Empresa a gestionar</label>
+                      <select id="id_empresa" name="id_empresa" class="form-select border-primary shadow-sm" required>
+                          <option value="">-- Seleccionar Empresa --</option>
+                          <?php foreach ($listaEmpresas as $emp): ?>
+                              <option value="<?= $emp['id_empresa'] ?>">
+                                  <?= htmlspecialchars($emp['nombre_empresa']) ?>
+                              </option>
+                          <?php endforeach; ?>
+                      </select>
+                  </div>
+                  <button type="submit" class="btn text-white w-100 py-2 fs-5 shadow-sm" style="background-color: #003f7a; border-radius: 8px;">
+                    Menú Empresa
+                  </button>
+              </form>
+            </div>
+
           </div>
 
       <?php else: ?>
       
-          <p>Bienvenido. Ingrese a su panel de gestión:  </p>
-          
+          <p>Bienvenido. Ingrese a su panel de gestión:</p>
           <div class="validacion-actions">
             <a href="menu-empresa.php" class="btn btn-menu-alt">Ingresar al Sistema</a>
           </div>
@@ -50,7 +79,7 @@ $user = isset($_SESSION["usuario"]) ? trim($_SESSION["usuario"]) : '';
       <?php endif; ?>
 
       <br>
-      <a href="logout.php" class="btn btn-salir">CERRAR SESIÓN</a>
+      <a href="logout.php" class="btn btn-salir mt-3">CERRAR SESIÓN</a>
     </div>
   </div>
 
