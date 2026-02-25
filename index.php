@@ -42,7 +42,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             } else {
                 $_SESSION["id_perfil"] = "user"; // Fallback
             }
-
+         
+            if (isset($datosAPI['user']['organizacion']['id_empresa'])) {
+                $_SESSION["id_empresa"] = $datosAPI['user']['organizacion']['id_empresa']; 
+            } else {
+                $_SESSION["id_empresa"] = "user"; // Fallback
+            }
             header("Location: validacion-menu.php");
             exit;
             

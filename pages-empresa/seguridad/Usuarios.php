@@ -12,6 +12,7 @@ $api = new ConexionAPI();
 $token = $_SESSION["token"];
 $rolSesion = $_SESSION["rol"] ?? '';
 $perfilIdSesion = $_SESSION["id_perfil"] ?? 0;
+$empresa = $_SESSION["id_empresa"] ?? 0;
 
 $misPermisos = [];
 
@@ -60,6 +61,13 @@ function puedeEditar($idModulo, $rol, $permisos) {
 $resPerfiles = $api->solicitar("index.php?table=perfiles", "GET", null, $token);
 $listaPerfiles = (isset($resPerfiles['status']) && $resPerfiles['status'] == 200) ? $resPerfiles['data'] : [];
 
+$resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
+$todasLasEmpresas = (isset($resEmpresas['status']) && $resEmpresas['status'] == 200) ? $resEmpresas['data'] : [];
+// 2. Filtrar el arreglo para dejar solo la que coincide con el id de la sesión
+$listaEmpresas = array_filter($todasLasEmpresas, function($emp) use ($empresa) {
+    return isset($emp['id_empresa']) && $emp['id_empresa'] == $empresa;
+});
+
 // 4. PROCESAR FORMULARIO (POST/PUT)
 $mensaje_error = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["email"])) {
@@ -97,8 +105,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["email"])) {
 
 // 5. CARGAR LISTA DE USUARIOS (GET)
 $respuestaGet = $api->solicitar("index.php?table=usuarios", "GET", null, $token);
-$listaUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 200) ? $respuestaGet['data'] : [];
+$todosLosUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 200) ? $respuestaGet['data'] : [];
 
+// 2. Filtrar el arreglo para dejar solo los de la empresa actual
+$listaUsuarios = array_filter($todosLosUsuarios, function($u) use ($empresa) {
+    // Buscamos el id_empresa dentro del nodo 'organizacion' según la estructura de tu JSON
+    $idEmpresaUsuario = $u['organizacion']['id_empresa'] ?? null;
+    
+    // Si el usuario tiene la misma empresa que la sesión, lo conservamos
+    return $idEmpresaUsuario == $empresa;
+});
+
+// 3. Reindexar el arreglo para evitar saltos en los índices
+$listaUsuarios = array_values($listaUsuarios);
 // Definimos el ID del módulo de Usuarios (ejemplo: 5)
 $ID_MODULO = 5; 
 ?>
@@ -159,9 +178,8 @@ $ID_MODULO = 5;
             <div class="col-md-2">
                 <label class="form-label fw-bold small text-uppercase">Rol Sistema</label>
                 <select id="rol" name="rol" class="form-select" onchange="verificarRol(this.value)">
-                    <option value="Usuario">Usuario</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Master">Master</option>
+                        <option value="Admin-user">Admin-user</option>    
+                        <option value="Usuario">Usuario</option>                    
                 </select>
             </div>
             
@@ -178,10 +196,19 @@ $ID_MODULO = 5;
             </div>
 
             <div class="col-md-2" id="div_empresa">
-                <label class="form-label fw-bold small text-uppercase">Empresa ID</label>
-                <input type="number" id="id_empresa" name="id_empresa" class="form-control">
+                <label class="form-label fw-bold small text-uppercase text-primary">Empresa</label>
+                <select id="id_empresa" name="id_empresa" class="form-select border-primary" required>
+                    <?php if (empty($listaEmpresas)): ?>
+                        <option value="">-- Sin empresa --</option>
+                    <?php else: ?>
+                        <?php foreach ($listaEmpresas as $emp): ?>
+                            <option value="<?= $emp['id_empresa'] ?>" selected>
+                                <?= htmlspecialchars($emp['nombre_empresa']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
             </div>
-
             <div class="col-md-1 text-center">
                 <label class="form-label fw-bold small d-block text-uppercase">Estado</label>
                 <label class="switch mt-1">

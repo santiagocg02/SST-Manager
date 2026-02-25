@@ -2,7 +2,7 @@
 session_start();
 require_once 'includes/ConexionAPI.php';
 
-if (!isset($_SESSION["usuario"]) || (($_SESSION["rol"] ?? '') !== "Master" && ($_SESSION["rol"] ?? '') !== "Administrador")) {
+if (!isset($_SESSION["usuario"])) {
     header("Location: index.php");
     exit;
 }
@@ -11,6 +11,7 @@ $api = new ConexionAPI();
 $token = $_SESSION["token"];
 $rolSesion = $_SESSION["rol"] ?? '';
 $perfilIdSesion = $_SESSION["id_perfil"] ?? 0;
+$empresa = $_SESSION["id_empresa"] ?? 0;
 
 $misPermisos = [];
 
@@ -39,16 +40,17 @@ function puedeVer($idModulo, $rol, $permisos) {
     $id = (int)$idModulo;
     return isset($permisos[$id]) && ((int)$permisos[$id]['ver'] === 1);
 }
+$resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
+$todasLasEmpresas = (isset($resEmpresas['status']) && $resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) : [];
 
-/**
- * IDs sugeridos (ajústalos a tu tabla de módulos cuando los crees):
- * 12 = Empresa (menú padre)
- * 13 = Información Empresa
- * 14 = Representante Legal
- * 15 = Información de Trabajadores
- * 16 = Descripción de la Organización
- * 17 = Organización del Tiempo de Trabajo
- */
+// 3. Buscar la empresa específica y extraer solo su nombre
+foreach ($todasLasEmpresas as $emp) {
+    if (isset($emp['id_empresa']) && $emp['id_empresa'] == $empresa) {
+        $nombreEmpresaLogeada = $emp['nombre_empresa'];
+        break; // Detenemos el ciclo porque ya encontramos el nombre
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -92,7 +94,7 @@ function puedeVer($idModulo, $rol, $permisos) {
   <div class="admin-frame">
 
     <div class="admin-header d-flex justify-content-between align-items-center pe-4">
-      <div class="admin-title text-uppercase fw-bold">SSTManager</div>
+      <div class="admin-title text-uppercase fw-bold">SSTManager <span class="fs-6  text-white fw-normal ms-2 text-secondary">Empresa:<?= htmlspecialchars($nombreEmpresaLogeada) ?></span></div>
       <div class="d-flex align-items-center gap-3">
           <span class="text-white small d-none d-md-block">
               Hola, <strong><?= htmlspecialchars($_SESSION["usuario"] ?? 'Usuario') ?></strong>
@@ -118,7 +120,7 @@ function puedeVer($idModulo, $rol, $permisos) {
       <div id="collapseEmpresa" class="accordion-collapse collapse">
         <div class="accordion-body py-2">
 
-          <?php if(puedeVer(13, $rolSesion, $misPermisos)): ?><a href="pages-empresa/empresa/Empresa.php" target="contentFrame" class="admin-subitem">Crear</a><?php endif; ?>
+          <?php if(puedeVer(13, $rolSesion, $misPermisos)): ?><a href="pages-empresa/empresa/Empresa.php" target="contentFrame" class="admin-subitem">Ver</a><?php endif; ?>
               
 
         </div>

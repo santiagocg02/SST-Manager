@@ -11,6 +11,7 @@ $api = new ConexionAPI();
 $token = $_SESSION["token"];
 $rolSesion = $_SESSION["rol"] ?? '';
 $perfilIdSesion = $_SESSION["id_perfil"] ?? 0;
+$empresa = $_SESSION["id_empresa"] ?? 0;
 
 $misPermisos = [];
 if ($rolSesion !== "Master") {
@@ -38,9 +39,17 @@ function puede($mod, $accion, $rol, $permisos) {
 $MOD_EMPRESA = 13;
 $MOD_SST = 15;
 
-// 3. CARGA DE DATOS REALES DESDE API
+// 2. Traer todas las empresas
 $resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
-$listaEmpresas = ($resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) : [];
+$todasLasEmpresas = ($resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) : [];
+
+// 3. Filtrar para dejar solo la que coincide con el id_empresa
+$listaEmpresas = array_filter($todasLasEmpresas, function($emp) use ($empresa) {
+    return isset($emp['id_empresa']) && $emp['id_empresa'] == $empresa;
+});
+
+// 4. Reindexar el arreglo (recomendado)
+$listaEmpresas = array_values($listaEmpresas);
 ?>
 <!doctype html>
 <html lang="es">

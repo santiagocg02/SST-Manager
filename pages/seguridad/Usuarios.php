@@ -60,6 +60,9 @@ function puedeEditar($idModulo, $rol, $permisos) {
 $resPerfiles = $api->solicitar("index.php?table=perfiles", "GET", null, $token);
 $listaPerfiles = (isset($resPerfiles['status']) && $resPerfiles['status'] == 200) ? $resPerfiles['data'] : [];
 
+$resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
+$listaEmpresas = (isset($resEmpresas['status']) && $resEmpresas['status'] == 200) ? $resEmpresas['data'] : [];
+
 // 4. PROCESAR FORMULARIO (POST/PUT)
 $mensaje_error = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["email"])) {
@@ -160,7 +163,7 @@ $ID_MODULO = 5;
                 <label class="form-label fw-bold small text-uppercase">Rol Sistema</label>
                 <select id="rol" name="rol" class="form-select" onchange="verificarRol(this.value)">
                     <option value="Usuario">Usuario</option>
-                    <option value="Admin">Admin</option>
+                    <option value="Administrador">Administrador</option>
                     <option value="Master">Master</option>
                 </select>
             </div>
@@ -178,8 +181,15 @@ $ID_MODULO = 5;
             </div>
 
             <div class="col-md-2" id="div_empresa">
-                <label class="form-label fw-bold small text-uppercase">Empresa ID</label>
-                <input type="number" id="id_empresa" name="id_empresa" class="form-control">
+                <label class="form-label fw-bold small text-uppercase text-primary">Empresa</label>
+                <select id="id_empresa" name="id_empresa" class="form-select border-primary">
+                    <option value="">-- Seleccionar Empresa --</option>
+                    <?php foreach ($listaEmpresas as $emp): ?>
+                        <option value="<?= $emp['id_empresa'] ?>">
+                            <?= htmlspecialchars($emp['nombre_empresa']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <div class="col-md-1 text-center">
