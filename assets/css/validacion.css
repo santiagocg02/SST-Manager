@@ -72,3 +72,20 @@ body.page-validacion{
     min-width: 100%;
   }
 }
+
+/* Mantener el look bonito y consistente */
+.page-validacion .btn-validacion-radius{
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+.page-validacion .btn-validacion-empresa{
+  background-color: #003f7a;
+  color: #fff;
+  border: none;
+}
+
+.page-validacion .select-validacion{
+  border-radius: 12px;
+}
+
