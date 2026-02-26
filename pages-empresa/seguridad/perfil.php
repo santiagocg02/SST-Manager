@@ -203,7 +203,7 @@ if (!empty($idEmpresaSesion)) {
                     <tr>
                         <th width="80" class="ps-3">ID</th>
                         <th>Nombre del Perfil</th>
-                        <?php if($rolSesion === "Master"): ?><th>Empresa</th><?php endif; ?>
+                        <th>Empresa</th>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
@@ -213,11 +213,11 @@ if (!empty($idEmpresaSesion)) {
                         <td class="ps-3"><?= $p['id_perfil'] ?></td>
                         <td class="fw-bold"><?= htmlspecialchars($p['nombre_perfil']) ?></td>
                         
-                        <?php if($rolSesion === "Master"): ?>
+                       
                             <td class="small text-muted">
                                 <?= (isset($p['id_empresa']) && isset($mapaEmpresas[$p['id_empresa']])) ? htmlspecialchars($mapaEmpresas[$p['id_empresa']]) : 'Sistema (Global)' ?>
                             </td>
-                        <?php endif; ?>
+                  
                         
                         <td class="text-center">
                             <?php if (puedeVer($MOD_PERMISOS, $rolSesion, $misPermisos)): ?>
