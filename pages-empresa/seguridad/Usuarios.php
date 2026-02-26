@@ -14,6 +14,10 @@ $rolSesion = $_SESSION["rol"] ?? '';
 $perfilIdSesion = $_SESSION["id_perfil"] ?? 0;
 $empresa = $_SESSION["id_empresa"] ?? 0;
 
+if (in_array(strtolower($rolSesion), ['master', 'administrador']) && !empty($_REQUEST["id_empresa"])) {
+    $_SESSION["id_empresa"] = (int)$_REQUEST["id_empresa"];
+    $empresa = $_SESSION["id_empresa"]; // Actualizamos la variable local
+}
 $misPermisos = [];
 
 // Solo el Master se salta la carga porque tiene todo en true por defecto
@@ -61,8 +65,16 @@ function puedeEditar($idModulo, $rol, $permisos) {
 $resPerfiles = $api->solicitar("index.php?table=perfiles", "GET", null, $token);
 $listaPerfiles = (isset($resPerfiles['status']) && $resPerfiles['status'] == 200) ? $resPerfiles['data'] : [];
 
+// --- NUEVO: Filtrar perfiles para dejar solo los de la empresa en cuestión ---
+if (!empty($empresa)) {
+    $listaPerfiles = array_filter($listaPerfiles, function($p) use ($empresa) {
+        return isset($p['id_empresa']) && $p['id_empresa'] == $empresa;
+    });
+}
+
 $resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
 $todasLasEmpresas = (isset($resEmpresas['status']) && $resEmpresas['status'] == 200) ? $resEmpresas['data'] : [];
+
 // 2. Filtrar el arreglo para dejar solo la que coincide con el id de la sesión
 $listaEmpresas = array_filter($todasLasEmpresas, function($emp) use ($empresa) {
     return isset($emp['id_empresa']) && $emp['id_empresa'] == $empresa;

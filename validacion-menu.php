@@ -7,6 +7,12 @@ if (!isset($_SESSION["usuario"])) {
     header("Location: index.php");
     exit;
 }
+// NUEVO: Atrapa el formulario y guarda la empresa en la sesión
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_empresa'])) {
+    $_SESSION['id_empresa'] = trim($_POST['id_empresa']);
+    header("Location: menu-empresa.php"); // Redirige al menú después de guardar
+    exit;
+}
 
 $api = new ConexionAPI();
 

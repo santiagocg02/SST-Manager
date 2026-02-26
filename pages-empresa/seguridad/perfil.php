@@ -13,6 +13,7 @@ $token = $_SESSION["token"];
 $rolSesion = $_SESSION["rol"] ?? '';
 $perfilIdSesion = $_SESSION["id_perfil"] ?? 0;
 $mensaje = "";
+$idEmpresaSesion = $_SESSION["id_empresa"] ?? null;
 
 // --- CARGA DE MATRIZ DE PERMISOS PARA EL USUARIO ACTUAL ---
 $misPermisos = [];
@@ -58,14 +59,22 @@ $MOD_PERMISOS = 14;
 // 2. PROCESAR FORMULARIO DE PERFIL (POST/PUT - Módulo 3)
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["nombre_perfil"])) {
     $id = $_POST["id_perfil"] ?? "";
+    
+    // Garantizar que se asigne el id_empresa correctamente
+    $idEmpGuardar = ($rolSesion === "Master" && empty($idEmpresaSesion)) ? null : (int)$idEmpresaSesion;
+
     $datos = [
         "nombre_perfil" => trim($_POST["nombre_perfil"]),
         "descripcion"   => trim($_POST["descripcion"] ?? ""),
-        "estado"        => isset($_POST["status"]) ? 1 : 0
+        "estado"        => isset($_POST["status"]) ? 1 : 0,
+        "id_empresa"    => $idEmpGuardar 
     ];
 
     $endpoint = "index.php?table=perfiles" . (!empty($id) ? "&id=$id" : "");
     $metodo = !empty($id) ? "PUT" : "POST";
+    
+    if(!empty($id)) unset($datos["id_empresa"]); 
+
     $resultado = $api->solicitar($endpoint, $metodo, $datos, $token);
 
     if (isset($resultado['status']) && ($resultado['status'] == 200 || $resultado['status'] == 201)) {
@@ -77,12 +86,60 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["nombre_perfil"])) {
 }
 
 // 3. CARGA DE DATOS PARA LA TABLA Y MODAL
-$resPerfiles = $api->solicitar("index.php?table=perfiles", "GET", null, $token);
+$urlPerfiles = "index.php?table=perfiles";
+
+if ($rolSesion !== "Master") {
+    $urlPerfiles .= "&id_empresa=" . $idEmpresaSesion;
+}
+
+$resPerfiles = $api->solicitar($urlPerfiles, "GET", null, $token);
 $listaPerfiles = (isset($resPerfiles['status']) && $resPerfiles['status'] == 200) ? $resPerfiles['data'] : [];
 
 $resModulos = $api->solicitar("index.php?table=modulos", "GET", null, $token);
 $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] == 200) ? $resModulos['data'] : [];
+
+// --- DICCIONARIO DE EMPRESAS Y PLANES ---
+$modulosPlanIds = [];
+$mapaEmpresas = []; 
+
+if (!empty($idEmpresaSesion)) {
+    // A. Consultar empresas para armar el mapa
+    $resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
+    $todasLasEmpresas = (isset($resEmpresas['status']) && $resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) : [];
+    $idPlanEmpresa = 0;
+    
+    foreach ($todasLasEmpresas as $emp) {
+        $mapaEmpresas[$emp['id_empresa']] = $emp['nombre_empresa'];
+        if (isset($emp['id_empresa']) && $emp['id_empresa'] == $idEmpresaSesion) {
+            $idPlanEmpresa = (int)($emp['id_plan'] ?? 0);
+        }
+    }
+
+    // B. Filtrar los perfiles: Solo mostrar los de la empresa actual (Oculta los globales)
+    $listaPerfiles = array_filter($listaPerfiles, function($p) use ($idEmpresaSesion) {
+        return isset($p['id_empresa']) && $p['id_empresa'] == $idEmpresaSesion;
+    });
+
+    // C. Extraer los IDs de los módulos permitidos por ese plan
+    if ($idPlanEmpresa > 0) {
+        $resPlan = $api->solicitar("planes/permisos/$idPlanEmpresa", "GET", null, $token);
+        $datosPlan = $resPlan['data'] ?? $resPlan;
+        if (is_array($datosPlan)) {
+            foreach ($datosPlan as $p) {
+                $modulosPlanIds[] = (int)$p['id_modulo'];
+            }
+        }
+    }
+
+    // D. Filtrar la lista maestra de módulos para el modal
+    if (!empty($modulosPlanIds)) {
+        $listaModulosMaestra = array_filter($listaModulosMaestra, function($m) use ($modulosPlanIds) {
+            return in_array((int)$m['id_modulo'], $modulosPlanIds);
+        });
+    }
+}
 ?>
+
 <!doctype html>
 <html lang="es">
 <head>
@@ -93,7 +150,6 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
     <link rel="stylesheet" href="../../assets/css/main-style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // PERMISOS PASADOS A JS
         const PER_PUEDE_CREAR  = <?= puedeCrear($MOD_PERFILES, $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
         const PER_PUEDE_EDITAR = <?= puedeEditar($MOD_PERFILES, $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
         const ACC_PUEDE_VER    = <?= puedeVer($MOD_PERMISOS, $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
@@ -147,6 +203,7 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
                     <tr>
                         <th width="80" class="ps-3">ID</th>
                         <th>Nombre del Perfil</th>
+                        <?php if($rolSesion === "Master"): ?><th>Empresa</th><?php endif; ?>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
@@ -155,6 +212,13 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
                     <tr>
                         <td class="ps-3"><?= $p['id_perfil'] ?></td>
                         <td class="fw-bold"><?= htmlspecialchars($p['nombre_perfil']) ?></td>
+                        
+                        <?php if($rolSesion === "Master"): ?>
+                            <td class="small text-muted">
+                                <?= (isset($p['id_empresa']) && isset($mapaEmpresas[$p['id_empresa']])) ? htmlspecialchars($mapaEmpresas[$p['id_empresa']]) : 'Sistema (Global)' ?>
+                            </td>
+                        <?php endif; ?>
+                        
                         <td class="text-center">
                             <?php if (puedeVer($MOD_PERMISOS, $rolSesion, $misPermisos)): ?>
                                 <button class="btn btn-sm btn-primary px-3" 
@@ -232,7 +296,6 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
     const API_URL = "/sstmanager-backend/public/index.php"; 
     const modalPerm = new bootstrap.Modal(document.getElementById('modalPermisos'));
 
-    // Validación inicial de creación de perfiles
     document.addEventListener("DOMContentLoaded", function() {
         if (!PER_PUEDE_CREAR) document.getElementById('btnGuardar').style.display = 'none';
     });
@@ -265,7 +328,6 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
         document.getElementById('perm_id_perfil').value = id;
         document.getElementById('tituloModal').innerHTML = `Accesos para: <strong>${nombre}</strong>`;
         
-        // Controlar botón Sincronizar y checkboxes
         document.getElementById('btnSincronizar').style.display = ACC_PUEDE_CREAR ? 'block' : 'none';
 
         fetch(`${API_URL}?table=perfiles&action=permisos&id=${id}`, {
@@ -276,7 +338,7 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
             const list = data.data || data;
             document.querySelectorAll('.check-perm').forEach(c => {
                 c.checked = false;
-                c.disabled = !ACC_PUEDE_CREAR; // Bloquea si no puede sincronizar
+                c.disabled = !ACC_PUEDE_CREAR; 
             });
             if(Array.isArray(list)) {
                 list.forEach(p => {

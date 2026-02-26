@@ -41,6 +41,9 @@ $MOD_SST = 15;
 // 3. CARGA DE DATOS REALES DESDE API
 $resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
 $listaEmpresas = ($resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) : [];
+
+$resPlanes = $api->solicitar("index.php?table=planes", "GET", null, $token);
+$listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
 ?>
 <!doctype html>
 <html lang="es">
@@ -162,7 +165,17 @@ $listaEmpresas = ($resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) 
                         <div class="col-md-3"><label class="label-custom">Temporales</label><input type="number" name="cant_brigadistas" id="cant_brigadistas" class="form-control form-control-sm" value="0"></div>
                     </div>
 
-                    <input type="hidden" name="id_plan" value="1">
+                   <div class="col-md-5">
+                    <label class="label-custom">Plan de Servicio</label>
+                    <select name="id_plan" id="id_plan" class="form-select form-select-sm" required>
+                        <option value="">Seleccione un plan...</option>
+                        <?php foreach ($listaPlanes as $p): ?>
+                            <option value="<?= $p['id_plan'] ?>">
+                                <?= htmlspecialchars($p['nombre_plan']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 </form>
             </div>
             <div class="modal-footer border-0">
