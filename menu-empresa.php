@@ -8,78 +8,107 @@ if (!isset($_SESSION["usuario"])) {
 }
 
 $api = new ConexionAPI();
-$token = $_SESSION["token"];
+$token = $_SESSION["token"] ?? "";
 $rolSesion = $_SESSION["rol"] ?? '';
-$perfilIdSesion = $_SESSION["id_perfil"] ?? 0;
-$empresa = $_SESSION["id_empresa"] ?? 0;
+$perfilIdSesion = (int)($_SESSION["id_perfil"] ?? 0);
+
 $nombreEmpresaLogeada = "Sin Empresa";
 $idPlanEmpresa = 0;
 
-if (in_array(strtolower($rolSesion), ['master', 'administrador']) && !empty($_REQUEST["id_empresa"])) {
+// ✅ 1) Si Master/Administrador envía id_empresa por URL, lo guardamos en sesión
+if (in_array(strtolower($rolSesion), ['master', 'administrador'], true) && !empty($_REQUEST["id_empresa"])) {
     $_SESSION["id_empresa"] = (int)$_REQUEST["id_empresa"];
 }
 
-$resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
-$todasLasEmpresas = (isset($resEmpresas['status']) && $resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) : [];
+// ✅ 2) SIEMPRE leer la empresa desde sesión DESPUÉS de actualizarla
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
 
-// 3. Buscar la empresa específica y extraer solo su nombre
+// ✅ 3) Traer empresas (blindado)
+$resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
+$todasLasEmpresas = [];
+
+if (is_array($resEmpresas) && isset($resEmpresas['status']) && (int)$resEmpresas['status'] === 200) {
+    $todasLasEmpresas = is_array($resEmpresas['data'] ?? null) ? $resEmpresas['data'] : [];
+} elseif (is_array($resEmpresas) && isset($resEmpresas['data']) && is_array($resEmpresas['data'])) {
+    // por si tu API devuelve sin status
+    $todasLasEmpresas = $resEmpresas['data'];
+}
+
+// ✅ 4) Buscar empresa y plan
 foreach ($todasLasEmpresas as $emp) {
-    if (isset($emp['id_empresa']) && $emp['id_empresa'] == $empresa) {
-        $nombreEmpresaLogeada = $emp['nombre_empresa'];
+    if (is_array($emp) && isset($emp['id_empresa']) && (int)$emp['id_empresa'] === $empresa) {
+        $nombreEmpresaLogeada = (string)($emp['nombre_empresa'] ?? 'Sin Empresa');
         $idPlanEmpresa = (int)($emp['id_plan'] ?? 0);
-        break; // Detenemos el ciclo porque ya encontramos el nombre
+        break;
     }
 }
 
 $misPermisos = [];
-
 $modulosPermitidosPorPlan = [];
 
-// A. Validar qué módulos permite el plan de la EMPRESA (Aplica para TODOS los usuarios)
+// A. Validar módulos permitidos por plan (BLINDADO)
 if ($idPlanEmpresa > 0) {
     $resPlan = $api->solicitar("planes/permisos/$idPlanEmpresa", "GET", null, $token);
     $datosPlan = $resPlan['data'] ?? $resPlan;
-    
-    if (is_array($datosPlan)) {
-        foreach ($datosPlan as $p) {
-            // Guardamos los IDs de módulos que el plan permite a la empresa
+
+    // Si no es array, no hay nada que procesar
+    if (!is_array($datosPlan)) {
+        $datosPlan = [];
+    }
+
+    foreach ($datosPlan as $p) {
+        // Caso 1: [{id_modulo: 1}, {id_modulo: 2}]
+        if (is_array($p) && isset($p['id_modulo'])) {
             $modulosPermitidosPorPlan[] = (int)$p['id_modulo'];
+            continue;
+        }
+
+        // Caso 2: [1,2,3]
+        if (is_numeric($p)) {
+            $modulosPermitidosPorPlan[] = (int)$p;
+            continue;
         }
     }
+
+    $modulosPermitidosPorPlan = array_values(array_unique($modulosPermitidosPorPlan));
 }
 
-// B. Carga de permisos tradicionales (Perfiles de usuario)
-if ($rolSesion !== "Master") {
+// B. Carga permisos por perfil (BLINDADO + rol case-insensitive)
+if (strtolower($rolSesion) !== "master") {
     $resPermisos = $api->solicitar("perfiles/permisos/$perfilIdSesion/check-all", "GET", null, $token);
     $datosFinales = $resPermisos['data'] ?? $resPermisos;
 
-    if (is_array($datosFinales)) {
-        foreach ($datosFinales as $perm) {
-            if (isset($perm['id_modulo'])) {
-                $idM = (int)$perm['id_modulo'];
-                $misPermisos[$idM] = [
-                    'ver' => (int)($perm['ver'] ?? 0)
-                ];
-            }
+    if (!is_array($datosFinales)) {
+        $datosFinales = [];
+    }
+
+    foreach ($datosFinales as $perm) {
+        if (is_array($perm) && isset($perm['id_modulo'])) {
+            $idM = (int)$perm['id_modulo'];
+            $misPermisos[$idM] = [
+                'ver' => (int)($perm['ver'] ?? 0)
+            ];
         }
     }
 }
 
-// 3. FUNCIÓN DE VALIDACIÓN MEJORADA
+// FUNCIÓN DE VALIDACIÓN MEJORADA
 function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
     $id = (int)$idModulo;
-    $rolLower = strtolower($rol);
+    $rolLower = strtolower((string)$rol);
 
-    // Si es Master, ve todo a menos que el plan lo limite (opcional)
-    if ($rolLower === "master") return true; 
+    // Master ve todo (si quieres limitarlo por plan, lo cambiamos)
+    if ($rolLower === "master") return true;
 
-    // Si es Administrador, debe estar en el plan
-    if ($rolLower === "administrador") {
-        return in_array($id, $modulosPlan);
-    }
+    // Si no hay plan asignado, nadie (excepto master) ve módulos por plan
+    if (!is_array($modulosPlan)) $modulosPlan = [];
+    $enPlan = in_array($id, $modulosPlan, true);
 
-    // Para otros roles (Usuario, SST, etc.), debe estar en el plan Y tener permiso en su perfil
-    return in_array($id, $modulosPlan) && isset($permisos[$id]) && (int)$permisos[$id]['ver'] === 1;
+    // Administrador: solo lo que esté en el plan
+    if ($rolLower === "administrador") return $enPlan;
+
+    // Otros roles: debe estar en plan + permiso ver = 1
+    return $enPlan && isset($permisos[$id]) && (int)($permisos[$id]['ver'] ?? 0) === 1;
 }
 ?>
 <!DOCTYPE html>
@@ -88,30 +117,35 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SSTManager - Menú Empresa</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/base.css">
-<link rel="stylesheet" href="assets/css/menu-admin.css">
 
-<style>
-  .admin-subitem.active {
-    color: #198754 !important;
-    font-weight: 600;
-    border-left: 4px solid #198754;
-    padding-left: 12px !important;
-    background: rgba(25,135,84,.08);
-  }
-  .accordion-button.active-parent {
-    background: #198754 !important;
-    color: #fff !important;
-  }
-  .admin-subitem:hover {
-    background: rgba(25,135,84,.05);
-  }
-</style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/menu-admin.css">
+
+  <style>
+    .admin-subitem.active {
+      color: #198754 !important;
+      font-weight: 600;
+      border-left: 4px solid #198754;
+      padding-left: 12px !important;
+      background: rgba(25,135,84,.08);
+    }
+    .accordion-button.active-parent {
+      background: #198754 !important;
+      color: #fff !important;
+    }
+    .admin-subitem:hover {
+      background: rgba(25,135,84,.05);
+    }
+  </style>
+
   <script>
     console.group("SSTManager - Debug Permisos (Menú Empresa)");
-    console.log("Rol de Sesión:", "<?= $rolSesion ?>");
-    console.log("Perfil ID:", "<?= $perfilIdSesion ?>");
+    console.log("Rol de Sesión:", "<?= htmlspecialchars($rolSesion) ?>");
+    console.log("Perfil ID:", "<?= (int)$perfilIdSesion ?>");
+    console.log("Empresa ID:", "<?= (int)$empresa ?>");
+    console.log("Plan Empresa:", "<?= (int)$idPlanEmpresa ?>");
+    console.log("Módulos por plan:", <?= json_encode($modulosPermitidosPorPlan) ?>);
     console.log("Matriz de Permisos:", <?= json_encode($misPermisos) ?>);
     console.groupEnd();
   </script>
@@ -122,103 +156,110 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
   <div class="admin-frame">
 
     <div class="admin-header d-flex justify-content-between align-items-center pe-4">
-      <div class="admin-title text-uppercase fw-bold">SSTManager <span class="fs-6  text-white fw-normal ms-2 text-secondary">Empresa:<?= htmlspecialchars($nombreEmpresaLogeada) ?></span></div>
+      <div class="admin-title text-uppercase fw-bold">
+        SSTManager
+        <span class="fs-6 text-white fw-normal ms-2 text-secondary">
+          Empresa:<?= htmlspecialchars($nombreEmpresaLogeada) ?>
+        </span>
+      </div>
+
       <div class="d-flex align-items-center gap-3">
-          <span class="text-white small d-none d-md-block">
-              Hola, <strong><?= htmlspecialchars($_SESSION["usuario"] ?? 'Usuario') ?></strong>
-          </span>
-          <a href="logout.php" class="btn btn-sm btn-outline-light text-uppercase">Cerrar Sesión</a>
+        <span class="text-white small d-none d-md-block">
+          Hola, <strong><?= htmlspecialchars($_SESSION["usuario"] ?? 'Usuario') ?></strong>
+        </span>
+        <a href="logout.php" class="btn btn-sm btn-outline-light text-uppercase">Cerrar Sesión</a>
       </div>
     </div>
 
     <div class="admin-body">
-     <aside class="admin-sidebar">
-  <div class="accordion admin-accordion" id="adminMenu">
+      <aside class="admin-sidebar">
+        <div class="accordion admin-accordion" id="adminMenu">
 
-    <!-- ===================== EMPRESA ===================== -->
-    <?php if (puedeVer(12, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
-    <div class="accordion-item">
-      <h2 class="accordion-header" id="headingEmpresa">
-        <button class="accordion-button collapsed admin-accordion-btn" type="button"
-                data-bs-toggle="collapse" data-bs-target="#collapseEmpresa">
-          Empresa
-        </button>
-      </h2>
+          <!-- ===================== EMPRESA ===================== -->
+          <?php if (puedeVer(12, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="headingEmpresa">
+              <button class="accordion-button collapsed admin-accordion-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#collapseEmpresa">
+                Empresa
+              </button>
+            </h2>
 
-      <div id="collapseEmpresa" class="accordion-collapse collapse">
-        <div class="accordion-body py-2">
-
-          <?php if(puedeVer(13, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?><a href="pages-empresa/empresa/Empresa.php" target="contentFrame" class="admin-subitem">Ver</a><?php endif; ?>
-              
-
-        </div>
-      </div>
-    </div>
-    <?php endif; ?>
-
-    <!-- ===================== MODULOS ===================== -->
-    <?php if (puedeVer(20, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
-    <div class="accordion-item">
-      <h2 class="accordion-header" id="headingModulos">
-        <button class="accordion-button collapsed admin-accordion-btn" type="button"
-                data-bs-toggle="collapse" data-bs-target="#collapseModulos">
-          Modulos
-        </button>
-      </h2>
-
-      <div id="collapseModulos" class="accordion-collapse collapse">
-        <div class="accordion-body py-2">
-          <?php if (puedeVer(21, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
-            <a href="pages-empresa/modulos/planear.php" target="contentFrame" class="admin-subitem">Planear</a>
+            <div id="collapseEmpresa" class="accordion-collapse collapse">
+              <div class="accordion-body py-2">
+                <?php if (puedeVer(13, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+                  <a href="pages-empresa/empresa/Empresa.php" target="contentFrame" class="admin-subitem">Ver</a>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
           <?php endif; ?>
-        </div>
-      </div>
-    </div>
-    <?php endif; ?>
 
-    <!-- ===================== REPORTES ===================== -->
-    <?php if (puedeVer(30, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
-    <div class="accordion-item">
-      <h2 class="accordion-header" id="headingReportes">
-        <button class="accordion-button collapsed admin-accordion-btn" type="button"
-                data-bs-toggle="collapse" data-bs-target="#collapseReportes">
-          Reportes
-        </button>
-      </h2>
+          <!-- ===================== MODULOS ===================== -->
+          <?php if (puedeVer(20, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="headingModulos">
+              <button class="accordion-button collapsed admin-accordion-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#collapseModulos">
+                Modulos
+              </button>
+            </h2>
 
-      <div id="collapseReportes" class="accordion-collapse collapse">
-        <div class="accordion-body py-2">
-          <!-- placeholders -->
-          <?php if (puedeVer(31, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
-            <a href="pages/reportes/bienvenida.php" target="contentFrame" class="admin-subitem">Dashboard</a>
+            <div id="collapseModulos" class="accordion-collapse collapse">
+              <div class="accordion-body py-2">
+                <?php if (puedeVer(21, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+                  <a href="pages-empresa/modulos/planear.php" target="contentFrame" class="admin-subitem">Planear</a>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
           <?php endif; ?>
+
+          <!-- ===================== REPORTES ===================== -->
+          <?php if (puedeVer(30, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="headingReportes">
+              <button class="accordion-button collapsed admin-accordion-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#collapseReportes">
+                Reportes
+              </button>
+            </h2>
+
+            <div id="collapseReportes" class="accordion-collapse collapse">
+              <div class="accordion-body py-2">
+                <?php if (puedeVer(31, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+                  <a href="pages/reportes/bienvenida.php" target="contentFrame" class="admin-subitem">Dashboard</a>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
+          <?php endif; ?>
+
+          <!-- ===================== SEGURIDAD ===================== -->
+          <?php if (puedeVer(1, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="headingSeguridad">
+              <button class="accordion-button collapsed admin-accordion-btn" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#collapseSeguridad">
+                Seguridad
+              </button>
+            </h2>
+
+            <div id="collapseSeguridad" class="accordion-collapse collapse">
+              <div class="accordion-body py-2">
+                <?php if (puedeVer(3, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+                  <a href="pages-empresa/seguridad/perfil.php" target="contentFrame" class="admin-subitem">Perfiles</a>
+                <?php endif; ?>
+                <?php if (puedeVer(5, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+                  <a href="pages-empresa/seguridad/Usuarios.php" target="contentFrame" class="admin-subitem">Usuarios</a>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
+          <?php endif; ?>
+
         </div>
-      </div>
-    </div>
-    <?php endif; ?>
-
-    <!-- ===================== SEGURIDAD ===================== -->
-    <?php if (puedeVer(1, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
-    <div class="accordion-item">
-      <h2 class="accordion-header" id="headingSeguridad">
-        <button class="accordion-button collapsed admin-accordion-btn" type="button"
-                data-bs-toggle="collapse" data-bs-target="#collapseSeguridad">
-          Seguridad
-        </button>
-      </h2>
-
-      <div id="collapseSeguridad" class="accordion-collapse collapse">
-        <div class="accordion-body py-2">
-          <?php if (puedeVer(3, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?><a href="pages-empresa/seguridad/perfil.php" target="contentFrame" class="admin-subitem">Perfiles</a><?php endif; ?>
-          <?php if (puedeVer(5, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?><a href="pages-empresa/seguridad/Usuarios.php" target="contentFrame" class="admin-subitem">Usuarios</a><?php endif; ?>
-        </div>
-      </div>
-    </div>
-    <?php endif; ?>
-
-  </div>
-</aside>
-
+      </aside>
 
       <main class="admin-content">
         <iframe id="contentFrame" name="contentFrame"

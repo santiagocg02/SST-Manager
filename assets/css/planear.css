@@ -294,3 +294,62 @@
   font-size: .85rem;
   margin-top: 10px;
 }
+
+/* ========= PANEL DERECHO: que el visor crezca ========= */
+.planear-right{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0; /* clave para scroll interno */
+}
+
+/* el bloque del visor toma el espacio disponible */
+.planear-right .support-panel{
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* el viewer ocupa todo el alto restante del support-panel */
+.planear-right .support-panel .support-viewer{
+  flex: 1 1 auto;
+  min-height: 520px;        /* ajusta a gusto */
+  height: auto !important;  /* anula alturas previas tipo calc() */
+  border: 1px solid #e6e9ef;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  position: relative;
+}
+
+/* iframe al 100% del contenedor */
+.planear-right .support-panel .support-viewer iframe{
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* estado vacío encima del iframe */
+.viewer-empty{
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #6b7280;
+  background: repeating-linear-gradient(
+    45deg,
+    #fafbfc,
+    #fafbfc 10px,
+    #ffffff 10px,
+    #ffffff 20px
+  );
+  font-size: 14px;
+  z-index: 2;
+}
+
+/* cuando hay contenido, el iframe queda visible */
+#supportFrame{
+  position: relative;
+  z-index: 1;
+}
