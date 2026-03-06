@@ -50,7 +50,6 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
     }
     .tiny{ font-size:10px; color:var(--muted); font-weight:700; }
     
-    .print-hide{ }
 
     /* Header (estilo formato) */
     .format-head{ border:1px solid var(--line); border-bottom:none; }

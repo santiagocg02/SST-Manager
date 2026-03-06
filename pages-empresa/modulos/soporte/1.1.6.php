@@ -88,27 +88,29 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     }
 
     /* Secciones */
-    .sec-h{
-      background: var(--soft);
-      border:1px solid rgba(0,0,0,.15);
-      padding:8px 10px;
-      font-weight:900;
-      text-transform:uppercase;
-      letter-spacing:.2px;
-      margin: 10px 0 8px;
-    }
-    .p{ font-size:12px; margin: 6px 0; }
-    .muted{ color:#5b6472; }
+ .sec-h{
+  background:#d9e1ea;
+  border:1px solid #b8c2cc;
+  color:#10233c;
+  font-weight:900;
+  text-transform:uppercase;
+  padding:10px 14px;
+  font-size:15px;
+  letter-spacing:.2px;
+  margin-bottom:10px;
+}
 
     /* Inputs estilo formato */
-    .in{
-      width:100%;
-      border:1px solid rgba(0,0,0,.25);
-      border-radius:6px;
-      padding:6px 8px;
-      font-size:12px;
-      outline:none;
-    }
+   .in{
+  width:100%;
+  height:34px;
+  border:1px solid #b7b7b7;
+  border-radius:8px;
+  background:#f8f8f8;
+  padding:6px 10px;
+  outline:none;
+  box-sizing:border-box;
+}
     .in.center{ text-align:center; }
     .in.right{ text-align:right; }
     .in.inline{
@@ -120,21 +122,33 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 
     /* Tablas “formulario” */
     table.formtbl{
-      width:100%;
-      border-collapse:collapse;
-      table-layout:fixed;
-      font-size:12px;
-    }
-    .formtbl th, .formtbl td{
-      border:1px solid var(--line);
-      padding:6px 6px;
-      vertical-align:middle;
-    }
-    .formtbl th{
-      background: var(--gray);
-      font-weight:900;
-      text-align:center;
-    }
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  font-size:12px;
+  margin-top:0;
+  background:#fff;
+}
+.formtbl th,
+.formtbl td{
+  border:1px solid #2a2a2a;
+  padding:7px 8px;
+  vertical-align:middle;
+}
+.formtbl th{
+  background:#f1f3f6;
+  text-align:center;
+  font-weight:900;
+  color:#14253d;
+  font-size:12px;
+}
+
+.formtbl{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+  background:#fff;
+}
     .small{ font-size:11px; }
     .center{ text-align:center; }
     .right{ text-align:right; }
@@ -160,6 +174,10 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
       margin-top:6px;
       font-weight:700;
     }
+    .small.muted{
+  font-size:11px;
+  margin-top:8px;
+}
 
     @media print{
       body{ background:#fff; }
@@ -197,13 +215,13 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
         <td class="code-box">ANEXO 1</td>
       </tr>
       <tr>
-        <td class="subtitle">CONVOCATORIA ELECCIONES DEL COMITÉ PARITARIO DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
+        <td class="subtitle">CONFORMACIÓN COPASST</td>
         <td class="code-box"><input class="in center" placeholder="AAAA-MM-DD"></td>
         <td class="center"><span class="badge-mod">PLANEAR</span></td>
       </tr>
     </table>
 
-    <div class="sec-h">Convocatoria</div>
+    <div class="sec-h">CONVOCATORIA ELECCIONES DEL COMITÉ PARITARIO DE SEGURIDAD Y SALUD EN EL TRABAJO</div>
 
     <div class="p">
       Ciudad: <input class="in inline" placeholder="Ciudad">
@@ -253,37 +271,36 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
         <td class="code-box"><span class="badge-mod">PLANEAR</span></td>
       </tr>
       <tr>
-        <td class="subtitle">PERIODO <input class="in inline center" placeholder="AAAA-MM-DD"></td>
+        <td class="subtitle">CONFORMACIÓN COPASST</td>
         <td class="code-box">Responsable</td>
         <td class="code-box"><input class="in center" placeholder="Nombre"></td>
       </tr>
     </table>
 
+    
+    <div class="sec-h">INSCRIPCIÓN CANDIDATOS AL COMITÉ PARITARIO DE SEGURIDAD Y SALUD EN EL TRABAJO</div>
     <div class="p">
-      Fecha de cierre: <input class="in inline center" placeholder="AAAA-MM-DD">
+      Periodo: <input class="in inline center" placeholder="AAAA-MM-DD">
     </div>
-
-    <div class="sec-h">Registro de candidatos</div>
-
     <table class="formtbl">
       <colgroup>
-        <col style="width:70px">
-        <col>
-        <col style="width:160px">
-        <col style="width:160px">
-        <col style="width:160px">
-      </colgroup>
-      <thead>
-        <tr>
-          <th>No.</th>
-          <th>Nombres y Apellidos</th>
-          <th>Cédula</th>
-          <th>Cargo</th>
-          <th>Área</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php for($r=1;$r<=10;$r++): ?>
+      <col style="width:70px">
+      <col>
+      <col style="width:160px">
+      <col style="width:160px">
+      <col style="width:160px">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>No.</th>
+        <th>Nombres y Apellidos</th>
+        <th>Cédula</th>
+        <th>Cargo</th>
+        <th>Área</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php for($r=1;$r<=10;$r++): ?>
         <tr>
           <td class="center"><?= $r ?></td>
           <td><input class="in" placeholder=""></td>
@@ -294,38 +311,43 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
         <?php endfor; ?>
       </tbody>
     </table>
-
-    <div class="mt-3">
-      <div class="sec-h">Anexo 3 / Tarjetón de votación</div>
-
-      <table class="formtbl">
-        <colgroup>
-          <col>
-          <col style="width:220px">
-          <col style="width:220px">
-        </colgroup>
-        <thead>
-          <tr>
-            <th>NOMBRE</th>
-            <th>CARGO</th>
-            <th>ÁREA</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php for($r=1;$r<=10;$r++): ?>
-          <tr>
-            <td><input class="in" placeholder=""></td>
-            <td><input class="in" placeholder=""></td>
-            <td><input class="in" placeholder=""></td>
-          </tr>
-          <?php endfor; ?>
-        </tbody>
-      </table>
-      <div class="small muted mt-2">
-        (Este tarjetón es para diligenciamiento / referencia del proceso de votación)
-      </div>
+    
+    <div class="p">
+      Fecha de cierre: <input class="in inline center" placeholder="AAAA-MM-DD">
+      Responsable: <input class="in inline center">
     </div>
+    
+      <<div class="mt-3">
+  <div class="sec-h">Anexo 3 / Tarjetón de votación</div>
+
+  <table class="formtbl">
+    <colgroup>
+      <col>
+      <col style="width:220px">
+      <col style="width:220px">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>NOMBRE</th>
+        <th>CARGO</th>
+        <th>ÁREA</th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php for($r=1;$r<=10;$r++): ?>
+      <tr>
+        <td><input class="in" placeholder=""></td>
+        <td><input class="in" placeholder=""></td>
+        <td><input class="in" placeholder=""></td>
+      </tr>
+      <?php endfor; ?>
+    </tbody>
+  </table>
+
+  <div class="small muted mt-2">
+    (Este tarjetón es para diligenciamiento / referencia del proceso de votación)
   </div>
+</div>
 
   <!-- ===================== ANEXO 4 ===================== -->
   <div class="sheet page-break">
