@@ -196,7 +196,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
           <?php endif; ?>
 
           <!-- ===================== MODULOS ===================== -->
-          <?php if (puedeVer(20, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+          <?php if (puedeVer(16, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
           <div class="accordion-item">
             <h2 class="accordion-header" id="headingModulos">
               <button class="accordion-button collapsed admin-accordion-btn" type="button"
@@ -207,7 +207,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
 
             <div id="collapseModulos" class="accordion-collapse collapse">
               <div class="accordion-body py-2">
-                <?php if (puedeVer(21, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+                <?php if (puedeVer(17, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
                   <a href="pages-empresa/modulos/planear.php" target="contentFrame" class="admin-subitem">Planear</a>
                 <?php endif; ?>
               </div>
@@ -216,7 +216,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
           <?php endif; ?>
 
           <!-- ===================== REPORTES ===================== -->
-          <?php if (puedeVer(30, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+          <?php if (puedeVer(19, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
           <div class="accordion-item">
             <h2 class="accordion-header" id="headingReportes">
               <button class="accordion-button collapsed admin-accordion-btn" type="button"
@@ -228,7 +228,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
             <div id="collapseReportes" class="accordion-collapse collapse">
               <div class="accordion-body py-2">
                 <?php if (puedeVer(31, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
-                  <a href="pages/reportes/bienvenida.php" target="contentFrame" class="admin-subitem">Dashboard</a>
+                  <a href="pages/reportes/bienvenidaes.php" target="contentFrame" class="admin-subitem">Dashboard</a>
                 <?php endif; ?>
               </div>
             </div>
@@ -263,7 +263,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
 
       <main class="admin-content">
         <iframe id="contentFrame" name="contentFrame"
-                src="pages/empresa/bienvenida-empresa.php"
+                src="pages-empresa/bienvenidaes.php"
                 class="admin-iframe"></iframe>
       </main>
     </div>
@@ -310,7 +310,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       const guardado = sessionStorage.getItem("menuEmpresaActivo");
 
       if (!guardado) {
-        frame.src = "pages/empresa/bienvenida-empresa.php";
+        frame.src = "pages-empresa/bienvenidaes.php";
         return;
       }
 
@@ -320,7 +320,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
         activarMenu(link);
         frame.src = guardado;
       } else {
-        frame.src = "pages/empresa/bienvenida-empresa.php";
+        frame.src = "pages-empresa/bienvenidaes.php";
       }
     });
   </script>
