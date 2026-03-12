@@ -310,7 +310,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       const guardado = sessionStorage.getItem("menuEmpresaActivo");
 
       if (!guardado) {
-        frame.src = "pages-empresa/bienvenidaes.php";
+        frame.src = "pages/empresa/bienvenida-empresa.php";
         return;
       }
 
@@ -320,7 +320,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
         activarMenu(link);
         frame.src = guardado;
       } else {
-        frame.src = "pages-empresa/bienvenidaes.php";
+        frame.src = "pages/empresa/bienvenida-empresa.php";
       }
     });
   </script>
