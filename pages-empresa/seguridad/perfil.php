@@ -115,7 +115,7 @@ if (!empty($idEmpresaSesion)) {
         }
     }
 
-    // B. Filtrar los perfiles: Solo mostrar los de la empresa actual (Oculta los globales)
+    // B. Filtrar los perfiles
     $listaPerfiles = array_filter($listaPerfiles, function($p) use ($idEmpresaSesion) {
         return isset($p['id_empresa']) && $p['id_empresa'] == $idEmpresaSesion;
     });
@@ -149,6 +149,15 @@ if (!empty($idEmpresaSesion)) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../assets/css/main-style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* Ajuste de Switch interno si no está en tu main-style.css */
+        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #1fa339; }
+        input:checked + .slider:before { transform: translateX(22px); }
+    </style>
     <script>
         const PER_PUEDE_CREAR  = <?= puedeCrear($MOD_PERFILES, $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
         const PER_PUEDE_EDITAR = <?= puedeEditar($MOD_PERFILES, $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
@@ -156,140 +165,153 @@ if (!empty($idEmpresaSesion)) {
         const ACC_PUEDE_CREAR  = <?= puedeCrear($MOD_PERMISOS, $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
     </script>
 </head> 
-<body class="cal-wrap">
+<body class="bg-light">
 
-<div class="container-fluid">
-    <h2 class="mb-4"><i class="fa-solid fa-user-shield me-2"></i>Gestión de Perfiles y Accesos</h2>
-
-    <?php if($mensaje): echo "<div class='alert alert-danger'>$mensaje</div>"; endif; ?>
-
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-            <form method="POST" id="formPerfil">
-                <input type="hidden" id="id_perfil" name="id_perfil">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label class="fw-bold small mb-1 text-uppercase">Nombre del Perfil</label>
-                        <input type="text" id="nombre_perfil" name="nombre_perfil" class="form-control" required>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="fw-bold small mb-1 text-uppercase">Descripción</label>
-                        <input type="text" id="descripcion" name="descripcion" class="form-control">
-                    </div>
-                    <div class="col-md-2 text-center">
-                        <label class="fw-bold small d-block mb-1 text-uppercase">Estado</label>
-                        <label class="switch mt-1">
-                            <input type="checkbox" id="status" name="status" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="col-md-3 d-flex gap-2">
-                        <button type="submit" id="btnGuardar" class="btn btn-success flex-grow-1">
-                            <i class="fa-solid fa-save me-2"></i>Guardar
-                        </button>
-                        <button type="button" id="btnLimpiar" class="btn btn-secondary" onclick="limpiarFormulario()" style="display:none;">
-                            <i class="fa-solid fa-times"></i>
-                        </button>
-                    </div>
+    <div class="sticky-header">
+        <div class="container-fluid">
+            <div class="d-flex align-items-center">
+                <a href="../../pages-empresa/bienvenidaes.php" class="btn-volver-sst me-3">
+                    <i class="fa-solid fa-arrow-left me-2"></i> Volver
+                </a>
+                <div>
+                    <h4 class="mb-0 fw-bold text-dark">
+                        <i class="fa-solid fa-user-shield text-primary me-2"></i>Gestión de Perfiles y Accesos
+                    </h4>
                 </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="card-shadow border overflow-hidden">
-        <div class="table-scroll-container">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-dark text-uppercase small">
-                    <tr>
-                        <th width="80" class="ps-3">ID</th>
-                        <th>Nombre del Perfil</th>
-                        <th>Empresa</th>
-                        <th class="text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($listaPerfiles as $p): ?>
-                    <tr>
-                        <td class="ps-3"><?= $p['id_perfil'] ?></td>
-                        <td class="fw-bold"><?= htmlspecialchars($p['nombre_perfil']) ?></td>
-                        
-                       
-                            <td class="small text-muted">
-                                <?= (isset($p['id_empresa']) && isset($mapaEmpresas[$p['id_empresa']])) ? htmlspecialchars($mapaEmpresas[$p['id_empresa']]) : 'Sistema (Global)' ?>
-                            </td>
-                  
-                        
-                        <td class="text-center">
-                            <?php if (puedeVer($MOD_PERMISOS, $rolSesion, $misPermisos)): ?>
-                                <button class="btn btn-sm btn-primary px-3" 
-                                        onclick="abrirModalPermisos('<?= $p['id_perfil'] ?>', '<?= htmlspecialchars($p['nombre_perfil']) ?>')">
-                                    <i class="fa-solid fa-lock me-1"></i> Permisos
-                                </button>
-                            <?php endif; ?>
-
-                            <?php if (puedeEditar($MOD_PERFILES, $rolSesion, $misPermisos)): ?>
-                                <button class="btn btn-sm btn-light border ms-1" 
-                                        onclick="cargarPerfil('<?= base64_encode(json_encode($p)) ?>')">
-                                    <i class="fa-solid fa-pencil text-warning"></i>
-                                </button>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="modalPermisos" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="tituloModal">Configuración de Accesos</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-0">
-                <input type="hidden" id="perm_id_perfil">
-                <table class="table table-sm table-bordered mb-0">
-                    <thead class="text-center table-light small fw-bold">
+        </div>
+    </div>
+
+    <div class="container-fluid mt-4">
+        
+        <?php if($mensaje): echo "<div class='alert alert-danger'>$mensaje</div>"; endif; ?>
+
+        <div class="card shadow-sm border-0 mb-4" style="border-radius: 15px;">
+            <div class="card-body p-4">
+                <form method="POST" id="formPerfil">
+                    <input type="hidden" id="id_perfil" name="id_perfil">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="fw-bold small mb-1 text-muted text-uppercase">Nombre del Perfil</label>
+                            <input type="text" id="nombre_perfil" name="nombre_perfil" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="fw-bold small mb-1 text-muted text-uppercase">Descripción</label>
+                            <input type="text" id="descripcion" name="descripcion" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <label class="fw-bold small d-block mb-1 text-muted text-uppercase">Estado</label>
+                            <label class="switch mt-1">
+                                <input type="checkbox" id="status" name="status" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="col-md-3 d-flex gap-2">
+                            <button type="submit" id="btnGuardar" class="btn btn-primary flex-grow-1" style="background-color: #004176; border: none; border-radius: 8px;">
+                                <i class="fa-solid fa-save me-2"></i>Guardar
+                            </button>
+                            <button type="button" id="btnLimpiar" class="btn btn-secondary" onclick="limpiarFormulario()" style="display:none; border-radius: 8px;">
+                                <i class="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-5" style="border-radius: 15px; overflow: hidden;">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead style="background-color: #e4e8ee; color: #333;" class="text-uppercase small fw-bold">
                         <tr>
-                            <th class="text-start p-3">MÓDULO / FUNCIÓN</th>
-                            <th width="90">VER</th><th width="90">CREAR</th><th width="90">EDITAR</th><th width="90">ELIMINAR</th>
+                            <th width="80" class="ps-4 py-3">ID</th>
+                            <th class="py-3">Nombre del Perfil</th>
+                            <th class="py-3">Empresa</th>
+                            <th class="text-center py-3">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php 
-                        $padres = array_filter($listaModulosMaestra, fn($m) => empty($m['id_padre']));
-                        $hijos = array_filter($listaModulosMaestra, fn($m) => !empty($m['id_padre']));
-                        foreach ($padres as $pad): 
-                        ?>
-                            <tr class="table-secondary fw-bold"><td colspan="5" class="ps-3"><?= $pad['nombre_modulo'] ?></td></tr>
-                            <?php foreach ($hijos as $hij): if ($hij['id_padre'] == $pad['id_modulo']): ?>
-                               <tr>
-                                <td class="ps-5 py-2"><?= $hij['nombre_modulo'] ?></td>
-                                <?php foreach (['ver', 'crear', 'editar', 'eliminar'] as $a): ?>
-                                    <td class="text-center">
-                                        <label class="switch">
-                                            <input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="<?= $a ?>">
-                                            <span class="slider round"></span>
-                                        </label>
-                                    </td>
-                                <?php endforeach; ?>
-                               </tr>
-                            <?php endif; endforeach; ?>
+                        <?php foreach ($listaPerfiles as $p): ?>
+                        <tr>
+                            <td class="ps-4 text-muted">#<?= $p['id_perfil'] ?></td>
+                            <td class="fw-bold text-dark"><?= htmlspecialchars($p['nombre_perfil']) ?></td>
+                            <td class="small text-muted">
+                                <?= (isset($p['id_empresa']) && isset($mapaEmpresas[$p['id_empresa']])) ? htmlspecialchars($mapaEmpresas[$p['id_empresa']]) : 'Sistema (Global)' ?>
+                            </td>
+                            <td class="text-center">
+                                <?php if (puedeVer($MOD_PERMISOS, $rolSesion, $misPermisos)): ?>
+                                    <button class="btn btn-sm text-primary" style="background-color: #e6f0fa; border-radius: 8px;"
+                                            onclick="abrirModalPermisos('<?= $p['id_perfil'] ?>', '<?= htmlspecialchars($p['nombre_perfil']) ?>')" title="Permisos">
+                                        <i class="fa-solid fa-lock"></i>
+                                    </button>
+                                <?php endif; ?>
+
+                                <?php if (puedeEditar($MOD_PERFILES, $rolSesion, $misPermisos)): ?>
+                                    <button class="btn btn-sm text-warning ms-1" style="background-color: #fff8e1; border-radius: 8px;"
+                                            onclick="cargarPerfil('<?= base64_encode(json_encode($p)) ?>')" title="Editar">
+                                        <i class="fa-solid fa-pencil"></i>
+                                    </button>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-success px-4" id="btnSincronizar" onclick="guardarPermisos()">
-                    <i class="fa-solid fa-sync me-2"></i>Sincronizar Permisos
-                </button>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalPermisos" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content" style="border-radius: 15px; overflow: hidden;">
+                <div class="modal-header" style="background-color: #004176; color: white;">
+                    <h5 class="modal-title" id="tituloModal">Configuración de Accesos</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <input type="hidden" id="perm_id_perfil">
+                    <table class="table table-sm mb-0">
+                        <thead class="text-center small fw-bold" style="background-color: #f4f7f6;">
+                            <tr>
+                                <th class="text-start p-3">MÓDULO / FUNCIÓN</th>
+                                <th width="90" class="py-3">VER</th>
+                                <th width="90" class="py-3">CREAR</th>
+                                <th width="90" class="py-3">EDITAR</th>
+                                <th width="90" class="py-3">ELIMINAR</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $padres = array_filter($listaModulosMaestra, fn($m) => empty($m['id_padre']));
+                            $hijos = array_filter($listaModulosMaestra, fn($m) => !empty($m['id_padre']));
+                            foreach ($padres as $pad): 
+                            ?>
+                                <tr style="background-color: #e4e8ee;"><td colspan="5" class="ps-4 fw-bold py-2 text-dark"><?= $pad['nombre_modulo'] ?></td></tr>
+                                <?php foreach ($hijos as $hij): if ($hij['id_padre'] == $pad['id_modulo']): ?>
+                                   <tr>
+                                    <td class="ps-5 py-2 text-muted"><?= $hij['nombre_modulo'] ?></td>
+                                    <?php foreach (['ver', 'crear', 'editar', 'eliminar'] as $a): ?>
+                                        <td class="text-center align-middle">
+                                            <label class="switch" style="transform: scale(0.8);">
+                                                <input type="checkbox" class="check-perm" data-modulo="<?= $hij['id_modulo'] ?>" data-padre="<?= $pad['id_modulo'] ?>" data-perm="<?= $a ?>">
+                                                <span class="slider"></span>
+                                            </label>
+                                        </td>
+                                    <?php endforeach; ?>
+                                   </tr>
+                                <?php endif; endforeach; ?>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-success px-4 rounded-pill" id="btnSincronizar" onclick="guardarPermisos()">
+                        <i class="fa-solid fa-sync me-2"></i>Guardar Permisos
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -386,7 +408,7 @@ if (!empty($idEmpresaSesion)) {
         .then(res => res.json())
         .then(res => {
             if(res.status === 200 || res.ok) {
-                Swal.fire({ title: 'Éxito', text: 'Permisos sincronizados', icon: 'success' }).then(() => modalPerm.hide());
+                Swal.fire({ title: 'Éxito', text: 'Permisos sincronizados', icon: 'success', confirmButtonColor: '#1fa339' }).then(() => modalPerm.hide());
             }
         });
     }; 
