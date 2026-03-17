@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
-  header("Location: ../../../index.php");
+  header("Location: ../../../../index.php");
   exit;
 }
 ?>
@@ -16,225 +16,429 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 
   <style>
     :root{
-      --line:#111;
-      --blue:#1f4fd6;
-      --orange:#f28c28;
+      --sst-border:#111;
+      --sst-primary:#9fb4d9;
+      --sst-primary-soft:#dbe7f7;
+      --sst-bg:#eef3f9;
+      --sst-paper:#ffffff;
+      --sst-text:#111;
+      --sst-muted:#5f6b7a;
+      --sst-toolbar:#dde7f5;
+      --sst-toolbar-border:#c8d3e2;
     }
 
-    body{ background:#f4f6f8; }
-    .wrap{ max-width: 950px; margin: 18px auto; }
-    .toolbar{
-      display:flex; justify-content:space-between; align-items:center; gap:10px;
-      margin-bottom: 10px;
+    *{
+      box-sizing:border-box;
     }
 
-    .sheet{
-      background:#fff;
-      border:2px solid var(--line);
-      box-shadow: 0 10px 22px rgba(0,0,0,.08);
+    html, body{
+      margin:0;
+      padding:0;
+      font-family:Arial, Helvetica, sans-serif;
+      background:var(--sst-bg);
+      color:var(--sst-text);
     }
 
-    .fmt{ width:100%; border-collapse:collapse; table-layout:fixed; }
-    .fmt td{ border:1px solid var(--line); padding:10px; vertical-align:top; }
+    .sst-toolbar{
+      position:sticky;
+      top:0;
+      z-index:100;
+      background:var(--sst-toolbar);
+      border-bottom:1px solid var(--sst-toolbar-border);
+      padding:12px 18px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .sst-toolbar-title{
+      margin:0;
+      font-size:15px;
+      font-weight:800;
+      color:#213b67;
+    }
+
+    .sst-toolbar-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .sst-page{
+      padding:20px;
+    }
+
+    .sst-paper{
+      width:216mm;
+      min-height:279mm;
+      margin:0 auto;
+      background:var(--sst-paper);
+      border:1px solid #d7dee8;
+      box-shadow:0 10px 25px rgba(0,0,0,.08);
+      padding:8mm;
+      box-sizing:border-box;
+    }
+
+    .sst-table{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+    }
+
+    .sst-table td,
+    .sst-table th{
+      border:1px solid var(--sst-border);
+      padding:6px 8px;
+      vertical-align:top;
+      font-size:12px;
+      word-wrap:break-word;
+      height:auto;
+    }
+
+    .sst-title{
+      background:var(--sst-primary);
+      text-align:center;
+      font-weight:800;
+      text-transform:uppercase;
+    }
+
+    .sst-subtitle{
+      background:var(--sst-primary-soft);
+      text-align:center;
+      font-weight:800;
+      text-transform:uppercase;
+    }
+
+    .center{
+      text-align:center;
+    }
+
+    .right{
+      text-align:right;
+    }
+
+    .bold{
+      font-weight:800;
+    }
+
+    .small{
+      font-size:12px;
+    }
+
+    .muted{
+      color:var(--sst-muted);
+    }
+
+    .sst-input,
+    .sst-select{
+      width:100%;
+      border:none;
+      outline:none;
+      background:transparent;
+      font-size:12px;
+      padding:2px 4px;
+      font-family:Arial, Helvetica, sans-serif;
+      color:#111;
+    }
+
+    .sst-textarea,
+    .editable-block,
+    .editable-list{
+      width:100%;
+      border:none;
+      outline:none;
+      background:transparent;
+      font-size:12px;
+      line-height:1.5;
+      padding:0;
+      resize:none;
+      overflow:hidden;
+      height:auto;
+      min-height:unset;
+      font-family:Arial, Helvetica, sans-serif;
+      color:#111;
+      display:block;
+    }
+
+    .sst-input-line{
+      width:100%;
+      border:none;
+      outline:none;
+      background:transparent;
+      font-size:12px;
+      padding:2px 0;
+      border-bottom:1px solid #666;
+      font-family:Arial, Helvetica, sans-serif;
+      color:#111;
+    }
 
     .logo-box{
-      border:2px dashed rgba(0,0,0,.35);
-      height:90px;
-      display:flex; align-items:center; justify-content:center;
-      font-weight:800; color:rgba(0,0,0,.45);
+      height:72px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      font-weight:800;
+      color:#808080;
+      border:2px dashed #b5b5b5;
       text-align:center;
+      line-height:1.2;
     }
 
-    .head-top{
-      font-weight:900;
-      text-align:center;
-      font-size:18px;
-      padding:18px 10px;
-    }
-
-    .sub-top{
-      font-weight:900;
-      text-align:center;
-      font-size:16px;
-      padding:10px;
-    }
-
-    .code-box{
+    .header-main{
       text-align:center;
       font-weight:800;
       font-size:14px;
+      line-height:1.4;
+      text-transform:uppercase;
     }
 
-    .cell-input{
-      width:100%;
-      border:1px solid rgba(0,0,0,.25);
-      border-radius:6px;
-      padding:8px 10px;
-      font-size:14px;
-      background:#fff;
+    .meta-box{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      font-size:12px;
+      height:100%;
+      justify-content:center;
     }
 
-    .center{ text-align:center; }
-    .orange{ color: var(--orange); font-weight:900; }
-    .bullets{ margin:0; padding-left: 0; list-style:none; }
-    .bullets li{
-      display:flex; gap:12px; align-items:flex-start;
-      padding:10px 0;
-      border-bottom:1px solid rgba(0,0,0,.08);
-    }
-    .bullets li:last-child{ border-bottom:none; }
-    .tick{
-      font-size:22px;
-      line-height: 1;
-      margin-top: 2px;
+    .meta-box .meta-item{
+      text-align:right;
+      font-weight:800;
     }
 
-    .line-sign{
-      border-top:1px solid #000;
-      width: 70%;
-      margin: 45px auto 6px;
-    }
-    .sign-label{
+    .firma-wrapper{
       text-align:center;
-      font-size:14px;
-      margin-bottom: 18px;
-    }
-    .sign-row td{
-      padding: 30px 10px;
+      padding:18px 8px 10px;
     }
 
-    /* impresión */
+    .firma-line{
+      width:70%;
+      margin:26px auto 6px;
+      border-top:1px solid #000;
+    }
+
+    .check-list{
+      margin:0;
+      padding:0;
+      list-style:none;
+    }
+
+    .check-list li{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:6px 0;
+    }
+
+    .check{
+      font-weight:800;
+      min-width:18px;
+      text-align:center;
+    }
+
+    .empresa-title{
+      font-size:18px;
+      font-weight:800;
+      text-transform:uppercase;
+      margin-bottom:6px;
+    }
+
+    @page{
+      size:Letter;
+      margin:8mm;
+    }
+
     @media print{
-      body{ background:#fff; }
-      .toolbar{ display:none !important; }
-      .wrap{ max-width:none; margin:0; }
-      .sheet{ box-shadow:none; }
-      .cell-input{ border:1px solid #000; }
+      html, body{
+        background:#fff !important;
+      }
+
+      .sst-toolbar{
+        display:none !important;
+      }
+
+      .sst-page{
+        padding:0 !important;
+        margin:0 !important;
+      }
+
+      .sst-paper{
+        width:100% !important;
+        min-height:auto !important;
+        margin:0 !important;
+        border:none !important;
+        box-shadow:none !important;
+        padding:0 !important;
+      }
+
+      .sst-input,
+      .sst-select,
+      .sst-textarea,
+      .sst-input-line,
+      .editable-block,
+      .editable-list{
+        color:#000 !important;
+      }
+    }
+
+    @media (max-width: 991px){
+      .sst-page{
+        padding:12px;
+      }
+
+      .sst-paper{
+        width:100%;
+        min-height:auto;
+        padding:12px;
+      }
+
+      .sst-toolbar{
+        padding:12px;
+      }
     }
   </style>
 </head>
-
 <body>
 
-<div class="wrap">
+  <div class="sst-toolbar">
+    <h1 class="sst-toolbar-title">Carta de Nombramiento, Representante por la Alta Dirección</h1>
 
-  <div class="toolbar">
-    <div class="d-flex gap-2 flex-wrap">
-      <!-- ✅ volver a planear.php -->
-      <a href="../planear.php" class="btn btn-outline-secondary btn-sm">← Volver </a>
-      <button class="btn btn-primary btn-sm" onclick="window.print()">Imprimir / Guardar PDF</button>
+    <div class="sst-toolbar-actions">
+      <a href="../planear.php" class="btn btn-secondary btn-sm">Volver</a>
+      <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">Imprimir</button>
     </div>
-    <div class="small text-muted fw-semibold">Formato: AC-SST-05</div>
   </div>
 
-  <div class="sheet p-2">
-    <table class="fmt">
-      <tr>
-        <td style="width:22%">
-          <div class="logo-box">TU LOGO<br>AQUÍ</div>
-        </td>
+  <div class="sst-page">
+    <div class="sst-paper">
 
-        <td class="head-top" colspan="2">
-          SISTEMA DE GESTIÓN<br>
-          DE SEGURIDAD Y SALUD EN EL TRABAJO
-          <div class="sub-top">
-            CARTA DE NOMBRAMIENTO, REPRESENTANTE POR LA ALTA DIRECCIÓN
-          </div>
-        </td>
+      <table class="sst-table">
+        <tr>
+          <td style="width:18%;">
+            <div class="logo-box">
+              <div>TU LOGO</div>
+              <div>AQUÍ</div>
+            </div>
+          </td>
 
-        <td style="width:18%">
-          <div class="code-box mb-2">0</div>
-          <div class="code-box mb-2">AC-SST-05</div>
-          <input class="cell-input" type="text" placeholder="XX/XX/2025">
-        </td>
-      </tr>
+          <td colspan="3">
+            <div class="header-main">
+              SISTEMA DE GESTIÓN EN SEGURIDAD Y SALUD EN EL TRABAJO<br>
+              CARTA DE NOMBRAMIENTO, REPRESENTANTE POR LA ALTA DIRECCIÓN
+            </div>
+          </td>
 
-      <tr>
-        <td colspan="4" class="center" style="padding:36px 10px;">
-          <div class="orange" style="font-size:20px;">EMPRESA</div>
-          <div class="mt-2">
-            <input class="cell-input" style="max-width:520px; margin:0 auto;" type="text" placeholder="Nombre de la empresa">
-          </div>
-
-          <div class="mt-4 fw-bold" style="font-size:18px;">CERTIFICA:</div>
-        </td>
-      </tr>
-
-      <tr>
-        <td colspan="4" style="padding: 18px 18px 10px;">
-          <ul class="bullets">
-
-            <li>
-              <div class="tick">✓</div>
-              <div>
-                Que <span class="orange">NOMBRE</span>, con C.C
-                <input class="cell-input" style="display:inline-block; width:160px; margin:0 6px;" type="text" placeholder="XXX">
-                ha sido designada como representante de la Dirección para el sistema de Gestión de seguridad y salud en el trabajo,
-                y se le han asignado las funciones, responsabilidades y autoridades para:
+          <td style="width:18%;">
+            <div class="meta-box">
+              <div class="meta-item">0</div>
+              <div class="meta-item">AC-SST-05</div>
+              <div class="meta-item">
+                <input class="sst-input-line" type="text" value="XX/XX/2025">
               </div>
-            </li>
+            </div>
+          </td>
+        </tr>
 
-            <li>
-              <div class="tick">✓</div>
-              <div>
-                Planear, organizar, dirigir, desarrollar y aplicar el PESV, y realizar por lo menos una vez al año su evaluación.
-              </div>
-            </li>
+        <tr>
+          <td colspan="5" class="sst-title">Identificación de la Empresa</td>
+        </tr>
 
-            <li>
-              <div class="tick">✓</div>
-              <div>
-                Asegurar que los requisitos del SG-SST se establezcan, implementen y mantengan, de acuerdo con lo indicado en el Decreto 1072 de 2015,
-                Resolución 0312 del 2019 y demás normas asociadas.
-              </div>
-            </li>
+        <tr>
+          <td colspan="5" class="center" style="padding:20px 10px;">
+            <div class="empresa-title">EMPRESA</div>
+            <input class="sst-input-line center" style="max-width:420px; display:inline-block;" type="text" value="Nombre de la empresa">
+            <div class="bold" style="margin-top:18px; font-size:14px;">CERTIFICA:</div>
+          </td>
+        </tr>
 
-            <li>
-              <div class="tick">✓</div>
-              <div>
-                Informar a la alta Dirección sobre el funcionamiento y los resultados del SG - SST.
-              </div>
-            </li>
+        <tr>
+          <td colspan="5">
+            <ul class="check-list">
+              <li>
+                <div class="check">✓</div>
+                <div style="width:100%;">
+                  Que
+                  <input class="sst-input-line" style="display:inline-block; width:220px;" type="text" value="NOMBRE COMPLETO">
+                  identificado(a) con C.C.
+                  <input class="sst-input-line" style="display:inline-block; width:150px;" type="text" value="XXXXXXXXXX">
+                  ha sido designado(a) como representante de la Dirección para el Sistema de Gestión de Seguridad y Salud en el Trabajo, y se le han asignado las funciones, responsabilidades y autoridades para:
+                </div>
+              </li>
 
-            <li>
-              <div class="tick">✓</div>
-              <div>
-                Promover la participación de todos los miembros de la empresa en la implementación del SG - SST.
-              </div>
-            </li>
+              <li>
+                <div class="check">✓</div>
+                <div>
+                  Planear, organizar, dirigir, desarrollar y aplicar el SG-SST, y realizar por lo menos una vez al año su evaluación.
+                </div>
+              </li>
 
-            <li>
-              <div class="tick">✓</div>
-              <div>
-                Asegurarse de que se promueva la toma de conciencia de la conformidad con los requisitos del SG - SST.
-              </div>
-            </li>
+              <li>
+                <div class="check">✓</div>
+                <div>
+                  Asegurar que los requisitos del SG-SST se establezcan, implementen y mantengan, de acuerdo con lo indicado en el Decreto 1072 de 2015, Resolución 0312 de 2019 y demás normas asociadas.
+                </div>
+              </li>
 
-            <li>
-              <div class="tick">✓</div>
-              <div>
-                Programar las auditorías internas necesarias para el mantenimiento y mejora continua del SG - SST.
-              </div>
-            </li>
+              <li>
+                <div class="check">✓</div>
+                <div>
+                  Informar a la alta dirección sobre el funcionamiento y los resultados del SG-SST.
+                </div>
+              </li>
 
-          </ul>
-        </td>
-      </tr>
+              <li>
+                <div class="check">✓</div>
+                <div>
+                  Promover la participación de todos los miembros de la empresa en la implementación del SG-SST.
+                </div>
+              </li>
 
-      <tr class="sign-row">
-        <td colspan="2" class="center">
-          <div class="line-sign"></div>
-          <div class="sign-label">Representante Legal</div>
-        </td>
-        <td colspan="2" class="center">
-          <div class="line-sign"></div>
-          <div class="sign-label">Encargado SST</div>
-        </td>
-      </tr>
+              <li>
+                <div class="check">✓</div>
+                <div>
+                  Asegurarse de que se promueva la toma de conciencia de la conformidad con los requisitos del SG-SST.
+                </div>
+              </li>
 
-    </table>
+              <li>
+                <div class="check">✓</div>
+                <div>
+                  Programar las auditorías internas necesarias para el mantenimiento y mejora continua del SG-SST.
+                </div>
+              </li>
+            </ul>
+          </td>
+        </tr>
+
+        <tr>
+          <td colspan="5" class="sst-title">Firmas de Responsabilidad</td>
+        </tr>
+
+        <tr>
+          <td colspan="2">
+            <div class="firma-wrapper">
+              <div class="firma-line"></div>
+              <input class="sst-input center bold" type="text" value="Representante Legal">
+            </div>
+          </td>
+
+          <td></td>
+
+          <td colspan="2">
+            <div class="firma-wrapper">
+              <div class="firma-line"></div>
+              <input class="sst-input center bold" type="text" value="Encargado SST">
+            </div>
+          </td>
+        </tr>
+      </table>
+
+    </div>
   </div>
-</div>
 
 </body>
 </html>

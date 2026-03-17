@@ -182,9 +182,6 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
     margin:0;
   }
 
-  .score-input[type=number]{
-    -moz-appearance:textfield;
-  }
 
   .spacer{
     height:14px;

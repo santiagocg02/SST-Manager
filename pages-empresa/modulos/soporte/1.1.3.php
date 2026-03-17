@@ -1,7 +1,7 @@
 <?php
 session_start();
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
-  header("Location: ../../../index.php");
+  header("Location: ../../../../index.php");
   exit;
 }
 ?>
@@ -17,536 +17,898 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 
   <style>
     :root{
-      --line:#111;
-      --blue:#8ea6c9;
-      --blue2:#d9e1f2;
-      --blue3:#b8c7df;
-      --note:#f28c28;
+      --sst-border:#111;
+      --sst-primary:#9fb4d9;
+      --sst-primary-soft:#dbe7f7;
+      --sst-bg:#eef3f9;
+      --sst-paper:#ffffff;
+      --sst-text:#111;
+      --sst-muted:#5f6b7a;
+      --sst-toolbar:#dde7f5;
+      --sst-toolbar-border:#c8d3e2;
+      --sst-orange:#f28c28;
     }
 
-    body{ background:#f3f6fa; }
-    .wrap{ max-width: 1350px; margin: 18px auto; padding: 0 10px; }
-
-    .toolbar{
-      display:flex; justify-content:space-between; align-items:center; gap:10px;
-      margin-bottom:10px;
+    *{
+      box-sizing:border-box;
     }
 
-    .sheet{
-      background:#fff;
-      border:2px solid var(--line);
-      box-shadow: 0 10px 22px rgba(0,0,0,.08);
-      padding: 10px;
+    html, body{
+      margin:0;
+      padding:0;
+      font-family:Arial, Helvetica, sans-serif;
+      background:var(--sst-bg);
+      color:var(--sst-text);
     }
 
-    table.excel{
+    .sst-toolbar{
+      position:sticky;
+      top:0;
+      z-index:100;
+      background:var(--sst-toolbar);
+      border-bottom:1px solid var(--sst-toolbar-border);
+      padding:12px 18px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .sst-toolbar-title{
+      margin:0;
+      font-size:15px;
+      font-weight:800;
+      color:#213b67;
+    }
+
+    .sst-toolbar-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .sst-page{
+      padding:20px;
+    }
+
+    .sst-paper{
+      width:216mm;
+      min-height:279mm;
+      margin:0 auto;
+      background:var(--sst-paper);
+      border:1px solid #d7dee8;
+      box-shadow:0 10px 25px rgba(0,0,0,.08);
+      padding:8mm;
+      box-sizing:border-box;
+    }
+
+    .sst-table-wrap{
+      width:100%;
+      overflow-x:auto;
+    }
+
+    .sst-table{
       width:100%;
       border-collapse:collapse;
       table-layout:fixed;
+    }
+
+    .sst-table td,
+    .sst-table th{
+      border:1px solid var(--sst-border);
+      padding:6px 8px;
+      vertical-align:middle;
+      font-size:12px;
+      word-wrap:break-word;
+      height:auto;
+    }
+
+    .sst-title{
+      background:var(--sst-primary);
+      text-align:center;
+      font-weight:800;
+      text-transform:uppercase;
+    }
+
+    .sst-subtitle{
+      background:var(--sst-primary-soft);
+      text-align:center;
+      font-weight:800;
+      text-transform:uppercase;
+    }
+
+    .months{
+      background:var(--sst-primary);
+      text-align:center;
+      font-weight:800;
+    }
+
+    .section-row td{
+      background:var(--sst-primary);
+      font-weight:800;
+    }
+
+    .total-row td{
+      background:var(--sst-primary-soft);
+      font-weight:800;
+    }
+
+    .center{
+      text-align:center;
+    }
+
+    .right{
+      text-align:right;
+    }
+
+    .bold{
+      font-weight:800;
+    }
+
+    .small{
       font-size:12px;
     }
-    table.excel th, table.excel td{
-      border:1px solid var(--line);
-      padding:6px 6px;
-      vertical-align:middle;
+
+    .muted{
+      color:var(--sst-muted);
     }
 
-    .center{ text-align:center; }
-    .right{ text-align:right; }
-    .bold{ font-weight:900; }
-
-    .h-blue{ background:var(--blue); font-weight:900; }
-    .h-blue2{ background:var(--blue2); font-weight:900; }
-    .months{ background:var(--blue3); font-weight:900; text-align:center; }
-
-    .logo-box{
-      border:2px dashed rgba(0,0,0,.35);
-      height:70px;
-      display:flex; align-items:center; justify-content:center;
-      font-weight:900; color:rgba(0,0,0,.35);
-      text-align:center;
+    .orange{
+      color:var(--sst-orange);
+      font-weight:800;
     }
 
-    .title{
-      text-align:center;
-      font-weight:900;
-      font-size:16px;
-      padding:10px 6px;
-    }
-    .subtitle{
-      text-align:center;
-      font-weight:900;
-      font-size:14px;
-      padding:6px 6px 10px;
-    }
-
-    .note{
-      color: var(--note);
-      font-style: italic;
-      font-size: 11px;
-      margin: 6px 0 10px;
-    }
-
-    .cell-input{
+    .sst-input,
+    .sst-select{
       width:100%;
       border:none;
       outline:none;
       background:transparent;
       font-size:12px;
-    }
-    .cell-input.orange{ color: var(--note); font-weight:900; }
-    .cell-input.center{ text-align:center; }
-    .cell-input.right{ text-align:right; }
-
-    /* ✅ Secciones en celdas reales */
-    .section-row td{
-      background: var(--blue);
-      font-weight:900;
+      padding:2px 4px;
+      font-family:Arial, Helvetica, sans-serif;
+      color:#111;
     }
 
-    .total td{
-      background: var(--blue2);
-      font-weight:900;
+    .sst-input.center{
+      text-align:center;
     }
 
-    .signature{
-      margin-top: 8px;
-      border-top: 2px dashed #1b4fbd;
-      padding-top: 6px;
-      font-weight:900;
-      font-size: 12px;
+    .sst-input.right{
+      text-align:right;
+    }
+
+    .sst-input-line{
+      width:100%;
+      border:none;
+      outline:none;
+      background:transparent;
+      font-size:12px;
+      padding:2px 0;
+      border-bottom:1px solid #666;
+      font-family:Arial, Helvetica, sans-serif;
+      color:#111;
+    }
+
+    .logo-box{
+      height:72px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      font-weight:800;
+      color:#808080;
+      border:2px dashed #b5b5b5;
+      text-align:center;
+      line-height:1.2;
+    }
+
+    .header-main{
+      text-align:center;
+      font-weight:800;
+      font-size:14px;
+      line-height:1.4;
+      text-transform:uppercase;
+    }
+
+    .meta-box{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      font-size:12px;
+      height:100%;
+      justify-content:center;
+    }
+
+    .meta-box .meta-item{
+      text-align:right;
+      font-weight:800;
+    }
+
+    .note-box{
+      margin:8px 0 12px;
+      font-size:12px;
+      color:var(--sst-orange);
+      font-style:italic;
+      font-weight:700;
+    }
+
+    .signature-label{
+      margin-top:8px;
+      border-top:1px dashed #1b4fbd;
+      padding-top:6px;
+      font-weight:800;
+      font-size:12px;
     }
 
     .block-title{
-      background: var(--blue);
-      font-weight:900;
+      background:var(--sst-primary);
       text-align:center;
-      padding:6px;
-      border:1px solid var(--line);
-      margin-top:16px;
+      font-weight:800;
+      text-transform:uppercase;
+      border:1px solid var(--sst-border);
+      padding:6px 8px;
+      margin-top:14px;
+      font-size:12px;
     }
 
     .chart-box{
-      border:1px solid var(--line);
+      border:1px solid var(--sst-border);
       background:#eef3fb;
       padding:10px;
-      height: 260px;
+      height:260px;
       display:flex;
       flex-direction:column;
       gap:8px;
     }
+
     .chart-title{
-      font-weight:900;
+      font-weight:800;
       text-align:center;
-      font-size: 12px;
+      font-size:12px;
+      text-transform:uppercase;
     }
-    .chart-canvas-wrap{ flex:1; min-height:0; }
-    .chart-canvas-wrap canvas{ width:100% !important; height:100% !important; }
+
+    .chart-canvas-wrap{
+      flex:1;
+      min-height:0;
+    }
+
+    .chart-canvas-wrap canvas{
+      width:100% !important;
+      height:100% !important;
+    }
 
     .semester{
-      border:1px solid var(--line);
+      border:1px solid var(--sst-border);
       padding:10px;
       font-size:12px;
-      height: 120px;
-    }
-    .semester .t{
-      font-weight:900;
-      text-align:center;
-      margin-bottom: 6px;
+      min-height:120px;
     }
 
-    .table-wrap{ overflow:auto; }
+    .semester .t{
+      font-weight:800;
+      text-align:center;
+      margin-bottom:6px;
+      text-transform:uppercase;
+    }
+
+    .semester textarea{
+      width:100%;
+      min-height:72px;
+      border:none;
+      outline:none;
+      resize:vertical;
+      background:transparent;
+      font-size:12px;
+      font-family:Arial, Helvetica, sans-serif;
+    }
+
+    .add-row-cell{
+      padding:0 !important;
+      background:#f8fbff;
+    }
+
+    .add-row-btn-inline{
+      width:100%;
+      border:none;
+      background:transparent;
+      color:#1b4fbd;
+      font-weight:800;
+      font-size:12px;
+      padding:8px 10px;
+      text-align:left;
+      cursor:pointer;
+    }
+
+    .add-row-btn-inline:hover{
+      background:#eaf2ff;
+    }
+
+    .add-row-btn-inline .plus{
+      display:inline-flex;
+      width:20px;
+      height:20px;
+      align-items:center;
+      justify-content:center;
+      border:1px solid #1b4fbd;
+      border-radius:50%;
+      margin-right:8px;
+      font-size:14px;
+      line-height:1;
+    }
+
+    @page{
+      size:Letter;
+      margin:8mm;
+    }
 
     @media print{
-      body{ background:#fff; }
-      .toolbar{ display:none !important; }
-      .wrap{ max-width:none; margin:0; padding:0; }
-      .sheet{ box-shadow:none; border:2px solid #000; }
-      .table-wrap{ overflow:visible !important; }
+      html, body{
+        background:#fff !important;
+      }
+
+      .sst-toolbar,
+      .add-row-trigger{
+        display:none !important;
+      }
+
+      .sst-page{
+        padding:0 !important;
+        margin:0 !important;
+      }
+
+      .sst-paper{
+        width:100% !important;
+        min-height:auto !important;
+        margin:0 !important;
+        border:none !important;
+        box-shadow:none !important;
+        padding:0 !important;
+      }
+
+      .sst-table-wrap{
+        overflow:visible !important;
+      }
+
+      .sst-input,
+      .sst-select,
+      .sst-input-line,
+      .semester textarea{
+        color:#000 !important;
+      }
+    }
+
+    @media (max-width: 991px){
+      .sst-page{
+        padding:12px;
+      }
+
+      .sst-paper{
+        width:100%;
+        min-height:auto;
+        padding:12px;
+      }
+
+      .sst-toolbar{
+        padding:12px;
+      }
     }
   </style>
 </head>
-
 <body>
-<div class="wrap">
 
-  <div class="toolbar">
-    <div class="d-flex gap-2 flex-wrap">
-      <a href="../planear.php" class="btn btn-outline-secondary btn-sm">← Volver</a>
-      <button class="btn btn-primary btn-sm" onclick="window.print()">Imprimir / PDF</button>
+  <div class="sst-toolbar">
+    <h1 class="sst-toolbar-title">Consolidado General Presupuesto</h1>
+
+    <div class="sst-toolbar-actions">
+      <a href="../planear.php" class="btn btn-secondary btn-sm">Volver</a>
+      <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">Imprimir</button>
     </div>
-    <div class="small text-muted fw-semibold">Formato: AN-SST-03</div>
   </div>
 
-  <div class="sheet">
+  <div class="sst-page">
+    <div class="sst-paper">
 
-    <!-- CABECERA -->
-    <table class="excel mb-2">
-      <colgroup>
-        <col style="width:16%">
-        <col style="width:64%">
-        <col style="width:20%">
-      </colgroup>
-      <tr>
-        <td rowspan="2"><div class="logo-box">TU LOGO<br>AQUÍ</div></td>
-        <td class="title">SISTEMA DE GESTIÓN EN SEGURIDAD Y SALUD EN EL TRABAJO</td>
-        <td class="center bold">0</td>
-      </tr>
-      <tr>
-        <td class="subtitle">CONSOLIDADO GENERAL PRESUPUESTO</td>
-        <td class="center bold">
-          AN-SST-03<br>
-          <input class="cell-input center" placeholder="XX/XX/2025">
-        </td>
-      </tr>
-    </table>
-
-    <div class="note">Nota: Diligencie los campos en naranja, los costos, gastos mensuales y el análisis tendencial</div>
-
-    <div class="table-wrap">
-      <table class="excel">
+      <table class="sst-table mb-2">
         <colgroup>
-          <col style="width:26%">
-          <col style="width:10%">
-          <col style="width:10%">
-          <col style="width:4%">
-          <col style="width:10%">
-          <col style="width:4%">
-          <col span="12" style="width:3%">
+          <col style="width:18%;">
+          <col style="width:64%;">
+          <col style="width:18%;">
         </colgroup>
-
-        <!-- ✅ Encabezado: los 6 de la izquierda con rowspan=2 (ELIMINA los cuadros amarillos) -->
-        <tr class="h-blue center">
-          <th rowspan="2">ACTIVIDADES</th>
-          <th rowspan="2">PRESUPUESTO<br>PROYECTADO</th>
-          <th rowspan="2">PRESUPUESTO<br>EJECUTADO</th>
-          <th rowspan="2">%</th>
-          <th rowspan="2">PRESUPUESTO<br>POR EJECUTAR</th>
-          <th rowspan="2">%</th>
-          <th colspan="12">20XX</th>
-        </tr>
-
-        <!-- ✅ Fila de meses SOLO meses (sin celdas sobrantes) -->
-        <tr class="months">
-          <th>ENE</th><th>FEB</th><th>MAR</th><th>ABR</th><th>MAY</th><th>JUN</th>
-          <th>JUL</th><th>AGO</th><th>SEPT</th><th>OCT</th><th>NOV</th><th>DIC</th>
-        </tr>
-
-        <!-- ✅ SECCIÓN con celdas reales (18 celdas) -->
-        <tr class="section-row">
-          <td>Medicina Preventiva, del Trabajo y Otros</td>
-          <td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-        </tr>
-
         <tr>
-          <td>Exámenes médicos (Emo, Paraclínicos y la…)</td>
-          <td><input class="cell-input orange right" placeholder="0"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input orange center" placeholder="0"></td>
-          <td><input class="cell-input orange center" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-        </tr>
+          <td rowspan="2">
+            <div class="logo-box">
+              <div>TU LOGO</div>
+              <div>AQUÍ</div>
+            </div>
+          </td>
 
-        <tr>
-          <td>Vacunación</td>
-          <td><input class="cell-input orange right" placeholder="0"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input orange center" placeholder="0"></td>
-          <td><input class="cell-input orange center" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-        </tr>
+          <td>
+            <div class="header-main">
+              SISTEMA DE GESTIÓN EN SEGURIDAD Y SALUD EN EL TRABAJO
+            </div>
+          </td>
 
-        <tr>
-          <td>Compra medicamentos para el botiquín</td>
-          <td><input class="cell-input orange right" placeholder="0"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-          <td><input class="cell-input center" placeholder=""></td>
-        </tr>
-
-        <!-- filas vacías (18 celdas reales) -->
-        <tr>
-          <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
+          <td rowspan="2">
+            <div class="meta-box">
+              <div class="meta-item">0</div>
+              <div class="meta-item">AN-SST-03</div>
+              <div class="meta-item">
+                <input class="sst-input-line" type="text" value="XX/XX/2025">
+              </div>
+            </div>
+          </td>
         </tr>
         <tr>
-          <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
+          <td>
+            <div class="header-main">CONSOLIDADO GENERAL PRESUPUESTO</div>
+          </td>
         </tr>
-
-        <!-- ✅ SECCIÓN con celdas reales -->
-        <tr class="section-row">
-          <td>Higiene Industrial y manejo ambiental</td>
-          <td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-        </tr>
-
-        <tr>
-          <td>Mediciones de Higiene</td>
-          <td><input class="cell-input orange right" placeholder="0"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-        </tr>
-
-        <tr>
-          <td>Punto Ecológico</td>
-          <td><input class="cell-input orange right" placeholder="0"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-        </tr>
-
-        <tr>
-          <td>Tableros informativos</td>
-          <td><input class="cell-input orange right" placeholder="0"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-        </tr>
-
-        <tr>
-          <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-        </tr>
-
-        <!-- ✅ SECCIÓN con celdas reales -->
-        <tr class="section-row">
-          <td>Seguridad Industrial</td>
-          <td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-        </tr>
-
-        <tr>
-          <td>Compra Dotación Personal y EPP</td>
-          <td><input class="cell-input orange right" placeholder="0"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-        </tr>
-
-        <tr>
-          <td>Compra y mantenimiento de extintores</td>
-          <td><input class="cell-input orange right" placeholder="0"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-        </tr>
-
-        <tr class="total">
-          <td>Total</td>
-          <td><input class="cell-input orange right" placeholder="0"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td><input class="cell-input right" placeholder="0"></td>
-          <td><input class="cell-input center" placeholder="0%"></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
-        </tr>
-
       </table>
-    </div>
 
-    <div class="signature">FIRMA DEL REPRESENTANTE LEGAL</div>
+      <div class="note-box">
+        Nota: diligencie los campos en naranja, los costos, gastos mensuales y el análisis tendencial.
+      </div>
 
-    <!-- ANALISIS TENDENCIAL -->
-    <div class="block-title">ANALISIS TENDENCIAL</div>
+      <div class="sst-table-wrap">
+        <table class="sst-table">
+          <colgroup>
+            <col style="width:26%">
+            <col style="width:10%">
+            <col style="width:10%">
+            <col style="width:4%">
+            <col style="width:10%">
+            <col style="width:4%">
+            <col span="12" style="width:3%">
+          </colgroup>
 
-    <table class="excel">
-      <colgroup>
-        <col style="width:22%">
-        <col span="12" style="width:6.5%">
-      </colgroup>
-      <tr class="months">
-        <th class="center">MES</th>
-        <th>ENE</th><th>FEB</th><th>MAR</th><th>ABR</th><th>MAY</th><th>JUN</th>
-        <th>JUL</th><th>AGO</th><th>SEPT</th><th>OCT</th><th>NOV</th><th>DIC</th>
-      </tr>
-      <tr>
-        <td class="bold center">TOTAL</td>
-        <td><input class="cell-input orange center js-month" data-month="ENE" placeholder="0"></td>
-        <td><input class="cell-input orange center js-month" data-month="FEB" placeholder="0"></td>
-        <td><input class="cell-input orange center js-month" data-month="MAR" placeholder="0"></td>
-        <td><input class="cell-input orange center js-month" data-month="ABR" placeholder="0"></td>
-        <td><input class="cell-input orange center js-month" data-month="MAY" placeholder="0"></td>
-        <td><input class="cell-input orange center js-month" data-month="JUN" placeholder="0"></td>
-        <td><input class="cell-input orange center js-month" data-month="JUL" placeholder="0"></td>
-        <td><input class="cell-input orange center js-month" data-month="AGO" placeholder="0"></td>
-        <td><input class="cell-input orange center js-month" data-month="SEPT" placeholder="0"></td>
-        <td><input class="cell-input orange center js-month" data-month="OCT" placeholder="0"></td>
-        <td><input class="cell-input orange center js-month" data-month="NOV" placeholder="0"></td>
-        <td><input class="cell-input orange center js-month" data-month="DIC" placeholder="0"></td>
-      </tr>
-      <tr>
-        <td class="bold center">%</td>
-        <td><input class="cell-input orange center js-pct" data-month="ENE" placeholder="0%"></td>
-        <td><input class="cell-input orange center js-pct" data-month="FEB" placeholder="0%"></td>
-        <td><input class="cell-input orange center js-pct" data-month="MAR" placeholder="0%"></td>
-        <td><input class="cell-input orange center js-pct" data-month="ABR" placeholder="0%"></td>
-        <td><input class="cell-input orange center js-pct" data-month="MAY" placeholder="0%"></td>
-        <td><input class="cell-input orange center js-pct" data-month="JUN" placeholder="0%"></td>
-        <td><input class="cell-input orange center js-pct" data-month="JUL" placeholder="0%"></td>
-        <td><input class="cell-input orange center js-pct" data-month="AGO" placeholder="0%"></td>
-        <td><input class="cell-input orange center js-pct" data-month="SEPT" placeholder="0%"></td>
-        <td><input class="cell-input orange center js-pct" data-month="OCT" placeholder="0%"></td>
-        <td><input class="cell-input orange center js-pct" data-month="NOV" placeholder="0%"></td>
-        <td><input class="cell-input orange center js-pct" data-month="DIC" placeholder="0%"></td>
-      </tr>
-    </table>
+          <thead>
+            <tr class="sst-title">
+              <th rowspan="2">ACTIVIDADES</th>
+              <th rowspan="2">PRESUPUESTO PROYECTADO</th>
+              <th rowspan="2">PRESUPUESTO EJECUTADO</th>
+              <th rowspan="2">%</th>
+              <th rowspan="2">PRESUPUESTO POR EJECUTAR</th>
+              <th rowspan="2">%</th>
+              <th colspan="12">20XX</th>
+            </tr>
+            <tr class="months">
+              <th>ENE</th><th>FEB</th><th>MAR</th><th>ABR</th><th>MAY</th><th>JUN</th>
+              <th>JUL</th><th>AGO</th><th>SEPT</th><th>OCT</th><th>NOV</th><th>DIC</th>
+            </tr>
+          </thead>
 
-    <div class="block-title">ANALISIS TENDENCIAL</div>
+          <tbody id="budgetBody">
+            <tr class="section-row">
+              <td>Medicina Preventiva, del Trabajo y Otros</td>
+              <td></td><td></td><td></td><td></td><td></td>
+              <td></td><td></td><td></td><td></td><td></td><td></td>
+              <td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
 
-    <div class="row g-3 mt-2">
-      <div class="col-12 col-lg-8">
-        <div class="chart-box">
-          <div class="chart-title">PRESUPUESTO EJECUTADO 20XX</div>
-          <div class="chart-canvas-wrap">
-            <canvas id="budgetChart"></canvas>
+            <tr data-row-type="editable" data-section="medicina">
+              <td><input class="sst-input" type="text" value="Exámenes médicos (Emo, Paraclínicos y la…)"></td>
+              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+            </tr>
+
+            <tr data-row-type="editable" data-section="medicina">
+              <td><input class="sst-input" type="text" value="Vacunación"></td>
+              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+            </tr>
+
+            <tr data-row-type="editable" data-section="medicina">
+              <td><input class="sst-input" type="text" value="Compra medicamentos para el botiquín"></td>
+              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+            </tr>
+
+            <tr class="add-row-trigger" data-section="medicina">
+              <td colspan="18" class="add-row-cell">
+                <button type="button" class="add-row-btn-inline" onclick="addRowToSection('medicina', this)">
+                  <span class="plus">+</span> Agregar fila en Medicina Preventiva
+                </button>
+              </td>
+            </tr>
+
+            <tr class="section-row">
+              <td>Higiene Industrial y manejo ambiental</td>
+              <td></td><td></td><td></td><td></td><td></td>
+              <td></td><td></td><td></td><td></td><td></td><td></td>
+              <td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+
+            <tr data-row-type="editable" data-section="higiene">
+              <td><input class="sst-input" type="text" value="Mediciones de Higiene"></td>
+              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+            </tr>
+
+            <tr data-row-type="editable" data-section="higiene">
+              <td><input class="sst-input" type="text" value="Punto Ecológico"></td>
+              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+            </tr>
+
+            <tr data-row-type="editable" data-section="higiene">
+              <td><input class="sst-input" type="text" value="Tableros informativos"></td>
+              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+            </tr>
+
+            <tr class="add-row-trigger" data-section="higiene">
+              <td colspan="18" class="add-row-cell">
+                <button type="button" class="add-row-btn-inline" onclick="addRowToSection('higiene', this)">
+                  <span class="plus">+</span> Agregar fila en Higiene Industrial
+                </button>
+              </td>
+            </tr>
+
+            <tr class="section-row">
+              <td>Seguridad Industrial</td>
+              <td></td><td></td><td></td><td></td><td></td>
+              <td></td><td></td><td></td><td></td><td></td><td></td>
+              <td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+
+            <tr data-row-type="editable" data-section="seguridad">
+              <td><input class="sst-input" type="text" value="Compra Dotación Personal y EPP"></td>
+              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+            </tr>
+
+            <tr data-row-type="editable" data-section="seguridad">
+              <td><input class="sst-input" type="text" value="Compra y mantenimiento de extintores"></td>
+              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+              <td><input class="sst-input center" type="text"></td>
+            </tr>
+
+            <tr class="add-row-trigger" data-section="seguridad">
+              <td colspan="18" class="add-row-cell">
+                <button type="button" class="add-row-btn-inline" onclick="addRowToSection('seguridad', this)">
+                  <span class="plus">+</span> Agregar fila en Seguridad Industrial
+                </button>
+              </td>
+            </tr>
+          </tbody>
+
+          <tfoot>
+            <tr class="total-row">
+              <td>Total</td>
+              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td><input class="sst-input right" type="text" placeholder="0"></td>
+              <td><input class="sst-input center" type="text" placeholder="0%"></td>
+              <td></td><td></td><td></td><td></td><td></td><td></td>
+              <td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="signature-label">FIRMA DEL REPRESENTANTE LEGAL</div>
+
+      <div class="block-title">ANALISIS TENDENCIAL</div>
+
+      <div class="sst-table-wrap">
+        <table class="sst-table">
+          <colgroup>
+            <col style="width:22%">
+            <col span="12" style="width:6.5%">
+          </colgroup>
+
+          <thead>
+            <tr class="months">
+              <th class="center">MES</th>
+              <th>ENE</th><th>FEB</th><th>MAR</th><th>ABR</th><th>MAY</th><th>JUN</th>
+              <th>JUL</th><th>AGO</th><th>SEPT</th><th>OCT</th><th>NOV</th><th>DIC</th>
+            </tr>
+          </thead>
+
+          <tbody id="analysisBody">
+            <tr>
+              <td class="bold center">TOTAL</td>
+              <td><input class="sst-input center orange js-month" data-month="ENE" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange js-month" data-month="FEB" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange js-month" data-month="MAR" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange js-month" data-month="ABR" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange js-month" data-month="MAY" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange js-month" data-month="JUN" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange js-month" data-month="JUL" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange js-month" data-month="AGO" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange js-month" data-month="SEPT" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange js-month" data-month="OCT" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange js-month" data-month="NOV" type="text" placeholder="0"></td>
+              <td><input class="sst-input center orange js-month" data-month="DIC" type="text" placeholder="0"></td>
+            </tr>
+            <tr>
+              <td class="bold center">%</td>
+              <td><input class="sst-input center orange js-pct" data-month="ENE" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange js-pct" data-month="FEB" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange js-pct" data-month="MAR" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange js-pct" data-month="ABR" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange js-pct" data-month="MAY" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange js-pct" data-month="JUN" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange js-pct" data-month="JUL" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange js-pct" data-month="AGO" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange js-pct" data-month="SEPT" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange js-pct" data-month="OCT" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange js-pct" data-month="NOV" type="text" placeholder="0%"></td>
+              <td><input class="sst-input center orange js-pct" data-month="DIC" type="text" placeholder="0%"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="block-title">ANALISIS TENDENCIAL</div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-12 col-lg-8">
+          <div class="chart-box">
+            <div class="chart-title">PRESUPUESTO EJECUTADO 20XX</div>
+            <div class="chart-canvas-wrap">
+              <canvas id="budgetChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="semester mb-3">
+            <div class="t">I SEMESTRE</div>
+            <textarea placeholder="Escriba el análisis del primer semestre..."></textarea>
+          </div>
+
+          <div class="semester">
+            <div class="t">II SEMESTRE</div>
+            <textarea placeholder="Escriba el análisis del segundo semestre..."></textarea>
           </div>
         </div>
       </div>
 
-      <div class="col-12 col-lg-4">
-        <div class="semester mb-3">
-          <div class="t">I SEMESTRE</div>
-          <textarea class="form-control" rows="4" placeholder="Escriba el análisis del primer semestre..."></textarea>
-        </div>
-        <div class="semester">
-          <div class="t">II SEMESTRE</div>
-          <textarea class="form-control" rows="4" placeholder="Escriba el análisis del segundo semestre..."></textarea>
-        </div>
-      </div>
     </div>
-
   </div>
-</div>
 
-<script>
-  const monthOrder = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEPT","OCT","NOV","DIC"];
+  <script>
+    const monthOrder = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEPT","OCT","NOV","DIC"];
 
-  function parseMoney(val){
-    const raw = String(val ?? "").trim();
-    if(!raw) return 0;
-    const cleaned = raw.replace(/[^\d]/g, "");
-    return cleaned ? Number(cleaned) : 0;
-  }
+    function parseMoney(val){
+      const raw = String(val ?? "").trim();
+      if(!raw) return 0;
+      const cleaned = raw.replace(/[^\d]/g, "");
+      return cleaned ? Number(cleaned) : 0;
+    }
 
-  function formatPct(n){
-    return `${Math.round(n)}%`;
-  }
+    function formatPct(n){
+      return `${Math.round(n)}%`;
+    }
 
-  const monthInputs = Array.from(document.querySelectorAll(".js-month"));
-  const pctInputs   = Array.from(document.querySelectorAll(".js-pct"));
+    function getMonthInputs(){
+      return Array.from(document.querySelectorAll(".js-month"));
+    }
 
-  const ctx = document.getElementById("budgetChart");
+    function getPctInputs(){
+      return Array.from(document.querySelectorAll(".js-pct"));
+    }
 
-  const chart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: monthOrder,
-      datasets: [{
-        label: "Total mensual",
-        data: monthOrder.map(() => 0),
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { callback: (v) => Number(v).toLocaleString("es-CO") }
+    const ctx = document.getElementById("budgetChart");
+
+    const chart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: monthOrder,
+        datasets: [{
+          label: "Total mensual",
+          data: monthOrder.map(() => 0),
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (v) => Number(v).toLocaleString("es-CO")
+            }
+          }
         }
       }
+    });
+
+    function updateChartAndPercents(){
+      const monthInputs = getMonthInputs();
+      const pctInputs = getPctInputs();
+
+      const totalRow = monthInputs.filter(inp => inp.closest("tr")?.children[0]?.textContent.trim() === "TOTAL");
+
+      const values = monthOrder.map(m => {
+        const inp = totalRow.find(x => x.dataset.month === m);
+        return parseMoney(inp?.value);
+      });
+
+      const totalYear = values.reduce((a,b)=>a+b,0);
+
+      monthOrder.forEach((m, idx) => {
+        const pct = totalYear === 0 ? 0 : (values[idx] / totalYear) * 100;
+        const pctInp = pctInputs.find(x => x.dataset.month === m && x.closest("tr")?.children[0]?.textContent.trim() === "%");
+        if(pctInp){
+          pctInp.value = totalYear === 0 ? "0%" : formatPct(pct);
+        }
+      });
+
+      chart.data.datasets[0].data = values;
+      chart.update();
     }
-  });
 
-  function updateChartAndPercents(){
-    const values = monthOrder.map(m => {
-      const inp = monthInputs.find(x => x.dataset.month === m);
-      return parseMoney(inp?.value);
+    function createSectionRow(section){
+      const tr = document.createElement("tr");
+      tr.setAttribute("data-row-type", "editable");
+      tr.setAttribute("data-section", section);
+      tr.innerHTML = `
+        <td><input class="sst-input" type="text" placeholder="Nueva actividad"></td>
+        <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+        <td><input class="sst-input right" type="text" placeholder="0"></td>
+        <td><input class="sst-input center" type="text" placeholder="0%"></td>
+        <td><input class="sst-input right" type="text" placeholder="0"></td>
+        <td><input class="sst-input center" type="text" placeholder="0%"></td>
+        <td><input class="sst-input center" type="text"></td>
+        <td><input class="sst-input center" type="text"></td>
+        <td><input class="sst-input center" type="text"></td>
+        <td><input class="sst-input center" type="text"></td>
+        <td><input class="sst-input center" type="text"></td>
+        <td><input class="sst-input center" type="text"></td>
+        <td><input class="sst-input center" type="text"></td>
+        <td><input class="sst-input center" type="text"></td>
+        <td><input class="sst-input center" type="text"></td>
+        <td><input class="sst-input center" type="text"></td>
+        <td><input class="sst-input center" type="text"></td>
+        <td><input class="sst-input center" type="text"></td>
+      `;
+      return tr;
+    }
+
+    function addRowToSection(section, btn){
+      const triggerRow = btn.closest("tr");
+      const newRow = createSectionRow(section);
+      triggerRow.parentNode.insertBefore(newRow, triggerRow);
+    }
+
+    document.querySelectorAll(".js-month").forEach(inp => {
+      inp.addEventListener("input", updateChartAndPercents);
+      inp.addEventListener("change", updateChartAndPercents);
     });
 
-    const totalYear = values.reduce((a,b)=>a+b,0);
-
-    monthOrder.forEach((m, idx) => {
-      const pct = totalYear === 0 ? 0 : (values[idx] / totalYear) * 100;
-      const pctInp = pctInputs.find(x => x.dataset.month === m);
-      if(pctInp) pctInp.value = totalYear === 0 ? "0%" : formatPct(pct);
-    });
-
-    chart.data.datasets[0].data = values;
-    chart.update();
-  }
-
-  monthInputs.forEach(inp => {
-    inp.addEventListener("input", updateChartAndPercents);
-    inp.addEventListener("change", updateChartAndPercents);
-  });
-
-  updateChartAndPercents();
-</script>
+    updateChartAndPercents();
+  </script>
 
 </body>
 </html>
