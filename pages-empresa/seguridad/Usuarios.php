@@ -16,11 +16,10 @@ $empresa = $_SESSION["id_empresa"] ?? 0;
 
 if (in_array(strtolower($rolSesion), ['master', 'administrador']) && !empty($_REQUEST["id_empresa"])) {
     $_SESSION["id_empresa"] = (int)$_REQUEST["id_empresa"];
-    $empresa = $_SESSION["id_empresa"]; // Actualizamos la variable local
+    $empresa = $_SESSION["id_empresa"]; 
 }
 $misPermisos = [];
 
-// Solo el Master se salta la carga porque tiene todo en true por defecto
 if ($rolSesion !== "Master") {
     $resPermisos = $api->solicitar("perfiles/permisos/$perfilIdSesion/check-all", "GET", null, $token);
     $datosFinales = isset($resPermisos['data']) ? $resPermisos['data'] : $resPermisos;
@@ -61,11 +60,10 @@ function puedeEditar($idModulo, $rol, $permisos) {
     return isset($permisos[$id]) && (int)($permisos[$id]['editar'] ?? 0) === 1;
 }
 
-// 3. CARGAR PERFILES PARA EL SELECT (GET)
+// 3. CARGAR PERFILES
 $resPerfiles = $api->solicitar("index.php?table=perfiles", "GET", null, $token);
 $listaPerfiles = (isset($resPerfiles['status']) && $resPerfiles['status'] == 200) ? $resPerfiles['data'] : [];
 
-// --- NUEVO: Filtrar perfiles para dejar solo los de la empresa en cuestión ---
 if (!empty($empresa)) {
     $listaPerfiles = array_filter($listaPerfiles, function($p) use ($empresa) {
         return isset($p['id_empresa']) && $p['id_empresa'] == $empresa;
@@ -75,7 +73,6 @@ if (!empty($empresa)) {
 $resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
 $todasLasEmpresas = (isset($resEmpresas['status']) && $resEmpresas['status'] == 200) ? $resEmpresas['data'] : [];
 
-// 2. Filtrar el arreglo para dejar solo la que coincide con el id de la sesión
 $listaEmpresas = array_filter($todasLasEmpresas, function($emp) use ($empresa) {
     return isset($emp['id_empresa']) && $emp['id_empresa'] == $empresa;
 });
@@ -115,22 +112,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["email"])) {
     }
 }
 
-// 5. CARGAR LISTA DE USUARIOS (GET)
+// 5. CARGAR LISTA DE USUARIOS
 $respuestaGet = $api->solicitar("index.php?table=usuarios", "GET", null, $token);
 $todosLosUsuarios = (isset($respuestaGet['status']) && $respuestaGet['status'] == 200) ? $respuestaGet['data'] : [];
 
-// 2. Filtrar el arreglo para dejar solo los de la empresa actual
 $listaUsuarios = array_filter($todosLosUsuarios, function($u) use ($empresa) {
-    // Buscamos el id_empresa dentro del nodo 'organizacion' según la estructura de tu JSON
     $idEmpresaUsuario = $u['organizacion']['id_empresa'] ?? null;
-    
-    // Si el usuario tiene la misma empresa que la sesión, lo conservamos
     return $idEmpresaUsuario == $empresa;
 });
 
-// 3. Reindexar el arreglo para evitar saltos en los índices
 $listaUsuarios = array_values($listaUsuarios);
-// Definimos el ID del módulo de Usuarios (ejemplo: 5)
 $ID_MODULO = 5; 
 ?>
 <!doctype html>
@@ -144,7 +135,6 @@ $ID_MODULO = 5;
     <link rel="stylesheet" href="../../assets/css/main-style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // Permisos pasados de PHP a JS
         const PUEDE_CREAR = <?= puedeCrear($ID_MODULO, $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
         const PUEDE_EDITAR = <?= puedeEditar($ID_MODULO, $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
     </script>
@@ -156,7 +146,7 @@ $ID_MODULO = 5;
 
     <?php if($mensaje_error) echo "<div class='alert alert-danger'>$mensaje_error</div>"; ?>
 
-    <form method="POST" id="formUsuario" class="bg-white p-4 rounded shadow-sm mb-4 border">
+    <form method="POST" id="formUsuario" autocomplete="off" class="bg-white p-4 rounded shadow-sm mb-4 border">
         <input type="hidden" id="id" name="id">
         <div class="row g-3">
             <div class="col-md-3">
@@ -169,11 +159,11 @@ $ID_MODULO = 5;
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-bold small text-uppercase">Email / Login</label>
-                <input type="email" id="email" name="email" class="form-control" required>
+                <input type="email" id="email" name="email" class="form-control" required autocomplete="new-password">
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-bold small text-uppercase">Password</label>
-                <input type="password" id="password" name="password" class="form-control" placeholder="Vacío para no cambiar">
+                <input type="password" id="password" name="password" class="form-control" placeholder="Vacío para no cambiar" autocomplete="new-password">
             </div>
 
             <div class="col-md-2">
@@ -280,8 +270,10 @@ $ID_MODULO = 5;
 </div>
 
 <script>
-    // Validación inicial al cargar la página
     document.addEventListener("DOMContentLoaded", function() {
+        // Al cargar la página, forzamos la limpieza del formulario para evitar autocompletado residual
+        limpiarForm();
+
         if (!PUEDE_CREAR) {
             document.getElementById('btnGuardar').style.display = 'none';
         }
@@ -327,11 +319,8 @@ $ID_MODULO = 5;
             document.getElementById('id_empresa').value = (d.organizacion && d.organizacion.id_empresa) ? d.organizacion.id_empresa : "";
             document.getElementById('status').checked = (d.estado_cuenta.activo === true);
             
-            // Cambio dinámico de botón con validación de permiso
             btn.innerHTML = '<i class="fa-solid fa-sync me-2"></i>Actualizar Usuario';
             btn.className = "btn btn-primary px-4 shadow-sm";
-            
-            // Si es edición y no tiene permiso, ocultamos
             btn.style.display = PUEDE_EDITAR ? 'inline-block' : 'none';
             
             verificarRol(d.seguridad.rol_sistema);
@@ -343,13 +332,18 @@ $ID_MODULO = 5;
 
     function limpiarForm() {
         const btn = document.getElementById('btnGuardar');
-        document.getElementById('formUsuario').reset();
+        const form = document.getElementById('formUsuario');
+        
+        form.reset();
         document.getElementById('id').value = "";
+        
+        // Limpieza manual de campos críticos para mayor seguridad
+        document.getElementById('email').value = "";
+        document.getElementById('password').value = "";
         
         btn.innerHTML = '<i class="fa-solid fa-save me-2"></i>Guardar Usuario';
         btn.className = "btn btn-success px-4 shadow-sm";
         
-        // Al limpiar para crear nuevo, validamos permiso de creación
         btn.style.display = PUEDE_CREAR ? 'inline-block' : 'none';
 
         verificarRol('Usuario');

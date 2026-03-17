@@ -39,16 +39,23 @@ function puede($mod, $accion, $rol, $permisos) {
 $MOD_EMPRESA = 13;
 $MOD_SST = 15;
 
-// 2. Traer todas las empresas
+// 3. CONSULTAS MACRO A LA API
+// Traer todas las empresas
 $resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
 $todasLasEmpresas = ($resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) : [];
 
-// 3. Filtrar para dejar solo la que coincide con el id_empresa
+// Traer planes
+$resPlanes = $api->solicitar("index.php?table=planes", "GET", null, $token);
+$listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
+
+// Traer todo el personal SST para filtrarlo en el Frontend
+$resSST = $api->solicitar("index.php?table=personal_sst", "GET", null, $token);
+$listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
+
+// Filtrar la empresa logeada
 $listaEmpresas = array_filter($todasLasEmpresas, function($emp) use ($empresa) {
     return isset($emp['id_empresa']) && $emp['id_empresa'] == $empresa;
 });
-
-// 4. Reindexar el arreglo (recomendado)
 $listaEmpresas = array_values($listaEmpresas);
 ?>
 <!doctype html>
@@ -64,6 +71,7 @@ $listaEmpresas = array_values($listaEmpresas);
         .label-custom { font-size: 0.7rem; font-weight: 700; color: #555; text-transform: uppercase; }
         .section-header { background: #f4f6f9; padding: 5px 10px; font-size: 0.75rem; font-weight: bold; border-left: 4px solid #0b4f7a; margin: 10px 0; }
         .card-shadow { box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); border-radius: 10px; background: #fff; }
+        input[readonly], select:disabled { cursor: not-allowed; }
     </style>
 </head>
 <body class="cal-wrap">
@@ -71,7 +79,6 @@ $listaEmpresas = array_values($listaEmpresas);
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fa-solid fa-industry me-2" style="color: #0b4f7a;"></i>Gestión de Empresas</h2>
-        <!-- ✅ BOTÓN "NUEVA EMPRESA" ELIMINADO -->
     </div>
 
     <div class="card-shadow border overflow-hidden">
@@ -96,7 +103,7 @@ $listaEmpresas = array_values($listaEmpresas);
                         <i class="fa-solid fa-phone me-1 text-muted"></i> <?= htmlspecialchars($e['telefono'] ?? 'N/A') ?>
                     </td>
                     <td class="text-center">
-                        <?php if(puede($MOD_SST, 'crear', $rolSesion, $misPermisos)): ?>
+                        <?php if(puede($MOD_SST, 'crear', $rolSesion, $misPermisos) || puede($MOD_SST, 'editar', $rolSesion, $misPermisos)): ?>
                             <button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" onclick="abrirModalSST(<?= (int)($e['id_empresa'] ?? 0) ?>, '<?= htmlspecialchars($e['nombre_empresa'] ?? '') ?>')">
                                 <i class="fa-solid fa-user-shield me-1"></i> SST
                             </button>
@@ -118,7 +125,6 @@ $listaEmpresas = array_values($listaEmpresas);
     </div>
 </div>
 
-<!-- ✅ MODAL (SOLO EDITAR) -->
 <div class="modal fade" id="modalFormEmpresa" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content shadow border-0">
@@ -133,20 +139,19 @@ $listaEmpresas = array_values($listaEmpresas);
                     <div class="row g-2">
                         <div class="col-md-5">
                             <label class="label-custom">Nombre empresa / Razón Social</label>
-                            <input type="text" name="nombre_empresa" id="nombre_empresa" class="form-control form-control-sm" required>
+                            <input type="text" name="nombre_empresa" id="nombre_empresa" class="form-control form-control-sm bg-light" readonly required>
                         </div>
                         <div class="col-md-2">
                             <label class="label-custom">T.C</label>
-                            <select name="tipo_documento" id="tipo_documento" class="form-select form-select-sm" disabled>
+                            <select id="tipo_documento" class="form-select form-select-sm bg-light" disabled>
                                 <option value="NIT">NIT</option>
                                 <option value="CC">CC</option>
                             </select>
-                            <!-- para enviar el valor aunque el select esté disabled -->
                             <input type="hidden" name="tipo_documento" id="tipo_documento_hidden">
                         </div>
                         <div class="col-md-5">
                             <label class="label-custom">Número documento</label>
-                            <input type="text" name="numero_documento" id="numero_documento" class="form-control form-control-sm" required>
+                            <input type="text" name="numero_documento" id="numero_documento" class="form-control form-control-sm bg-light" readonly required>
                         </div>
                     </div>
 
@@ -165,13 +170,40 @@ $listaEmpresas = array_values($listaEmpresas);
 
                     <div class="section-header">Distribución de Trabajadores</div>
                     <div class="row g-2 text-center">
-                        <div class="col-md-3"><label class="label-custom">Directos</label><input type="number" name="cant_directos" id="cant_directos" class="form-control form-control-sm" value="0"></div>
-                        <div class="col-md-3"><label class="label-custom">Contratistas</label><input type="number" name="cant_contratistas" id="cant_contratistas" class="form-control form-control-sm" value="0"></div>
-                        <div class="col-md-3"><label class="label-custom">Aprendices</label><input type="number" name="cant_aprendices" id="cant_aprendices" class="form-control form-control-sm" value="0"></div>
-                        <div class="col-md-3"><label class="label-custom">Temporales</label><input type="number" name="cant_brigadistas" id="cant_brigadistas" class="form-control form-control-sm" value="0"></div>
+                        <div class="col-md-3"><label class="label-custom">Directos</label><input type="number" name="cant_directos" id="cant_directos" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col-md-3"><label class="label-custom">Contratistas</label><input type="number" name="cant_contratistas" id="cant_contratistas" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col-md-3"><label class="label-custom">Aprendices</label><input type="number" name="cant_aprendices" id="cant_aprendices" class="form-control form-control-sm bg-light" readonly></div>
+                        <div class="col-md-3"><label class="label-custom">Temporales</label><input type="number" name="cant_brigadistas" id="cant_brigadistas" class="form-control form-control-sm bg-light" readonly></div>
                     </div>
 
-                    <input type="hidden" name="id_plan" value="1">
+                    <div class="section-header">Clasificación y Plan</div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="label-custom">Plan de Servicio</label>
+                            <select id="id_plan" class="form-select form-select-sm bg-light" disabled>
+                                <option value="">Seleccione un plan...</option>
+                                <?php foreach ($listaPlanes as $p): ?>
+                                    <option value="<?= $p['id_plan'] ?>">
+                                        <?= htmlspecialchars($p['nombre_plan']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <input type="hidden" name="id_plan" id="id_plan_hidden">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="label-custom">Nivel de Riesgo</label>
+                            <select id="nivel_riesgo" class="form-select form-select-sm bg-light" disabled>
+                                <option value="">Seleccione el nivel...</option>
+                                <option value="I">I (Mínimo)</option>
+                                <option value="II">II (Bajo)</option>
+                                <option value="III">III (Medio)</option>
+                                <option value="IV">IV (Alto)</option>
+                                <option value="V">V (Máximo)</option>
+                            </select>
+                            <input type="hidden" name="nivel_riesgo" id="nivel_riesgo_hidden">
+                        </div>
+                    </div>
+
                 </form>
             </div>
             <div class="modal-footer border-0">
@@ -184,30 +216,46 @@ $listaEmpresas = array_values($listaEmpresas);
     </div>
 </div>
 
-<!-- ✅ MODAL SST (SE QUEDA IGUAL) -->
 <div class="modal fade" id="modalSST" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 20px;">
             <div class="modal-header border-0 pb-0 px-4 pt-4">
-                <h5 class="modal-title fw-bold">Asociar Personal SST</h5>
+                <h5 class="modal-title fw-bold">Actualizar Personal SST</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body px-4">
                 <form id="formSST">
+                    <input type="hidden" id="id_personal_sst" name="id_personal_sst">
                     <input type="hidden" id="sst_id_empresa" name="id_empresa">
+                    
                     <div class="mb-3">
                         <label class="label-custom">Nombre empresa</label>
                         <input type="text" id="sst_nombre_empresa" class="form-control border-0 bg-light fw-bold" readonly>
                     </div>
-                    <div class="mb-2"><label class="label-custom">Proyecto Rige</label><input type="text" name="proyecto_rige" class="form-control form-control-sm" value="IMPLEMENTACIÓN ESTÁNDARES MÍNIMOS" required></div>
-                    <div class="mb-2"><label class="label-custom">Profesional SST</label><input type="text" name="nombre_profesional" class="form-control form-control-sm" placeholder="Nombre completo" required></div>
-                    <div class="mb-2"><label class="label-custom">Correo SST</label><input type="email" name="correo_sst" class="form-control form-control-sm" placeholder="ejemplo@correo.com" required></div>
-                    <div class="mb-2"><label class="label-custom">Teléfono SST</label><input type="text" name="telefono_sst" class="form-control form-control-sm"></div>
-                    <div class="mb-3"><label class="label-custom">Firma SST (Ref)</label><input type="text" name="firma_sst_url" class="form-control form-control-sm"></div>
+                    <div class="mb-2">
+                        <label class="label-custom">Proyecto Rige</label>
+                        <input type="text" id="proyecto_rige" name="proyecto_rige" class="form-control form-control-sm" value="IMPLEMENTACIÓN ESTÁNDARES MÍNIMOS" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="label-custom">Profesional SST</label>
+                        <input type="text" id="nombre_profesional" name="nombre_profesional" class="form-control form-control-sm" placeholder="Nombre completo" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="label-custom">Correo SST</label>
+                        <input type="email" id="correo_sst" name="correo_sst" class="form-control form-control-sm" placeholder="ejemplo@correo.com" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="label-custom">Teléfono SST</label>
+                        <input type="text" id="telefono_sst" name="telefono_sst" class="form-control form-control-sm">
+                    </div>
+                    <div class="mb-3">
+                        <label class="label-custom">Firma SST (Ref)</label>
+                        <input type="text" id="firma_sst_url" name="firma_sst_url" class="form-control form-control-sm">
+                    </div>
                 </form>
             </div>
             <div class="modal-footer border-0 d-flex justify-content-center pb-4 gap-2">
-                <button type="button" class="btn btn-success px-4" onclick="guardarSST()">GUARDAR</button>
+                <button type="button" class="btn btn-success px-4" onclick="guardarSST()">GUARDAR CAMBIOS</button>
                 <button type="button" class="btn btn-primary px-4" style="background: #1a3a5a;" data-bs-dismiss="modal">CANCELAR</button>
             </div>
         </div>
@@ -219,30 +267,36 @@ $listaEmpresas = array_values($listaEmpresas);
   const modalEmpresa = new bootstrap.Modal(document.getElementById('modalFormEmpresa'));
   const modalSST = new bootstrap.Modal(document.getElementById('modalSST'));
 
-  // Backend real
   const API_URL = "http://localhost/sstmanager-backend/public/index.php";
 
-  // ✅ SOLO EDITAR: abrimos el modal cargando datos
+  // ✅ PASAMOS LOS DATOS SST A JAVASCRIPT
+  const listaSSTMacro = <?= json_encode($listaSST) ?>;
+
+  // ✅ CARGAR MODAL EMPRESA
   function cargarParaEditar(base64) {
     try {
       const d = JSON.parse(atob(base64));
-      document.getElementById('tituloModalEmpresa').innerText =
-        "Editar Empresa: " + (d.nombre_empresa ?? '');
-
+      document.getElementById('tituloModalEmpresa').innerText = "Editar Empresa: " + (d.nombre_empresa ?? '');
       document.getElementById('id_empresa').value = d.id_empresa ?? "";
+      
       document.getElementById('nombre_empresa').value = d.nombre_empresa ?? "";
       document.getElementById('tipo_documento').value = d.tipo_documento || 'NIT';
       document.getElementById('tipo_documento_hidden').value = d.tipo_documento || 'NIT';
       document.getElementById('numero_documento').value = d.numero_documento ?? "";
+      document.getElementById('cant_directos').value = d.cant_directos || 0;
+      document.getElementById('cant_contratistas').value = d.cant_contratistas || 0;
+      document.getElementById('cant_aprendices').value = d.cant_aprendices || 0;
+      document.getElementById('cant_brigadistas').value = d.cant_brigadistas || 0;
+      document.getElementById('id_plan').value = d.id_plan || "";
+      document.getElementById('id_plan_hidden').value = d.id_plan || "";
+      document.getElementById('nivel_riesgo').value = d.nivel_riesgo || "";
+      document.getElementById('nivel_riesgo_hidden').value = d.nivel_riesgo || "";
+
       document.getElementById('direccion').value = d.direccion || "";
       document.getElementById('telefono').value = d.telefono || "";
       document.getElementById('email_contacto').value = d.email_contacto || "";
       document.getElementById('nombre_rl').value = d.nombre_rl || "";
       document.getElementById('documento_rl').value = d.documento_rl || "";
-      document.getElementById('cant_directos').value = d.cant_directos || 0;
-      document.getElementById('cant_contratistas').value = d.cant_contratistas || 0;
-      document.getElementById('cant_aprendices').value = d.cant_aprendices || 0;
-      document.getElementById('cant_brigadistas').value = d.cant_brigadistas || 0;
 
       modalEmpresa.show();
     } catch (e) {
@@ -250,14 +304,32 @@ $listaEmpresas = array_values($listaEmpresas);
     }
   }
 
-  function abrirModalSST(id, nombre) {
+  // ✅ CARGAR DATOS EN MODAL SST (FILTRANDO EN EL FRONTEND)
+  function abrirModalSST(idEmpresa, nombreEmpresa) {
     document.getElementById('formSST').reset();
-    document.getElementById('sst_id_empresa').value = id;
-    document.getElementById('sst_nombre_empresa').value = nombre;
-    modalSST.show();
+    document.getElementById('id_personal_sst').value = ""; // Limpiamos el ID oculto
+    document.getElementById('sst_id_empresa').value = idEmpresa;
+    document.getElementById('sst_nombre_empresa').value = nombreEmpresa;
+
+    // Buscamos la data de SST para esta empresa
+    const sstData = listaSSTMacro.find(sst => sst.id_empresa == idEmpresa);
+
+    if (sstData) {
+      document.getElementById('id_personal_sst').value = sstData.id_personal_sst || ""; 
+      
+      document.getElementById('proyecto_rige').value = sstData.proyecto_rige || 'IMPLEMENTACIÓN ESTÁNDARES MÍNIMOS';
+      document.getElementById('nombre_profesional').value = sstData.nombre_profesional || '';
+      document.getElementById('correo_sst').value = sstData.correo_sst || '';
+      document.getElementById('telefono_sst').value = sstData.telefono_sst || '';
+      document.getElementById('firma_sst_url').value = sstData.firma_sst_url || '';
+      
+      modalSST.show();
+    } else {
+      Swal.fire('Atención', 'Aún no existe personal SST registrado para esta empresa. Este formulario es solo para actualización.', 'warning');
+    }
   }
 
-  // ✅ SOLO UPDATE (PUT) - NO CREAR
+  // ✅ GUARDAR EMPRESA
   async function guardarEmpresaEdicion() {
     const form = document.getElementById('formEmpresa');
     if (!form.checkValidity()) return form.reportValidity();
@@ -265,17 +337,11 @@ $listaEmpresas = array_values($listaEmpresas);
     const data = Object.fromEntries(new FormData(form).entries());
     const id = document.getElementById('id_empresa').value;
 
-    if (!id) {
-      Swal.fire('Error', 'No se encontró ID de empresa para editar.', 'error');
-      return;
-    }
-
-    const url = `${API_URL}?table=empresas&id=${id}`;
-    const method = 'PUT';
+    if (!id) return;
 
     try {
-      const resp = await fetch(url, {
-        method,
+      const resp = await fetch(`${API_URL}?table=empresas&id=${id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer <?= $token ?>'
@@ -285,34 +351,35 @@ $listaEmpresas = array_values($listaEmpresas);
 
       const text = await resp.text();
       let res;
-      try { res = JSON.parse(text); }
-      catch {
-        console.log("RESPUESTA NO JSON:", text);
-        Swal.fire('Error', 'La API devolvió HTML o error. Revisa consola.', 'error');
-        return;
-      }
+      try { res = JSON.parse(text); } catch { return Swal.fire('Error', 'Respuesta no válida', 'error'); }
 
       if (res.id || res.ok) {
-        Swal.fire('¡Éxito!', res.mensaje || 'Empresa actualizada', 'success')
-          .then(() => location.reload());
+        Swal.fire('¡Éxito!', res.mensaje || 'Empresa actualizada', 'success').then(() => location.reload());
       } else {
         Swal.fire('Error', res.error || 'No se pudo actualizar', 'error');
       }
     } catch (e) {
-      console.error(e);
-      Swal.fire('Error', 'No se pudo conectar con la API', 'error');
+      Swal.fire('Error', 'No se pudo conectar', 'error');
     }
   }
 
+  // ✅ GUARDAR PERSONAL SST (ACTUALIZAR CON PUT)
   async function guardarSST() {
     const form = document.getElementById('formSST');
     if (!form.checkValidity()) return form.reportValidity();
 
     const data = Object.fromEntries(new FormData(form).entries());
+    const id_personal_sst = document.getElementById('id_personal_sst').value;
+
+    if (!id_personal_sst) {
+        Swal.fire('Error', 'No se encontró el ID del registro SST para actualizar.', 'error');
+        return;
+    }
 
     try {
-      const resp = await fetch(`${API_URL}?table=personal_sst`, {
-        method: 'POST',
+      // Hacemos el PUT usando el ID exacto de la tabla personal_sst
+      const resp = await fetch(`${API_URL}?table=personal_sst&id=${id_personal_sst}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer <?= $token ?>'
@@ -325,15 +392,14 @@ $listaEmpresas = array_values($listaEmpresas);
       try { res = JSON.parse(text); }
       catch {
         console.log("RESPUESTA NO JSON:", text);
-        Swal.fire('Error', 'La API devolvió HTML o error. Revisa consola.', 'error');
-        return;
+        return Swal.fire('Error', 'La API devolvió un error interno o HTML.', 'error');
       }
 
-      if (res.id || res.ok) {
-        Swal.fire('¡Asociado!', 'Profesional SST vinculado correctamente', 'success')
-          .then(() => modalSST.hide());
+      if (res.id || res.ok || res.status === 'success') {
+        Swal.fire('¡Actualizado!', 'Datos del Personal SST actualizados', 'success')
+          .then(() => location.reload()); // Recargamos para refrescar la data macro
       } else {
-        Swal.fire('Error', res.error || 'No se pudo asociar', 'error');
+        Swal.fire('Error', res.error || res.mensaje || 'No se pudo actualizar', 'error');
       }
     } catch (e) {
       console.error(e);

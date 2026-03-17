@@ -571,5 +571,113 @@ body {
   z-index: 1000;
 }
 
+/* ============================================================
+   ESTILOS PARA MÓDULOS DE EVALUACIÓN (CENTRALIZADOS)
+   ============================================================ */
+
+/* 1. Cabecera Fija Superior */
+/* Contenedor del sticky header (Título y Contadores) */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    background-color: #ffffff;
+    z-index: 1100; /* Prioridad máxima */
+    padding: 0.8rem 1.5rem;
+    border-radius: 0 0 15px 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    margin-bottom: 0; /* Quitamos margen para que pegue con la tabla */
+}
+
+
+
+/* 2. Tabla de Evaluación Estilo "Cards" */
+.table-eval {
+  font-size: 0.85rem;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.table-eval tbody tr {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+/* 3. Semáforos de Estado (Borde Lateral) */
+.bg-pendiente { 
+  border-left: 6px solid #adb5bd !important; 
+  background-color: #ffffff !important; 
+}
+
+.bg-cumple { 
+  border-left: 6px solid #28a745 !important; 
+  background-color: #f8fff9 !important; 
+}
+
+.bg-nocumple { 
+  border-left: 6px solid #dc3545 !important; 
+  background-color: #fff8f8 !important; 
+}
+
+/* 4. Encabezados de Tabla Fijos (debajo del sticky-header) */
+/* Encabezados de la tabla (La franja con Ciclo, Descripción, etc.) */
+.table-eval thead th {
+    position: sticky;
+    top: 95px; /* Debe ser igual a la altura aproximada del sticky-header */
+    background-color: #ffffff !important; 
+    color: #333;
+    z-index: 1050;
+    padding: 15px 10px;
+    border-bottom: 2px solid #eee;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+/* Ajuste para que el contenido no salte al iniciar */
+.container-fluid.content-spacer {
+    padding-top: 10px;
+}
+
+/* Asegurar que el iframe o contenedor principal permita el scroll */
+.admin-content {
+    overflow-y: auto !important;
+    height: 100vh;
+}
+
+/* 5. Botón Volver Genérico */
+.btn-volver-sst {
+  border: 1px solid #adb5bd;
+  color: #6c757d;
+  font-weight: 600;
+  padding: 0.4rem 1.2rem;
+  border-radius: 50px;
+  transition: all 0.3s;
+  background: white;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-volver-sst:hover {
+  background-color: #6c757d;
+  color: #ffffff;
+  transform: translateX(-3px);
+}
+
+/* 6. Inputs y Textareas en Tablas */
+.table-eval .form-select-sm, 
+.table-eval .form-control-sm {
+  border-radius: 8px;
+  border: 1px solid #cfd4dc;
+}
+
+.table-eval textarea:focus {
+  border-color: #1fa339;
+  box-shadow: 0 0 0 2px rgba(31, 163, 57, 0.15);
+}
+
+
+
+
 
 

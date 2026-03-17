@@ -44,6 +44,10 @@ $listaEmpresas = ($resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) 
 
 $resPlanes = $api->solicitar("index.php?table=planes", "GET", null, $token);
 $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
+
+// ✅ NUEVO: Traer la macro data de SST para poder validar si hay datos antes de abrir
+$resSST = $api->solicitar("index.php?table=personal_sst", "GET", null, $token);
+$listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
 ?>
 <!doctype html>
 <html lang="es">
@@ -94,7 +98,7 @@ $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
                         <i class="fa-solid fa-phone me-1 text-muted"></i> <?= htmlspecialchars($e['telefono'] ?? 'N/A') ?>
                     </td>
                     <td class="text-center">
-                        <?php if(puede($MOD_SST, 'crear', $rolSesion, $misPermisos)): ?>
+                        <?php if(puede($MOD_SST, 'crear', $rolSesion, $misPermisos) || puede($MOD_SST, 'editar', $rolSesion, $misPermisos)): ?>
                             <button class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" onclick="abrirModalSST(<?= (int)($e['id_empresa'] ?? 0) ?>, '<?= htmlspecialchars($e['nombre_empresa'] ?? '') ?>')">
                                 <i class="fa-solid fa-user-shield me-1"></i> SST
                             </button>
@@ -125,7 +129,7 @@ $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
             </div>
             <div class="modal-body px-4">
                 <form id="formEmpresa">
-                    <input type="hidden" id="id_empresa">
+                    <input type="hidden" id="id_empresa" name="id_empresa">
                     <div class="row g-2">
                         <div class="col-md-5">
                             <label class="label-custom">Nombre empresa / Razón Social</label>
@@ -165,17 +169,31 @@ $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
                         <div class="col-md-3"><label class="label-custom">Temporales</label><input type="number" name="cant_brigadistas" id="cant_brigadistas" class="form-control form-control-sm" value="0"></div>
                     </div>
 
-                   <div class="col-md-5">
-                    <label class="label-custom">Plan de Servicio</label>
-                    <select name="id_plan" id="id_plan" class="form-select form-select-sm" required>
-                        <option value="">Seleccione un plan...</option>
-                        <?php foreach ($listaPlanes as $p): ?>
-                            <option value="<?= $p['id_plan'] ?>">
-                                <?= htmlspecialchars($p['nombre_plan']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+                    <div class="section-header">Clasificación y Plan</div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="label-custom">Plan de Servicio</label>
+                            <select name="id_plan" id="id_plan" class="form-select form-select-sm" required>
+                                <option value="">Seleccione un plan...</option>
+                                <?php foreach ($listaPlanes as $p): ?>
+                                    <option value="<?= $p['id_plan'] ?>">
+                                        <?= htmlspecialchars($p['nombre_plan']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="label-custom">Nivel de Riesgo</label>
+                            <select name="nivel_riesgo" id="nivel_riesgo" class="form-select form-select-sm" required>
+                                <option value="">Seleccione el nivel...</option>
+                                <option value="I">I (Mínimo)</option>
+                                <option value="II">II (Bajo)</option>
+                                <option value="III">III (Medio)</option>
+                                <option value="IV">IV (Alto)</option>
+                                <option value="V">V (Máximo)</option>
+                            </select>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer border-0">
@@ -192,21 +210,22 @@ $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 20px;">
             <div class="modal-header border-0 pb-0 px-4 pt-4">
-                <h5 class="modal-title fw-bold">Asociar Personal SST</h5>
+                <h5 class="modal-title fw-bold">Gestionar Personal SST</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body px-4">
                 <form id="formSST">
+                    <input type="hidden" id="id_personal_sst" name="id_personal_sst">
                     <input type="hidden" id="sst_id_empresa" name="id_empresa">
                     <div class="mb-3">
                         <label class="label-custom">Nombre empresa</label>
                         <input type="text" id="sst_nombre_empresa" class="form-control border-0 bg-light fw-bold" readonly>
                     </div>
-                    <div class="mb-2"><label class="label-custom">Proyecto Rige</label><input type="text" name="proyecto_rige" class="form-control form-control-sm" value="IMPLEMENTACIÓN ESTÁNDARES MÍNIMOS" required></div>
-                    <div class="mb-2"><label class="label-custom">Profesional SST</label><input type="text" name="nombre_profesional" class="form-control form-control-sm" placeholder="Nombre completo" required></div>
-                    <div class="mb-2"><label class="label-custom">Correo SST</label><input type="email" name="correo_sst" class="form-control form-control-sm" placeholder="ejemplo@correo.com" required></div>
-                    <div class="mb-2"><label class="label-custom">Teléfono SST</label><input type="text" name="telefono_sst" class="form-control form-control-sm"></div>
-                    <div class="mb-3"><label class="label-custom">Firma SST (Ref)</label><input type="text" name="firma_sst_url" class="form-control form-control-sm"></div>
+                    <div class="mb-2"><label class="label-custom">Proyecto Rige</label><input type="text" id="proyecto_rige" name="proyecto_rige" class="form-control form-control-sm" value="IMPLEMENTACIÓN ESTÁNDARES MÍNIMOS" required></div>
+                    <div class="mb-2"><label class="label-custom">Profesional SST</label><input type="text" id="nombre_profesional" name="nombre_profesional" class="form-control form-control-sm" placeholder="Nombre completo" required></div>
+                    <div class="mb-2"><label class="label-custom">Correo SST</label><input type="email" id="correo_sst" name="correo_sst" class="form-control form-control-sm" placeholder="ejemplo@correo.com" required></div>
+                    <div class="mb-2"><label class="label-custom">Teléfono SST</label><input type="text" id="telefono_sst" name="telefono_sst" class="form-control form-control-sm"></div>
+                    <div class="mb-3"><label class="label-custom">Firma SST (Ref)</label><input type="text" id="firma_sst_url" name="firma_sst_url" class="form-control form-control-sm"></div>
                 </form>
             </div>
             <div class="modal-footer border-0 d-flex justify-content-center pb-4 gap-2">
@@ -221,9 +240,12 @@ $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
 <script>
   const modalEmpresa = new bootstrap.Modal(document.getElementById('modalFormEmpresa'));
   const modalSST = new bootstrap.Modal(document.getElementById('modalSST'));
-
-  // ✅ Backend real (en tu caso está en /public/index.php)
   const API_URL = "http://localhost/sstmanager-backend/public/index.php";
+
+  // ✅ VARIABLES MAGICAS PARA LA LÓGICA DE ROLES
+  const listaSSTMacro = <?= json_encode($listaSST) ?>;
+  const puedeCrearSST = <?= puede($MOD_SST, 'crear', $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
+  const puedeEditarSST = <?= puede($MOD_SST, 'editar', $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
 
   function abrirModalCrear() {
     document.getElementById('formEmpresa').reset();
@@ -235,8 +257,7 @@ $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
   function cargarParaEditar(base64) {
     try {
       const d = JSON.parse(atob(base64));
-      document.getElementById('tituloModalEmpresa').innerText =
-        "Editar Empresa: " + (d.nombre_empresa ?? '');
+      document.getElementById('tituloModalEmpresa').innerText = "Editar Empresa: " + (d.nombre_empresa ?? '');
 
       document.getElementById('id_empresa').value = d.id_empresa ?? "";
       document.getElementById('nombre_empresa').value = d.nombre_empresa ?? "";
@@ -251,6 +272,8 @@ $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
       document.getElementById('cant_contratistas').value = d.cant_contratistas || 0;
       document.getElementById('cant_aprendices').value = d.cant_aprendices || 0;
       document.getElementById('cant_brigadistas').value = d.cant_brigadistas || 0;
+      document.getElementById('id_plan').value = d.id_plan || "";
+      document.getElementById('nivel_riesgo').value = d.nivel_riesgo || "";
 
       modalEmpresa.show();
     } catch (e) {
@@ -258,11 +281,44 @@ $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
     }
   }
 
-  function abrirModalSST(id, nombre) {
+  // ✅ LÓGICA DE PERMISOS AL ABRIR EL MODAL SST
+  function abrirModalSST(idEmpresa, nombreEmpresa) {
     document.getElementById('formSST').reset();
-    document.getElementById('sst_id_empresa').value = id;
-    document.getElementById('sst_nombre_empresa').value = nombre;
-    modalSST.show();
+    document.getElementById('id_personal_sst').value = ""; 
+    document.getElementById('sst_id_empresa').value = idEmpresa;
+    document.getElementById('sst_nombre_empresa').value = nombreEmpresa;
+
+    // Buscar si ya tiene datos
+    const sstData = listaSSTMacro.find(sst => sst.id_empresa == idEmpresa);
+    const tieneDatos = !!sstData;
+
+    // ESCENARIO 1: Puede crear (Por lo tanto puede hacer de todo)
+    if (puedeCrearSST) {
+      if (tieneDatos) {
+        llenarDatosSST(sstData); // Si hay datos, los carga para hacer PUT luego
+      }
+      modalSST.show();
+    } 
+    // ESCENARIO 2: No puede crear, pero SÍ puede editar
+    else if (puedeEditarSST) {
+      if (tieneDatos) {
+        llenarDatosSST(sstData); // Abre el modal con los datos para hacer PUT
+        modalSST.show();
+      } else {
+        // Bloqueo: No hay datos que editar, y no tiene permiso para crearlos
+        Swal.fire('Acceso denegado', 'Esta empresa no tiene personal SST asignado. No tienes permisos para crear registros nuevos, solo para editar existentes.', 'warning');
+      }
+    }
+  }
+
+  // Función auxiliar para no repetir código
+  function llenarDatosSST(sstData) {
+      document.getElementById('id_personal_sst').value = sstData.id_personal_sst || ""; 
+      document.getElementById('proyecto_rige').value = sstData.proyecto_rige || 'IMPLEMENTACIÓN ESTÁNDARES MÍNIMOS';
+      document.getElementById('nombre_profesional').value = sstData.nombre_profesional || '';
+      document.getElementById('correo_sst').value = sstData.correo_sst || '';
+      document.getElementById('telefono_sst').value = sstData.telefono_sst || '';
+      document.getElementById('firma_sst_url').value = sstData.firma_sst_url || '';
   }
 
   async function guardarEmpresa() {
@@ -287,34 +343,35 @@ $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
 
       const text = await resp.text();
       let res;
-      try { res = JSON.parse(text); }
-      catch {
-        console.log("RESPUESTA NO JSON:", text);
-        Swal.fire('Error', 'La API devolvió HTML o error. Revisa consola.', 'error');
-        return;
-      }
+      try { res = JSON.parse(text); } catch { return Swal.fire('Error', 'La API devolvió HTML o error.', 'error'); }
 
       if (res.id || res.ok) {
-        Swal.fire('¡Éxito!', res.mensaje || 'Empresa guardada', 'success')
-          .then(() => location.reload());
+        Swal.fire('¡Éxito!', res.mensaje || 'Empresa guardada', 'success').then(() => location.reload());
       } else {
         Swal.fire('Error', res.error || 'No se pudo guardar', 'error');
       }
     } catch (e) {
-      console.error(e);
-      Swal.fire('Error', 'No se pudo conectar con la API', 'error');
+      Swal.fire('Error', 'No se pudo conectar', 'error');
     }
   }
 
+  // ✅ DECISIÓN DINÁMICA: POST o PUT
   async function guardarSST() {
     const form = document.getElementById('formSST');
     if (!form.checkValidity()) return form.reportValidity();
 
     const data = Object.fromEntries(new FormData(form).entries());
+    const id_personal_sst = document.getElementById('id_personal_sst').value;
+
+    // Si el input oculto tiene ID, es PUT (Editar). Si está vacío, es POST (Crear).
+    const method = id_personal_sst ? 'PUT' : 'POST';
+    const url = id_personal_sst 
+                ? `${API_URL}?table=personal_sst&id=${id_personal_sst}` 
+                : `${API_URL}?table=personal_sst`;
 
     try {
-      const resp = await fetch(`${API_URL}?table=personal_sst`, {
-        method: 'POST',
+      const resp = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer <?= $token ?>'
@@ -325,25 +382,19 @@ $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
       const text = await resp.text();
       let res;
       try { res = JSON.parse(text); }
-      catch {
-        console.log("RESPUESTA NO JSON:", text);
-        Swal.fire('Error', 'La API devolvió HTML o error. Revisa consola.', 'error');
-        return;
-      }
+      catch { return Swal.fire('Error', 'La API devolvió un error interno o HTML.', 'error'); }
 
-      if (res.id || res.ok) {
-        Swal.fire('¡Asociado!', 'Profesional SST vinculado correctamente', 'success')
-          .then(() => modalSST.hide());
+      if (res.id || res.ok || res.status === 'success') {
+        const accion = id_personal_sst ? 'actualizados' : 'registrados';
+        Swal.fire('¡Éxito!', `Datos SST ${accion} correctamente`, 'success').then(() => location.reload());
       } else {
-        Swal.fire('Error', res.error || 'No se pudo asociar', 'error');
+        Swal.fire('Error', res.error || res.mensaje || 'No se pudo guardar', 'error');
       }
     } catch (e) {
-      console.error(e);
       Swal.fire('Error', 'No se pudo conectar con la API', 'error');
     }
   }
 </script>
-
 
 </body>
 </html>
