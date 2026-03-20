@@ -127,9 +127,9 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       </h2>
       <div id="collapseSST" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
         <div class="accordion-body py-2">
-          <a href="pages-empresa/modulos/planear.php" target="contentFrame" class="admin-subitem">Planear (PHVA)</a>
-          <a href="pages-empresa/modulos/vigia.php" target="contentFrame" class="admin-subitem">Vigía / COPASST</a>
-          <a href="pages-empresa/modulos/plan_trabajo.php" target="contentFrame" class="admin-subitem">Plan de Trabajo</a>
+          <a href="pages-empresa/modulos/planear.php" target="contentFrame" class="admin-subitem">Planear </a>
+          <a href="pages-empresa/modulos/vigia.php" target="contentFrame" class="admin-subitem">Hacer</a>
+          <a href="pages-empresa/modulos/plan_trabajo.php" target="contentFrame" class="admin-subitem">verificar</a>
         </div>
       </div>
     </div>
