@@ -69,6 +69,8 @@ if (is_string($camposCrudos)) {
       --gray:#f4f6fa;
       --head:#d9e4f2;
       --text:#1b1b1b;
+      --toolbar-bg:#d9dde2;
+      --toolbar-border:#c8cdd3;
     }
 
     *{ box-sizing:border-box; }
@@ -80,28 +82,78 @@ if (is_string($camposCrudos)) {
       color:var(--text);
     }
 
-    .wrap{ max-width:1100px; margin:16px auto; padding:0 10px 30px; }
-
-    .toolbar{
-      background:#d9dde2; border:1px solid #c8cdd3; padding:12px; margin-bottom:14px;
-      display:flex; justify-content:flex-end; align-items:center; gap:10px; flex-wrap:wrap;
+    .wrap{
+      max-width:1100px;
+      margin:16px auto;
+      padding:0 10px 30px;
     }
 
-    .toolbar .left-actions, .toolbar .right-actions{ display:contents; }
+    /* ===== BARRA SUPERIOR UNIFICADA ===== */
+    .format-toolbar{
+  background:#d9dde2;
+  border:1px solid #c8cdd3;
+  padding:10px 16px;
+  margin-bottom:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  flex-wrap:nowrap;
+}
 
-    .btn-ui{
-      min-width:130px; height:38px; display:inline-flex; align-items:center; justify-content:center;
-      border:1px solid var(--blue); background:var(--blue); color:#fff; padding:7px 14px;
-      font-size:12px; font-weight:700; text-decoration:none; cursor:pointer;
-      transition:.2s ease; border-radius:0;
-    }
+.format-toolbar-title{
+  flex:0 0 auto;
+  font-size:18px;
+  font-weight:900;
+  color:#0f2f5c;
+  line-height:1.2;
+  white-space:nowrap;
+}
 
-    .btn-ui:hover{ background:var(--blue-dark); border-color:var(--blue-dark); color:#fff; }
-    .btn-ui.secondary{ background:#fff; color:var(--blue); }
-    .btn-ui.secondary:hover{ background:var(--soft); color:var(--blue-dark); border-color:var(--blue-dark); }
-    .btn-ui.success { background:#1fa339; border-color:#1fa339; color:#fff; }
-    .btn-ui.success:hover { background:#167c2a; border-color:#167c2a; }
+.format-toolbar-actions{
+  flex:1;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:12px;
+  flex-wrap:nowrap;
+}
 
+.btn-ui{
+  min-width:100px;
+  height:26px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid var(--blue);
+  background:var(--blue);
+  color:#fff;
+  padding:8px 16px;
+  font-size:13px;
+  font-weight:700;
+  text-decoration:none;
+  cursor:pointer;
+  transition:.2s ease;
+  border-radius:0;
+  white-space:nowrap;
+}
+
+.btn-ui:hover{
+  background:var(--blue-dark);
+  border-color:var(--blue-dark);
+  color:#fff;
+}
+
+.btn-ui.secondary{
+  background:#fff;
+  color:var(--blue);
+}
+
+.btn-ui.secondary:hover{
+  background:var(--soft);
+  color:var(--blue-dark);
+  border-color:var(--blue-dark);
+}
     .sheet{
       background:#fff; border:2px solid var(--blue); box-shadow:0 8px 18px rgba(0,0,0,.08);
       padding:14px; margin-bottom:18px;
@@ -142,22 +194,108 @@ if (is_string($camposCrudos)) {
     .sig .lbl{ text-align:center; font-size:12px; margin-top:6px; font-weight:700; }
     .activity-box{ height:80px; border:1px dashed #777; background:#fafafa; }
 
-    @media (max-width: 768px){
-      .format{ font-size:11px; }
-      .sig{ width:100%; }
-      .toolbar{ justify-content:center; }
-      .btn-ui{ min-width:180px; }
+    @media (max-width: 699px){
+      .format{
+        font-size:11px;
+      }
+
+      .sig{
+        width:100%;
+      }
+
+  .format-toolbar{
+      flex-wrap:wrap;
+      align-items:flex-start;
     }
+
+    .format-toolbar-title{
+      width:100%;
+      white-space:normal;
+    }
+
+    @media (max-width: 699px){
+      .format{
+        font-size:11px;
+      }
+
+      .sig{
+        width:100%;
+      }
+
+  .format-toolbar{
+      flex-wrap:wrap;
+      align-items:flex-start;
+    }
+
+    .format-toolbar-title{
+      width:100%;
+      white-space:normal;
+    }
+
+    .format-toolbar-actions{
+      width:100%;
+      justify-content:flex-start;
+      flex-wrap:wrap;
+    }
+
+    .btn-ui{
+      min-width:180px;
+    }
+  }
 
     @media print{
       body{ background:#fff; }
-      .toolbar, .table-tools{ display:none !important; }
-      .wrap{ max-width:100%; margin:0; padding:0; }
-      .sheet{ box-shadow:none; border:2px solid #000; margin-bottom:0; }
-      .page-break{ page-break-after:always; }
-      .in, input, textarea, select{ border:none !important; background:transparent !important; box-shadow:none !important; outline:none !important; padding:0 !important; margin:0 !important; min-height:auto !important; height:auto !important; color:#000 !important; -webkit-appearance:none !important; -moz-appearance:none !important; appearance:none !important; }
-      textarea.in, textarea{ resize:none !important; overflow:visible !important; }
-      .formtbl td .in, .format td .in{ width:100% !important; display:block; }
+
+      .format-toolbar,
+      .table-tools{
+        display:none !important;
+      }
+
+      .wrap{
+        max-width:100%;
+        margin:0;
+        padding:0;
+      }
+
+      .sheet{
+        box-shadow:none;
+        border:2px solid #000;
+        margin-bottom:0;
+      }
+
+      .page-break{
+        page-break-after:always;
+      }
+
+      .in,
+      input,
+      textarea,
+      select{
+        border:none !important;
+        background:transparent !important;
+        box-shadow:none !important;
+        outline:none !important;
+        padding:0 !important;
+        margin:0 !important;
+        min-height:auto !important;
+        height:auto !important;
+        color:#000 !important;
+        -webkit-appearance:none !important;
+        -moz-appearance:none !important;
+        appearance:none !important;
+      }
+
+      textarea.in,
+      textarea{
+        resize:none !important;
+        overflow:visible !important;
+      }
+
+      .formtbl td .in,
+      .format td .in{
+        width:100% !important;
+        display:block;
+      }
     }
   </style>
 </head>
@@ -165,13 +303,16 @@ if (is_string($camposCrudos)) {
 <body>
 <div class="wrap">
 
-  <form id="form-sst-dinamico">
-    <div class="toolbar">
-      <button type="button" class="btn-ui secondary" onclick="volverPlanear()">← Atrás</button>
-      <button type="button" class="btn-ui secondary" onclick="recargarFormato()"><i class="fa-solid fa-rotate-right me-2"></i>Recargar</button>
-      <button type="button" class="btn-ui success" id="btnGuardar"><i class="fa-solid fa-save me-2"></i> Guardar</button>
-      <button type="button" class="btn-ui" onclick="window.print()"><i class="fa-solid fa-print me-2"></i> Imprimir</button>
-    </div>
+  <div class="format-toolbar">
+  <div class="format-toolbar-title">Conformación del COPASST</div>
+
+  <div class="format-toolbar-actions">
+    <button type="button" class="btn-ui secondary" onclick="volverPlanear()">← Atrás</button>
+    <button type="button" class="btn-ui secondary" onclick="abrirOtraPestana()">Abrir pestaña</button>
+    <button type="button" class="btn-ui secondary" onclick="recargarFormato()">Recargar</button>
+    <button type="button" class="btn-ui" onclick="window.print()">Imprimir</button>
+  </div>
+</div>
 
     <div class="sheet page-break">
       <table class="format">

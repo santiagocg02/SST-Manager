@@ -43,7 +43,7 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
       font-size:12px;
     }
 
-    .sst-toolbar{
+     .sst-toolbar{
       position:sticky;
       top:0;
       z-index:100;
@@ -70,6 +70,7 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
       flex-wrap:wrap;
       align-items:center;
     }
+
 
     .sst-page{
       padding:20px;
@@ -454,10 +455,10 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
   <h1 class="sst-toolbar-title">Seguimiento mensual pago de aportes y parafiscales</h1>
 
   <div class="sst-toolbar-actions">
-    <button class="btn btn-secondary btn-sm btn-rect" type="button" onclick="goBack()">Volver</button>
-    <button class="btn btn-primary btn-sm btn-rect" type="button" onclick="window.print()">Imprimir</button>
+      <a href="../planear.php" class="btn btn-secondary btn-sm">Volver</a>
+      <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">Imprimir</button>
+    </div>
   </div>
-</div>
 
 <div class="sst-page">
   <div class="sst-paper">
