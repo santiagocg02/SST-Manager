@@ -132,6 +132,7 @@ if (is_string($camposCrudos)) {
             .section-header{ flex-direction:column; align-items:stretch; }
         }
     </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 

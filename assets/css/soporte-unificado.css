@@ -1,0 +1,106 @@
+:root{
+  --soporte-bg:#eef3f9;
+  --soporte-toolbar:#dde7f5;
+  --soporte-toolbar-border:#c8d3e2;
+  --soporte-toolbar-title:#213b67;
+}
+
+html, body{
+  background:var(--soporte-bg) !important;
+}
+
+.sst-toolbar,
+.toolbar{
+  position:sticky;
+  top:0;
+  z-index:100;
+  background:var(--soporte-toolbar) !important;
+  border-bottom:1px solid var(--soporte-toolbar-border) !important;
+  padding:12px 18px !important;
+}
+
+.sst-toolbar-title,
+.toolbar h1,
+.toolbar-title{
+  color:var(--soporte-toolbar-title) !important;
+  font-weight:800 !important;
+}
+
+.sst-page,
+.page-wrap,
+.sheet-wrap,
+.main-wrap{
+  padding:20px !important;
+}
+
+.sst-paper,
+.sheet,
+.paper,
+.page{
+  background:#fff;
+  border:1px solid #d7dee8;
+  box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
+
+.sst-toolbar-actions .btn,
+.toolbar .btn,
+.toolbar .btn-ui,
+.toolbar .btn-sst,
+.toolbar .btn-sst-outline,
+.toolbar .btn-primary-lite,
+.toolbar .btn.primary,
+.sst-toolbar .btn-ui,
+.sst-toolbar .btn-sst,
+.sst-toolbar .btn-sst-outline,
+.sst-toolbar .btn-primary-lite,
+.sst-toolbar .btn.primary {
+  border-radius:.375rem !important;
+  font-weight:600 !important;
+  font-size:.875rem !important;
+  line-height:1.5 !important;
+  padding:.25rem .75rem !important;
+  border:1px solid transparent !important;
+  text-decoration:none !important;
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+}
+
+/* Botón volver */
+.toolbar a[href*="planear"],
+.sst-toolbar a[href*="planear"],
+.btn-sst-outline,
+.btn-ui.secondary,
+.btn-outline-primary,
+.btn-outline-secondary{
+  background:#6c757d !important;
+  border-color:#6c757d !important;
+  color:#fff !important;
+}
+
+/* Botón guardar */
+#btnGuardar,
+.btn.success,
+.btn-ui.success,
+.btn-guardar{
+  background:#198754 !important;
+  border-color:#198754 !important;
+  color:#fff !important;
+}
+
+/* Botón imprimir */
+button[onclick*="print"],
+.btn-print,
+.btn.primary,
+.btn-sst,
+.btn-ui:not(.secondary):not(.success),
+.btn-primary-lite,
+.btn-primary{
+  background:#0d6efd !important;
+  border-color:#0d6efd !important;
+  color:#fff !important;
+}
+
+@media print{
+  html, body{ background:#fff !important; }
+}

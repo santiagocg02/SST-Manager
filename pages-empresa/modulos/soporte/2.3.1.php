@@ -426,6 +426,7 @@ $rows = [
       .tbl-scroll{ max-height:none; overflow:visible; border:none; }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 <div class="wrap">
