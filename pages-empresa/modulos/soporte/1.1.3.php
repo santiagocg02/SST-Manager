@@ -42,32 +42,65 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     }
 
     .sst-toolbar{
-      position:sticky;
-      top:0;
-      z-index:100;
-      background:var(--sst-toolbar);
-      border-bottom:1px solid var(--sst-toolbar-border);
-      padding:12px 18px;
+      background:#d9dde2;
+      border:1px solid #c8cdd3;
+      padding:12px;
+      margin-bottom:14px;
       display:flex;
-      justify-content:space-between;
+      justify-content:flex-end;
       align-items:center;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-
-    .sst-toolbar-title{
-      margin:0;
-      font-size:15px;
-      font-weight:800;
-      color:#213b67;
-    }
-
-    .sst-toolbar-actions{
-      display:flex;
       gap:10px;
       flex-wrap:wrap;
-      align-items:center;
     }
+
+    .sst-toolbar .left-actions,
+    .sst-toolbar .right-actions{
+      display:contents;
+    }
+
+    .btn-ui{
+      min-width:130px;
+      height:38px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid var(--blue);
+      background:var(--blue);
+      color:#fff;
+      padding:7px 14px;
+      font-size:12px;
+      font-weight:700;
+      text-decoration:none;
+      cursor:pointer;
+      transition:.2s ease;
+      border-radius:0;
+    }
+
+    .btn-ui:hover{
+      background:var(--blue-dark);
+      border-color:var(--blue-dark);
+      color:#fff;
+    }
+
+    .btn-ui.secondary{
+      background:#fff;
+      color:var(--blue);
+    }
+
+    .btn-ui.secondary:hover{
+      background:var(--soft);
+      color:var(--blue-dark);
+      border-color:var(--blue-dark);
+    }
+
+    .sheet{
+      background:#fff;
+      border:2px solid var(--blue);
+      box-shadow:0 8px 18px rgba(0,0,0,.08);
+      padding:14px;
+      margin-bottom:18px;
+    }
+
 
     .sst-page{
       padding:20px;
@@ -400,15 +433,15 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
+    
 
-  <div class="sst-toolbar">
-    <h1 class="sst-toolbar-title">Consolidado General Presupuesto</h1>
-
-    <div class="sst-toolbar-actions">
-      <a href="../planear.php" class="btn btn-secondary btn-sm">Volver</a>
-      <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">Imprimir</button>
+    <div class="sst-toolbar">
+      <h1 class="sst-toolbar-title">Consolidado General Presupuesto</h1>
+        <button type="button" class="btn-ui secondary" onclick="volverPlanear()">← Atrás</button>
+        <button type="button" class="btn-ui secondary" onclick="abrirOtraPestana()">Abrir pestaña</button>
+        <button type="button" class="btn-ui secondary" onclick="recargarFormato()">Recargar</button>
+        <button type="button" class="btn-ui" onclick="window.print()">Imprimir</button>
     </div>
-  </div>
 
   <div class="sst-page">
     <div class="sst-paper">

@@ -18,11 +18,23 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   <link rel="stylesheet" href="../../assets/css/planear.css">
 
   <style>
-    /* Drawer/Panel lateral para soportes (más ancho y cómodo) */
-    #soporteDrawer { width: min(980px, 92vw); }
-    #soporteDrawer .offcanvas-body { height: calc(100vh - 64px); } /* header aprox */
-    #soporteDrawer iframe { width:100%; height:100%; border:0; background:#fff; }
-  </style>
+  #soporteDrawer{
+    width:min(980px, 92vw);
+  }
+
+  #soporteDrawer .offcanvas-body{
+    height:calc(100vh - 64px);
+    background:#fff;
+  }
+
+  #soporteDrawer iframe{
+    width:100%;
+    height:100%;
+    border:0;
+    background:#fff;
+    display:block;
+  }
+</style>
 </head>
 
 <body>
@@ -189,26 +201,16 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   </div>
 </div>
 
-<!-- ===================== OFFCANVAS SOPORTE (LATERAL DERECHO) ===================== -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="soporteDrawer" aria-labelledby="soporteDrawerLabel">
-  <div class="offcanvas-header">
-    <div>
-      <h6 class="offcanvas-title mb-0" id="soporteDrawerLabel">SOPORTE / FORMATO</h6>
-      <div class="text-muted small" id="soporteDrawerSub">Selecciona un ítem para ver el formato.</div>
-    </div>
+  <div class="offcanvas-body p-0 position-relative">
+    <button
+      type="button"
+      class="btn-close position-absolute top-0 end-0 m-3"
+      data-bs-dismiss="offcanvas"
+      aria-label="Close"
+      style="z-index: 20;">
+    </button>
 
-    <div class="d-flex gap-2 align-items-center">
-      <a class="btn btn-sm btn-outline-secondary" href="#" target="_blank" id="btnOpenNewTab" style="display:none;">
-        Abrir pestaña
-      </a>
-      <button class="btn btn-sm btn-outline-primary" type="button" id="btnReloadDrawer">
-        Recargar
-      </button>
-      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-    </div>
-  </div>
-
-  <div class="offcanvas-body p-0">
     <iframe id="soporteFrameDrawer" src="" title="Soporte" loading="lazy"></iframe>
   </div>
 </div>
@@ -269,10 +271,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   const drawerEl = document.getElementById("soporteDrawer");
   const soporteDrawer = new bootstrap.Offcanvas(drawerEl);
   const $drawerFrame = document.getElementById("soporteFrameDrawer");
-  const $drawerSub   = document.getElementById("soporteDrawerSub");
-  const $btnReloadD  = document.getElementById("btnReloadDrawer");
-  const $btnNewTab   = document.getElementById("btnOpenNewTab");
-
+  const $drawerSub = null;
   function escapeHtml(str){
     return String(str ?? "")
       .replaceAll("&","&amp;")
@@ -283,27 +282,15 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   }
 
   function openSoporteDrawer(file, row){
-    const url = `./soporte/${file}`;
-    $drawerFrame.src = url;
-    $drawerSub.textContent = `${row.item} · ${row.actividad}`;
+  const url = `./soporte/${file}`;
+  $drawerFrame.src = url;
+  soporteDrawer.show();
+}
 
-    // botón nueva pestaña
-    $btnNewTab.style.display = "inline-flex";
-    $btnNewTab.href = url;
-
-    soporteDrawer.show();
-  }
-
-  $btnReloadD.addEventListener("click", () => {
-    if ($drawerFrame.src) $drawerFrame.src = $drawerFrame.src;
-  });
 
   drawerEl.addEventListener("hidden.bs.offcanvas", () => {
-    $drawerFrame.src = "";
-    $drawerSub.textContent = "Selecciona un ítem para ver el formato.";
-    $btnNewTab.style.display = "none";
-    $btnNewTab.href = "#";
-  });
+  $drawerFrame.src = "";
+});
 
   function renderTable(list) {
     $body.innerHTML = "";
