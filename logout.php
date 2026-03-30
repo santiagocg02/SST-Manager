@@ -1,6 +1,8 @@
 <?php
+require_once __DIR__ . '/includes/bootstrap.php';
+
 // 1. Iniciar la sesión para poder destruirla
-session_start();
+startSessionIfNeeded();
 
 // 2. Destruir todas las variables de sesión (Token, Usuario, Rol, etc.)
 $_SESSION = array();
@@ -19,6 +21,5 @@ if (ini_get("session.use_cookies")) {
 session_destroy();
 
 // 5. Redirigir al Login
-header("Location: index.php");
-exit;
+redirectToLogin();
 ?>

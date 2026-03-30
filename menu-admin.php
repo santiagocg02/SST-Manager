@@ -1,21 +1,18 @@
 <?php
-session_start();
-require_once 'includes/ConexionAPI.php'; 
+require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/ConexionAPI.php';
 
-if (!isset($_SESSION["usuario"]) || (($_SESSION["rol"] ?? '') !== "Master" && ($_SESSION["rol"] ?? '') !== "Administrador")) {
-    header("Location: index.php");
-    exit;
-}
+requireRole(APP_ADMIN_ROLES);
 
 $api = new ConexionAPI();
-$token = $_SESSION["token"];
-$rolSesion = $_SESSION["rol"] ?? '';
-$perfilIdSesion = $_SESSION["id_perfil"] ?? 0;
+$token = sessionString('token');
+$rolSesion = sessionString('rol');
+$perfilIdSesion = sessionInt('id_perfil');
 
 $misPermisos = [];
 
 // Solo el Master se salta la carga porque tiene todo en true por defecto
-if ($rolSesion !== "Master") {
+if (normalizedRole($rolSesion) !== APP_ROLE_MASTER) {
     $resPermisos = $api->solicitar("perfiles/permisos/$perfilIdSesion/check-all", "GET", null, $token);
 
     // A veces viene envuelto en 'data'
@@ -40,7 +37,7 @@ if ($rolSesion !== "Master") {
  * Visibilidad por permisos
  */
 function puedeVer($idModulo, $rol, $permisos) {
-    if ($rol === "Master") return true;
+    if (normalizedRole($rol) === APP_ROLE_MASTER) return true;
     $id = (int)$idModulo;
     return isset($permisos[$id]) && ($permisos[$id]['ver'] == 1);
 }
