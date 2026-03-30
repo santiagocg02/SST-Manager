@@ -786,5 +786,7 @@ En los casos de enfermedad laboral, se generan actividades de prevención y prom
         </div>
     </div>
 </div>
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

@@ -543,5 +543,7 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 
     actualizarContadores();
   </script>
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

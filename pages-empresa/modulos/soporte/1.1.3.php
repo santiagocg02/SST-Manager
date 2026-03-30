@@ -944,5 +944,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     updateChartAndPercents();
   </script>
 
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

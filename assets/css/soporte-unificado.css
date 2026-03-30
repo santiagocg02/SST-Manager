@@ -17,6 +17,11 @@ html, body{
   background:var(--soporte-toolbar) !important;
   border-bottom:1px solid var(--soporte-toolbar-border) !important;
   padding:12px 18px !important;
+  display:flex !important;
+  justify-content:space-between !important;
+  align-items:center !important;
+  gap:12px !important;
+  flex-wrap:wrap !important;
 }
 
 .sst-toolbar-title,
@@ -24,6 +29,8 @@ html, body{
 .toolbar-title{
   color:var(--soporte-toolbar-title) !important;
   font-weight:800 !important;
+  font-size:15px !important;
+  margin:0 !important;
 }
 
 .sst-page,
@@ -103,4 +110,11 @@ button[onclick*="print"],
 
 @media print{
   html, body{ background:#fff !important; }
+}
+
+.sst-toolbar-actions{
+  display:flex !important;
+  gap:10px !important;
+  align-items:center !important;
+  flex-wrap:wrap !important;
 }

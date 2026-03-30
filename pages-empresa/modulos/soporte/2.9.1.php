@@ -488,5 +488,7 @@ Matriz de identificación de peligros y valoración de riesgos.</textarea>
   </div>
 </div>
 
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

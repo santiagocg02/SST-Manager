@@ -604,5 +604,7 @@ $rows = [
   window.addEventListener('load', syncTopScrollWidth);
   window.addEventListener('resize', syncTopScrollWidth);
 </script>
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

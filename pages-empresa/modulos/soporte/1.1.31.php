@@ -376,5 +376,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   </div>
 </div>
 
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

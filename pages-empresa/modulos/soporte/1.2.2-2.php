@@ -657,5 +657,7 @@ Una vez el personal regrese de vacaciones, incapacidades largas (mayores a 15 d√
   }
   setHoy();
 </script>
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>
