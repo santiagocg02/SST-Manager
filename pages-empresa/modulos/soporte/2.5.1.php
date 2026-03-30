@@ -257,6 +257,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             }
         }
     </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 <div class="wrap">

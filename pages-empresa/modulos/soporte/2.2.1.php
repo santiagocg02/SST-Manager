@@ -186,6 +186,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     .top-scroll{ display:none; }
   }
 </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 
