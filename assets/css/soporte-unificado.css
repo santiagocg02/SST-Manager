@@ -24,6 +24,7 @@ html, body{
   flex-wrap:wrap !important;
 }
 
+
 .sst-toolbar-title,
 .toolbar h1,
 .toolbar-title{
@@ -32,6 +33,7 @@ html, body{
   font-size:15px !important;
   margin:0 !important;
 }
+
 
 .sst-page,
 .page-wrap,
