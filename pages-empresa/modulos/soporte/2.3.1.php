@@ -426,6 +426,7 @@ $rows = [
       .tbl-scroll{ max-height:none; overflow:visible; border:none; }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 <div class="wrap">
@@ -603,5 +604,7 @@ $rows = [
   window.addEventListener('load', syncTopScrollWidth);
   window.addEventListener('resize', syncTopScrollWidth);
 </script>
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

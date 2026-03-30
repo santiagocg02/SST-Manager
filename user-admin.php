@@ -1,10 +1,7 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/bootstrap.php';
 
-if (!isset($_SESSION["usuario"]) || $_SESSION["rol"] !== "Master") {
-    header("Location: index.php");
-    exit;
-}
+requireRole([APP_ROLE_MASTER]);
 ?>
 <!DOCTYPE html>
 <html lang="es">

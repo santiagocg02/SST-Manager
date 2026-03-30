@@ -80,6 +80,7 @@ border:1px dashed #aaa;
 .level-bajo{background:#2ecc71;color:white;font-weight:bold;text-align:center}
 
 </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 
 <body>
@@ -340,5 +341,7 @@ Diagnóstico o sintomatología
 
 </div>
 
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

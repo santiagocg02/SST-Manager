@@ -288,6 +288,7 @@ function e($v){
       }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 
@@ -487,5 +488,7 @@ Matriz de identificación de peligros y valoración de riesgos.</textarea>
   </div>
 </div>
 
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

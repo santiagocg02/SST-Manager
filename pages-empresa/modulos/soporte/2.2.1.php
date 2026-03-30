@@ -186,6 +186,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     .top-scroll{ display:none; }
   }
 </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 
@@ -349,5 +350,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   window.addEventListener('resize', syncTopScrollWidth);
 </script>
 
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

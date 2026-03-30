@@ -202,6 +202,7 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
       .annex{ break-inside: avoid; }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 
 <body>
@@ -827,5 +828,7 @@ Te invitamos a que participes de un comité que vela por la salud y el bienestar
   setHoy();
 </script>
 
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

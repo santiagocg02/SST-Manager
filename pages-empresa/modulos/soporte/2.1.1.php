@@ -222,6 +222,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
       }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
   <div class="wrap">
@@ -357,5 +358,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 
     </div>
   </div>
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>
