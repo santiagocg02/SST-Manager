@@ -162,6 +162,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
       table.excel{ width:100% !important; }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 
 <body>

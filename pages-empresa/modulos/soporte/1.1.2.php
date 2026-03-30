@@ -169,6 +169,7 @@ if (is_string($camposCrudos)) {
       .sst-toolbar{ padding:12px; }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 

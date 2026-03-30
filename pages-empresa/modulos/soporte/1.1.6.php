@@ -160,6 +160,7 @@ if (is_string($camposCrudos)) {
       .formtbl td .in, .format td .in{ width:100% !important; display:block; }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 
 <body>
