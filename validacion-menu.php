@@ -1,12 +1,8 @@
 <?php
-session_start();
-require_once 'includes/ConexionAPI.php'; 
+require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/ConexionAPI.php';
 
-// 1. Seguridad
-if (!isset($_SESSION["usuario"])) {
-    header("Location: index.php");
-    exit;
-}
+requireAuthenticatedSession();
 // NUEVO: Atrapa el formulario y guarda la empresa en la sesión
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_empresa'])) {
     $_SESSION['id_empresa'] = trim($_POST['id_empresa']);
@@ -17,9 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_empresa'])) {
 $api = new ConexionAPI();
 
 // 2. Recuperar datos de sesión
-$rol = isset($_SESSION["rol"]) ? trim($_SESSION["rol"]) : '';
-$user = isset($_SESSION["usuario"]) ? trim($_SESSION["usuario"]) : '';
-$token = $_SESSION["token"] ?? '';
+$rol = sessionString('rol');
+$user = sessionString('usuario');
+$token = sessionString('token');
 
 // 3. Consultar Empresas
 $resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
