@@ -1,6 +1,8 @@
 <?php
-session_start();
-require_once 'includes/ConexionAPI.php'; // Asegúrate de que la ruta sea correcta
+require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/ConexionAPI.php';
+
+startSessionIfNeeded();
 
 $mensaje = "";
 
@@ -31,11 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             // 3. CORRECCIÓN PRINCIPAL: Ruta exacta al rol
             // Entramos a 'user' -> 'seguridad' -> 'rol_sistema'
-            if (isset($datosAPI['user']['seguridad']['rol_sistema'])) {
-                $_SESSION["rol"] = $datosAPI['user']['seguridad']['rol_sistema']; 
-            } else {
-                $_SESSION["rol"] = "user"; // Fallback
-            }
+            $_SESSION['rol'] = $datosAPI['user']['seguridad']['rol_sistema'] ?? 'user';
 
             if (isset($datosAPI['user']['seguridad']['perfil']['id'])) {
                 $_SESSION["id_perfil"] = $datosAPI['user']['seguridad']['perfil']['id']; 

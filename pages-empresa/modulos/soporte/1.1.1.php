@@ -97,6 +97,7 @@ if (is_string($camposCrudos)) {
       .sst-input, .sst-select, .sst-textarea, .sst-input-line, .editable-block, .editable-list{ color:#000 !important; }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 
@@ -358,5 +359,7 @@ if (is_string($camposCrudos)) {
     });
   </script>
 
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

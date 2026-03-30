@@ -290,6 +290,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             }
         }
     </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 <div class="wrap">
@@ -785,5 +786,7 @@ En los casos de enfermedad laboral, se generan actividades de prevención y prom
         </div>
     </div>
 </div>
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

@@ -1,17 +1,14 @@
 <?php
-session_start();
-require_once 'includes/ConexionAPI.php';
+require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/ConexionAPI.php';
 
-if (!isset($_SESSION["usuario"])) {
-    header("Location: index.php");
-    exit;
-}
+requireAuthenticatedSession();
 
 $api = new ConexionAPI();
-$token = $_SESSION["token"] ?? "";
-$rolSesion = $_SESSION["rol"] ?? '';
-$perfilIdSesion = (int)($_SESSION["id_perfil"] ?? 0);
-$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+$token = sessionString('token');
+$rolSesion = sessionString('rol');
+$perfilIdSesion = sessionInt('id_perfil');
+$empresa = sessionInt('id_empresa');
 
 // --- Lógica de Permisos y Plan (Manteniendo tu estructura original) ---
 $nombreEmpresaLogeada = "Sin Empresa";
@@ -39,7 +36,7 @@ if ($idPlanEmpresa > 0) {
 }
 
 $misPermisos = [];
-if (strtolower($rolSesion) !== "master") {
+if (normalizedRole($rolSesion) !== APP_ROLE_MASTER) {
     $resPermisos = $api->solicitar("perfiles/permisos/$perfilIdSesion/check-all", "GET", null, $token);
     $datosFinales = $resPermisos['data'] ?? [];
     foreach ($datosFinales as $perm) {
@@ -50,10 +47,10 @@ if (strtolower($rolSesion) !== "master") {
 }
 
 function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
-    $rolLower = strtolower((string)$rol);
-    if ($rolLower === "master") return true;
+    $rolLower = normalizedRole((string)$rol);
+    if ($rolLower === APP_ROLE_MASTER) return true;
     $enPlan = in_array((int)$idModulo, $modulosPlan, true);
-    if ($rolLower === "administrador") return $enPlan;
+    if ($rolLower === APP_ROLE_ADMINISTRADOR) return $enPlan;
     return $enPlan && isset($permisos[$idModulo]) && (int)$permisos[$idModulo]['ver'] === 1;
 }
 ?>

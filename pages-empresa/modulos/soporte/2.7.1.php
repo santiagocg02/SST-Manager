@@ -340,6 +340,7 @@ function e($v){
       }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 
@@ -645,5 +646,7 @@ En caso de evidenciar desviaciones en el cumplimiento de los requisitos legales 
   </div>
 </div>
 
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

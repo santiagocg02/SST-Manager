@@ -160,6 +160,7 @@ if (is_string($camposCrudos)) {
       .formtbl td .in, .format td .in{ width:100% !important; display:block; }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 
 <body>
@@ -1073,5 +1074,7 @@ if (is_string($camposCrudos)) {
     }
   });
 </script>
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

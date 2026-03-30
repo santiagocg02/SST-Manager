@@ -397,6 +397,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
       }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 
@@ -910,5 +911,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     updateChartAndPercents();
   </script>
 
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

@@ -383,6 +383,7 @@ $bloque2 = [
             }
         }
     </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 
@@ -521,5 +522,7 @@ $bloque2 = [
     </div>
 </div>
 
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

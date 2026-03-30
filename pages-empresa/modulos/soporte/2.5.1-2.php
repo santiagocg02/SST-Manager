@@ -266,6 +266,7 @@ foreach ($documentos as $doc) {
             }
         }
     </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 <div class="wrap">
@@ -385,5 +386,7 @@ foreach ($documentos as $doc) {
     window.addEventListener('load', syncTopScrollWidth);
     window.addEventListener('resize', syncTopScrollWidth);
 </script>
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

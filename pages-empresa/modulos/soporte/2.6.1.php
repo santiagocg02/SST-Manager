@@ -246,6 +246,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             }
         }
     </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 <div class="wrap">
@@ -414,5 +415,7 @@ Las Revisiones Gerenciales son convocadas por el Gerente General de la Empresa o
         </div>
     </div>
 </div>
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

@@ -350,6 +350,7 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
       margin-top:8px;
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 
 <body>
@@ -656,5 +657,7 @@ Una vez el personal regrese de vacaciones, incapacidades largas (mayores a 15 d√
   }
   setHoy();
 </script>
+
+<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>
