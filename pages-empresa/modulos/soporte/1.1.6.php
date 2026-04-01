@@ -194,54 +194,35 @@ if (is_string($camposCrudos)) {
     .sig .lbl{ text-align:center; font-size:12px; margin-top:6px; font-weight:700; }
     .activity-box{ height:80px; border:1px dashed #777; background:#fafafa; }
 
-    @media (max-width: 699px){
-      .format{
-        font-size:11px;
-      }
-
-      .sig{
-        width:100%;
-      }
-
-  .format-toolbar{
-      flex-wrap:wrap;
-      align-items:flex-start;
-    }
-
-    .format-toolbar-title{
-      width:100%;
-      white-space:normal;
-    }
-
-    @media (max-width: 699px){
-      .format{
-        font-size:11px;
-      }
-
-      .sig{
-        width:100%;
-      }
-
-  .format-toolbar{
-      flex-wrap:wrap;
-      align-items:flex-start;
-    }
-
-    .format-toolbar-title{
-      width:100%;
-      white-space:normal;
-    }
-
-    .format-toolbar-actions{
-      width:100%;
-      justify-content:flex-start;
-      flex-wrap:wrap;
-    }
-
-    .btn-ui{
-      min-width:180px;
-    }
+@media (max-width: 699px){
+  .format{
+    font-size:11px;
   }
+
+  .sig{
+    width:100%;
+  }
+
+  .format-toolbar{
+    flex-wrap:wrap;
+    align-items:flex-start;
+  }
+
+  .format-toolbar-title{
+    width:100%;
+    white-space:normal;
+  }
+
+  .format-toolbar-actions{
+    width:100%;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+  }
+
+  .btn-ui{
+    min-width:180px;
+  }
+}
 
     @media print{
       body{ background:#fff; }
