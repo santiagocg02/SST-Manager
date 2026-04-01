@@ -18,23 +18,23 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   <link rel="stylesheet" href="../../assets/css/planear.css">
 
   <style>
-  #soporteDrawer{
-    width:min(980px, 92vw);
-  }
+    #soporteDrawer{
+      width:min(980px, 92vw);
+    }
 
-  #soporteDrawer .offcanvas-body{
-    height:calc(100vh - 64px);
-    background:#fff;
-  }
+    #soporteDrawer .offcanvas-body{
+      height:calc(100vh - 64px);
+      background:#fff;
+    }
 
-  #soporteDrawer iframe{
-    width:100%;
-    height:100%;
-    border:0;
-    background:#fff;
-    display:block;
-  }
-</style>
+    #soporteDrawer iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      background:#fff;
+      display:block;
+    }
+  </style>
 </head>
 
 <body>
@@ -119,7 +119,6 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
       <div class="col-12 col-xl-6">
         <div class="card-soft p-3 bg-white h-100">
 
-          <!-- LEYENDA -->
           <div class="d-flex justify-content-end">
             <div class="mini-legend">
               <div class="mini-legend-row">
@@ -143,16 +142,17 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 </div>
 
 <!-- DRAWER -->
-<div class="offcanvas offcanvas-end" tabindex="-1" id="soporteDrawer">
+<div class="offcanvas offcanvas-end" tabindex="-1" id="soporteDrawer" aria-labelledby="soporteDrawerLabel">
   <div class="offcanvas-body p-0 position-relative">
     <button
       type="button"
       class="btn-close position-absolute top-0 end-0 m-3"
       data-bs-dismiss="offcanvas"
+      aria-label="Close"
       style="z-index: 20;">
     </button>
 
-    <iframe id="soporteFrameDrawer" src=""></iframe>
+    <iframe id="soporteFrameDrawer" src="" title="Soporte" loading="lazy"></iframe>
   </div>
 </div>
 
@@ -162,11 +162,11 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 const hacerItems = [
   { item:'3.1.1', actividad:'Encuesta Perfil Sociodemográfico', soporte:'3.1.1.php' },
   { item:'3.1.1', actividad:'Tabulación Encuesta Perfil Sociodemográfico', soporte:'3.1.1-2.php' },
-  { item:'3.1.3', actividad:'Solicitar a IPS, el  Profesiograma de acuerdo a los cargos de la empresa', soporte:'3.1.3.php' },
+  { item:'3.1.3', actividad:'Solicitar a IPS, el Profesiograma de acuerdo a los cargos de la empresa', soporte:'3.1.3.php' },
   { item:'3.1.4', actividad:'Procedimiento de Exámenes Médicos Ocupacionales', soporte:'3.1.4.php' },
-  { item:'3.1.4', actividad:'Matriz seguimiento exámenes médicos ', soporte:'3.1.4-2.php' },
+  { item:'3.1.4', actividad:'Matriz seguimiento exámenes médicos', soporte:'3.1.4-2.php' },
   { item:'3.1.5', actividad:'Solicitud carta de Guarda y custodia de las Historias clínicas a la IPS.', soporte:'' },
-  { item:'3.1.6', actividad:'Carta de las recomendaciones y restricciones  de las evaluaciones medicas ocupacionales.', soporte:'3.1.6.php' },
+  { item:'3.1.6', actividad:'Carta de las recomendaciones y restricciones de las evaluaciones medicas ocupacionales.', soporte:'3.1.6.php' },
   { item:'3.2.1', actividad:'Procedimiento de investigación de Accidentes', soporte:'3.2.1.php' },
   { item:'3.2.1', actividad:'Investigación de accidentes', soporte:'3.2.1-2.php' },
   { item:'3.2.2', actividad:'Caracterización Accidentalidad', soporte:'3.2.2.php' },
@@ -175,14 +175,14 @@ const hacerItems = [
   { item:'', actividad:'Ficha de indicadores automatizada', soporte:'indicador.php' },
   { item:'4.1.1', actividad:'Procedimiento para la identificación de peligros', soporte:'4.1.1.php' },
   { item:'4.1.2', actividad:'Matriz de identificación de peligros', soporte:'4.1.2.php' },
-  { item:'4.1.2', actividad:' Identificación de factores de riesgo en  conjunto con trabajadores', soporte:'4.1.2-2.php' },
+  { item:'4.1.2', actividad:'Identificación de factores de riesgo en conjunto con trabajadores', soporte:'4.1.2-2.php' },
   { item:'4.1.1', actividad:'Riesgo psicosocial', soporte:'' },
   { item:'4.1.1', actividad:'Riesgo psicosocial', soporte:'' },
   { item:'4.1.1', actividad:'Riesgo psicosocial', soporte:'' },
   { item:'4.1.1', actividad:'Riesgo psicosocial', soporte:'' },
   { item:'4.2.1', actividad:'Programas de gestión', soporte:'4.2.1.php' },
   { item:'4.2.2', actividad:'Auto reportes de condiciones de seguridad y salud', soporte:'4.2.2.php' },
-  { item:'4.2.3', actividad:'Procedimientos, instructivos, fichas, protocolos  (Verificación de hojas de seguridad Sustancias químicas)', soporte:'4.2.3.php' },
+  { item:'4.2.3', actividad:'Procedimientos, instructivos, fichas, protocolos (Verificación de hojas de seguridad Sustancias químicas)', soporte:'4.2.3.php' },
   { item:'4.2.4', actividad:'Realización de inspecciones a las instalaciones, maquinaria o equipos con la participación del COPASST', soporte:'4.2.4.php' },
   { item:'4.2.5', actividad:'Mantenimiento periódico de instalaciones, equipos, máquinas, herramientas.', soporte:'4.2.5.php' },
   { item:'4.2.6', actividad:'Matriz de EPP´S', soporte:'4.2.6.php' },
@@ -214,7 +214,8 @@ function escapeHtml(str){
 }
 
 function openSoporteDrawer(file){
-  $drawerFrame.src = "./soporte-hacer/" + file;
+  const url = `./soporte-hacer/${file}`;
+  $drawerFrame.src = url;
   soporteDrawer.show();
 }
 
@@ -230,30 +231,112 @@ function renderTable(list) {
     const id = `row_${idx}`;
     const file = row.soporte || "";
     const disabled = file ? "" : "disabled";
+    const title = file ? "Abrir soporte" : "Pendiente por crear";
 
     $body.insertAdjacentHTML("beforeend", `
       <tr>
-        <td><span class="item-chip"><span class="dot"></span>${escapeHtml(row.item)}</span></td>
+        <td class="col-item">
+          <span class="item-chip"><span class="dot"></span>${escapeHtml(row.item || "—")}</span>
+        </td>
+
         <td>${escapeHtml(row.actividad)}</td>
 
-        <td class="text-center">
-          <button class="btn btn-sm btn-outline-primary soporte-btn"
+        <td class="col-soporte text-center">
+          <button
+            class="btn btn-sm btn-outline-primary btn-icon soporte-btn"
+            type="button"
+            title="${escapeHtml(title)}"
+            data-file="${escapeHtml(file)}"
+            data-item="${escapeHtml(row.item || "")}"
+            data-actividad="${escapeHtml(row.actividad || "")}"
             ${disabled}
-            onclick="openSoporteDrawer('${file}')">
+          >
             <i class="fa-regular fa-file-lines"></i>
           </button>
         </td>
 
-        <td>
-          <input type="radio" name="cal_${id}" value="2">
-          <input type="radio" name="cal_${id}" value="1">
-          <input type="radio" name="cal_${id}" value="0">
-          <input type="radio" name="cal_${id}" value="na">
+        <td class="col-cal">
+          <div class="cal-wrap">
+            <label class="cal-option cal-si">
+              <input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="2">
+              <span>SI</span>
+            </label>
+
+            <label class="cal-option cal-proc">
+              <input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="1">
+              <span>PROCESO</span>
+            </label>
+
+            <label class="cal-option cal-no">
+              <input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="0">
+              <span>NO</span>
+            </label>
+
+            <label class="cal-option cal-na">
+              <input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="na">
+              <span>N/A</span>
+            </label>
+          </div>
         </td>
       </tr>
     `);
   });
+
+  recalcScore();
 }
+
+document.addEventListener("change", (e) => {
+  if (e.target && e.target.classList && e.target.classList.contains("cal-radio")) {
+    recalcScore();
+  }
+});
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-file]");
+  if (!btn) return;
+  if (!btn.classList.contains("soporte-btn")) return;
+
+  const file = btn.dataset.file || "";
+  if (!file) return;
+
+  openSoporteDrawer(file);
+});
+
+function recalcScore() {
+  const rows = document.querySelectorAll("#hacerBody tr");
+  let score = 0;
+  let max = 0;
+
+  rows.forEach(tr => {
+    const selected = tr.querySelector(".cal-radio:checked")?.value ?? null;
+    if (selected === null) return;
+
+    if (selected !== "na") max += 2;
+    if (selected === "2") score += 2;
+    else if (selected === "1") score += 1;
+  });
+
+  const pct = max === 0 ? 0 : Math.round((score / max) * 100);
+  $scorePts.textContent = score;
+  $maxPts.textContent = max;
+  $scorePct.textContent = pct + "%";
+  $scoreBar.style.width = pct + "%";
+}
+
+function filterTable() {
+  const q = ($search.value || "").toLowerCase().trim();
+  const filtered = hacerItems.filter(x =>
+    (x.item || "").toLowerCase().includes(q) ||
+    (x.actividad || "").toLowerCase().includes(q)
+  );
+  renderTable(filtered);
+}
+
+$search.addEventListener("input", filterTable);
+$reset.addEventListener("click", () => {
+  $search.value = "";
+  renderTable(hacerItems);
+});
 
 renderTable(hacerItems);
 </script>
