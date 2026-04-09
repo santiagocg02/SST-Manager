@@ -72,6 +72,7 @@ $listaEmpresas = array_values($listaEmpresas);
         .section-header { background: #f4f6f9; padding: 5px 10px; font-size: 0.75rem; font-weight: bold; border-left: 4px solid #0b4f7a; margin: 10px 0; }
         .card-shadow { box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); border-radius: 10px; background: #fff; }
         input[readonly], select:disabled { cursor: not-allowed; }
+        .img-preview { max-height: 80px; border: 1px solid #ddd; padding: 3px; border-radius: 5px; margin-top: 5px; display: none; background: #fafafa; }
     </style>
 </head>
 <body class="cal-wrap">
@@ -79,6 +80,11 @@ $listaEmpresas = array_values($listaEmpresas);
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fa-solid fa-industry me-2" style="color: #0b4f7a;"></i>Gestión de Empresas</h2>
+        <?php if(puede($MOD_EMPRESA, 'crear', $rolSesion, $misPermisos)): ?>
+            <button class="btn btn-success shadow-sm" onclick="abrirModalCrear()">
+                <i class="fa-solid fa-plus me-1"></i> Nueva Empresa
+            </button>
+        <?php endif; ?>
     </div>
 
     <div class="card-shadow border overflow-hidden">
@@ -168,6 +174,22 @@ $listaEmpresas = array_values($listaEmpresas);
                         <div class="col-md-6"><label class="label-custom">Documento R.L.</label><input type="text" name="documento_rl" id="documento_rl" class="form-control form-control-sm"></div>
                     </div>
 
+                    <div class="section-header">Multimedia (Logo y Firma)</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="label-custom">Logo de la Empresa</label>
+                            <input type="file" id="input_logo" class="form-control form-control-sm" accept="image/*" onchange="convertirBase64(this, 'logo_url', 'prev_logo')">
+                            <input type="hidden" name="logo_url" id="logo_url">
+                            <div class="text-center mt-1"><img id="prev_logo" class="img-preview"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="label-custom">Firma Representante Legal</label>
+                            <input type="file" id="input_firma" class="form-control form-control-sm" accept="image/*" onchange="convertirBase64(this, 'firma_rl', 'prev_firma')">
+                            <input type="hidden" name="firma_rl" id="firma_rl">
+                            <div class="text-center mt-1"><img id="prev_firma" class="img-preview"></div>
+                        </div>
+                    </div>
+
                     <div class="section-header">Distribución de Trabajadores</div>
                     <div class="row g-2 text-center">
                         <div class="col-md-3"><label class="label-custom">Directos</label><input type="number" name="cant_directos" id="cant_directos" class="form-control form-control-sm bg-light" readonly></div>
@@ -248,9 +270,14 @@ $listaEmpresas = array_values($listaEmpresas);
                         <label class="label-custom">Teléfono SST</label>
                         <input type="text" id="telefono_sst" name="telefono_sst" class="form-control form-control-sm">
                     </div>
-                    <div class="mb-3">
-                        <label class="label-custom">Firma SST (Ref)</label>
-                        <input type="text" id="firma_sst_url" name="firma_sst_url" class="form-control form-control-sm">
+                    
+                    <div class="mb-3 border-top pt-2 mt-3">
+                        <label class="label-custom">Firma Profesional SST</label>
+                        <input type="file" id="input_firma_sst" class="form-control form-control-sm" accept="image/*" onchange="convertirBase64(this, 'firma_sst_url', 'prev_firma_sst')">
+                        <input type="hidden" name="firma_sst_url" id="firma_sst_url">
+                        <div class="text-center mt-1">
+                            <img id="prev_firma_sst" class="img-preview" style="max-height: 60px;">
+                        </div>
                     </div>
                 </form>
             </div>
@@ -269,10 +296,46 @@ $listaEmpresas = array_values($listaEmpresas);
 
   const API_URL = "http://localhost/sstmanager-backend/public/index.php";
 
-  // ✅ PASAMOS LOS DATOS SST A JAVASCRIPT
+  // PASAMOS LOS DATOS SST A JAVASCRIPT
   const listaSSTMacro = <?= json_encode($listaSST) ?>;
 
-  // ✅ CARGAR MODAL EMPRESA
+  // ==========================================
+  // FUNCIÓN UNIVERSAL: IMÁGENES A BASE64
+  // ==========================================
+  function convertirBase64(input, hiddenId, imgPrevId) {
+    const file = input.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64String = e.target.result;
+        document.getElementById(hiddenId).value = base64String;
+        const prev = document.getElementById(imgPrevId);
+        prev.src = base64String;
+        prev.style.display = 'inline-block';
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // ✅ FUNCIÓN AÑADIDA PARA PREVENIR ERROR SI CLICAN "Nueva Empresa"
+  function abrirModalCrear() {
+    document.getElementById('formEmpresa').reset();
+    document.getElementById('id_empresa').value = "";
+    
+    // Limpiar Base64 e imágenes de Empresa
+    document.getElementById('logo_url').value = "";
+    document.getElementById('firma_rl').value = "";
+    document.getElementById('prev_logo').style.display = 'none';
+    document.getElementById('prev_firma').style.display = 'none';
+    
+    document.getElementById('tituloModalEmpresa').innerText = "Registrar Nueva Empresa";
+    
+    // Si necesitas quitar los readonly al crear, deberías hacerlo aquí.
+    // (Por ahora se mantiene la lógica de edición que tenías)
+    modalEmpresa.show();
+  }
+
+  // ✅ CARGAR MODAL EMPRESA (CON IMÁGENES)
   function cargarParaEditar(base64) {
     try {
       const d = JSON.parse(atob(base64));
@@ -298,18 +361,39 @@ $listaEmpresas = array_values($listaEmpresas);
       document.getElementById('nombre_rl').value = d.nombre_rl || "";
       document.getElementById('documento_rl').value = d.documento_rl || "";
 
+      // ✅ Cargar imágenes existentes (Base64)
+      const logo = d.logo_url || "";
+      const firma = d.firma_rl || "";
+      
+      document.getElementById('logo_url').value = logo;
+      const pLogo = document.getElementById('prev_logo');
+      if(logo) { pLogo.src = logo; pLogo.style.display = 'inline-block'; } else { pLogo.style.display = 'none'; }
+
+      document.getElementById('firma_rl').value = firma;
+      const pFirma = document.getElementById('prev_firma');
+      if(firma) { pFirma.src = firma; pFirma.style.display = 'inline-block'; } else { pFirma.style.display = 'none'; }
+
+      // Limpiar los inputs file visualmente
+      document.getElementById('input_logo').value = "";
+      document.getElementById('input_firma').value = "";
+
       modalEmpresa.show();
     } catch (e) {
       console.error("Error al cargar datos:", e);
     }
   }
 
-  // ✅ CARGAR DATOS EN MODAL SST (FILTRANDO EN EL FRONTEND)
+  // ✅ CARGAR DATOS EN MODAL SST (CON IMAGEN)
   function abrirModalSST(idEmpresa, nombreEmpresa) {
     document.getElementById('formSST').reset();
     document.getElementById('id_personal_sst').value = ""; // Limpiamos el ID oculto
     document.getElementById('sst_id_empresa').value = idEmpresa;
     document.getElementById('sst_nombre_empresa').value = nombreEmpresa;
+
+    // Limpiar imagen y Base64 de SST
+    document.getElementById('firma_sst_url').value = "";
+    document.getElementById('prev_firma_sst').style.display = 'none';
+    document.getElementById('input_firma_sst').value = "";
 
     // Buscamos la data de SST para esta empresa
     const sstData = listaSSTMacro.find(sst => sst.id_empresa == idEmpresa);
@@ -321,7 +405,17 @@ $listaEmpresas = array_values($listaEmpresas);
       document.getElementById('nombre_profesional').value = sstData.nombre_profesional || '';
       document.getElementById('correo_sst').value = sstData.correo_sst || '';
       document.getElementById('telefono_sst').value = sstData.telefono_sst || '';
-      document.getElementById('firma_sst_url').value = sstData.firma_sst_url || '';
+      
+      // ✅ Cargar firma SST existente (Base64)
+      const firmaSST = sstData.firma_sst_url || "";
+      document.getElementById('firma_sst_url').value = firmaSST;
+      const pFirmaSST = document.getElementById('prev_firma_sst');
+      if(firmaSST) { 
+          pFirmaSST.src = firmaSST; 
+          pFirmaSST.style.display = 'inline-block'; 
+      } else { 
+          pFirmaSST.style.display = 'none'; 
+      }
       
       modalSST.show();
     } else {
@@ -337,11 +431,13 @@ $listaEmpresas = array_values($listaEmpresas);
     const data = Object.fromEntries(new FormData(form).entries());
     const id = document.getElementById('id_empresa').value;
 
-    if (!id) return;
+    // Si estás creando desde abrirModalCrear(), cambiar método
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `${API_URL}?table=empresas&id=${id}` : `${API_URL}?table=empresas`;
 
     try {
-      const resp = await fetch(`${API_URL}?table=empresas&id=${id}`, {
-        method: 'PUT',
+      const resp = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer <?= $token ?>'
@@ -354,9 +450,9 @@ $listaEmpresas = array_values($listaEmpresas);
       try { res = JSON.parse(text); } catch { return Swal.fire('Error', 'Respuesta no válida', 'error'); }
 
       if (res.id || res.ok) {
-        Swal.fire('¡Éxito!', res.mensaje || 'Empresa actualizada', 'success').then(() => location.reload());
+        Swal.fire('¡Éxito!', res.mensaje || 'Empresa guardada', 'success').then(() => location.reload());
       } else {
-        Swal.fire('Error', res.error || 'No se pudo actualizar', 'error');
+        Swal.fire('Error', res.error || 'No se pudo guardar', 'error');
       }
     } catch (e) {
       Swal.fire('Error', 'No se pudo conectar', 'error');
