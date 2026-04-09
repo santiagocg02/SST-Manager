@@ -45,7 +45,6 @@ $listaEmpresas = ($resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) 
 $resPlanes = $api->solicitar("index.php?table=planes", "GET", null, $token);
 $listaPlanes = ($resPlanes['status'] == 200) ? ($resPlanes['data'] ?? []) : [];
 
-// ✅ NUEVO: Traer la macro data de SST para poder validar si hay datos antes de abrir
 $resSST = $api->solicitar("index.php?table=personal_sst", "GET", null, $token);
 $listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
 ?>
@@ -62,6 +61,7 @@ $listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
         .label-custom { font-size: 0.7rem; font-weight: 700; color: #555; text-transform: uppercase; }
         .section-header { background: #f4f6f9; padding: 5px 10px; font-size: 0.75rem; font-weight: bold; border-left: 4px solid #0b4f7a; margin: 10px 0; }
         .card-shadow { box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); border-radius: 10px; background: #fff; }
+        .img-preview { max-height: 80px; border: 1px solid #ddd; padding: 3px; border-radius: 5px; margin-top: 5px; display: none; background: #fafafa; }
     </style>
 </head>
 <body class="cal-wrap">
@@ -161,6 +161,22 @@ $listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
                         <div class="col-md-6"><label class="label-custom">Documento R.L.</label><input type="text" name="documento_rl" id="documento_rl" class="form-control form-control-sm"></div>
                     </div>
 
+                    <div class="section-header">Multimedia (Logo y Firma)</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="label-custom">Logo de la Empresa</label>
+                            <input type="file" id="input_logo" class="form-control form-control-sm" accept="image/*" onchange="convertirBase64(this, 'logo_url', 'prev_logo')">
+                            <input type="hidden" name="logo_url" id="logo_url">
+                            <div class="text-center"><img id="prev_logo" class="img-preview"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="label-custom">Firma Representante Legal</label>
+                            <input type="file" id="input_firma" class="form-control form-control-sm" accept="image/*" onchange="convertirBase64(this, 'firma_rl', 'prev_firma')">
+                            <input type="hidden" name="firma_rl" id="firma_rl">
+                            <div class="text-center"><img id="prev_firma" class="img-preview"></div>
+                        </div>
+                    </div>
+
                     <div class="section-header">Distribución de Trabajadores</div>
                     <div class="row g-2 text-center">
                         <div class="col-md-3"><label class="label-custom">Directos</label><input type="number" name="cant_directos" id="cant_directos" class="form-control form-control-sm" value="0"></div>
@@ -176,9 +192,7 @@ $listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
                             <select name="id_plan" id="id_plan" class="form-select form-select-sm" required>
                                 <option value="">Seleccione un plan...</option>
                                 <?php foreach ($listaPlanes as $p): ?>
-                                    <option value="<?= $p['id_plan'] ?>">
-                                        <?= htmlspecialchars($p['nombre_plan']) ?>
-                                    </option>
+                                    <option value="<?= $p['id_plan'] ?>"><?= htmlspecialchars($p['nombre_plan']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -217,15 +231,36 @@ $listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
                 <form id="formSST">
                     <input type="hidden" id="id_personal_sst" name="id_personal_sst">
                     <input type="hidden" id="sst_id_empresa" name="id_empresa">
+                    
                     <div class="mb-3">
                         <label class="label-custom">Nombre empresa</label>
                         <input type="text" id="sst_nombre_empresa" class="form-control border-0 bg-light fw-bold" readonly>
                     </div>
-                    <div class="mb-2"><label class="label-custom">Proyecto Rige</label><input type="text" id="proyecto_rige" name="proyecto_rige" class="form-control form-control-sm" value="IMPLEMENTACIÓN ESTÁNDARES MÍNIMOS" required></div>
-                    <div class="mb-2"><label class="label-custom">Profesional SST</label><input type="text" id="nombre_profesional" name="nombre_profesional" class="form-control form-control-sm" placeholder="Nombre completo" required></div>
-                    <div class="mb-2"><label class="label-custom">Correo SST</label><input type="email" id="correo_sst" name="correo_sst" class="form-control form-control-sm" placeholder="ejemplo@correo.com" required></div>
-                    <div class="mb-2"><label class="label-custom">Teléfono SST</label><input type="text" id="telefono_sst" name="telefono_sst" class="form-control form-control-sm"></div>
-                    <div class="mb-3"><label class="label-custom">Firma SST (Ref)</label><input type="text" id="firma_sst_url" name="firma_sst_url" class="form-control form-control-sm"></div>
+                    <div class="mb-2">
+                        <label class="label-custom">Proyecto Rige</label>
+                        <input type="text" id="proyecto_rige" name="proyecto_rige" class="form-control form-control-sm" value="IMPLEMENTACIÓN ESTÁNDARES MÍNIMOS" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="label-custom">Profesional SST</label>
+                        <input type="text" id="nombre_profesional" name="nombre_profesional" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="label-custom">Correo SST</label>
+                        <input type="email" id="correo_sst" name="correo_sst" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="label-custom">Teléfono SST</label>
+                        <input type="text" id="telefono_sst" name="telefono_sst" class="form-control form-control-sm">
+                    </div>
+                    
+                    <div class="mb-3 border-top pt-2 mt-3">
+                        <label class="label-custom">Firma Profesional SST</label>
+                        <input type="file" id="input_firma_sst" class="form-control form-control-sm" accept="image/*" onchange="convertirBase64(this, 'firma_sst_url', 'prev_firma_sst')">
+                        <input type="hidden" name="firma_sst_url" id="firma_sst_url">
+                        <div class="text-center mt-1">
+                            <img id="prev_firma_sst" class="img-preview" style="max-height: 60px;">
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer border-0 d-flex justify-content-center pb-4 gap-2">
@@ -242,14 +277,39 @@ $listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
   const modalSST = new bootstrap.Modal(document.getElementById('modalSST'));
   const API_URL = "http://localhost/sstmanager-backend/public/index.php";
 
-  // ✅ VARIABLES MAGICAS PARA LA LÓGICA DE ROLES
   const listaSSTMacro = <?= json_encode($listaSST) ?>;
   const puedeCrearSST = <?= puede($MOD_SST, 'crear', $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
   const puedeEditarSST = <?= puede($MOD_SST, 'editar', $rolSesion, $misPermisos) ? 'true' : 'false' ?>;
 
+  // LÓGICA BASE 64 (Reutilizable para todos los inputs file)
+  function convertirBase64(input, hiddenId, imgPrevId) {
+    const file = input.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64String = e.target.result;
+        document.getElementById(hiddenId).value = base64String;
+        const prev = document.getElementById(imgPrevId);
+        prev.src = base64String;
+        prev.style.display = 'inline-block';
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // ==========================================
+  // FUNCIONES EMPRESA
+  // ==========================================
   function abrirModalCrear() {
     document.getElementById('formEmpresa').reset();
     document.getElementById('id_empresa').value = "";
+    
+    // Limpiar Base64 e imágenes de Empresa
+    document.getElementById('logo_url').value = "";
+    document.getElementById('firma_rl').value = "";
+    document.getElementById('prev_logo').style.display = 'none';
+    document.getElementById('prev_firma').style.display = 'none';
+    
     document.getElementById('tituloModalEmpresa').innerText = "Registrar Nueva Empresa";
     modalEmpresa.show();
   }
@@ -275,50 +335,24 @@ $listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
       document.getElementById('id_plan').value = d.id_plan || "";
       document.getElementById('nivel_riesgo').value = d.nivel_riesgo || "";
 
+      // Cargar imágenes de Empresa si existen
+      const logo = d.logo_url || "";
+      const firma = d.firma_rl || "";
+      
+      document.getElementById('logo_url').value = logo;
+      const pLogo = document.getElementById('prev_logo');
+      if(logo) { pLogo.src = logo; pLogo.style.display = 'inline-block'; } else { pLogo.style.display = 'none'; }
+
+      document.getElementById('firma_rl').value = firma;
+      const pFirma = document.getElementById('prev_firma');
+      if(firma) { pFirma.src = firma; pFirma.style.display = 'inline-block'; } else { pFirma.style.display = 'none'; }
+
+      // Limpiar inputs visuales
+      document.getElementById('input_logo').value = "";
+      document.getElementById('input_firma').value = "";
+
       modalEmpresa.show();
-    } catch (e) {
-      console.error("Error al cargar datos:", e);
-    }
-  }
-
-  // ✅ LÓGICA DE PERMISOS AL ABRIR EL MODAL SST
-  function abrirModalSST(idEmpresa, nombreEmpresa) {
-    document.getElementById('formSST').reset();
-    document.getElementById('id_personal_sst').value = ""; 
-    document.getElementById('sst_id_empresa').value = idEmpresa;
-    document.getElementById('sst_nombre_empresa').value = nombreEmpresa;
-
-    // Buscar si ya tiene datos
-    const sstData = listaSSTMacro.find(sst => sst.id_empresa == idEmpresa);
-    const tieneDatos = !!sstData;
-
-    // ESCENARIO 1: Puede crear (Por lo tanto puede hacer de todo)
-    if (puedeCrearSST) {
-      if (tieneDatos) {
-        llenarDatosSST(sstData); // Si hay datos, los carga para hacer PUT luego
-      }
-      modalSST.show();
-    } 
-    // ESCENARIO 2: No puede crear, pero SÍ puede editar
-    else if (puedeEditarSST) {
-      if (tieneDatos) {
-        llenarDatosSST(sstData); // Abre el modal con los datos para hacer PUT
-        modalSST.show();
-      } else {
-        // Bloqueo: No hay datos que editar, y no tiene permiso para crearlos
-        Swal.fire('Acceso denegado', 'Esta empresa no tiene personal SST asignado. No tienes permisos para crear registros nuevos, solo para editar existentes.', 'warning');
-      }
-    }
-  }
-
-  // Función auxiliar para no repetir código
-  function llenarDatosSST(sstData) {
-      document.getElementById('id_personal_sst').value = sstData.id_personal_sst || ""; 
-      document.getElementById('proyecto_rige').value = sstData.proyecto_rige || 'IMPLEMENTACIÓN ESTÁNDARES MÍNIMOS';
-      document.getElementById('nombre_profesional').value = sstData.nombre_profesional || '';
-      document.getElementById('correo_sst').value = sstData.correo_sst || '';
-      document.getElementById('telefono_sst').value = sstData.telefono_sst || '';
-      document.getElementById('firma_sst_url').value = sstData.firma_sst_url || '';
+    } catch (e) { console.error("Error al cargar datos:", e); }
   }
 
   async function guardarEmpresa() {
@@ -327,74 +361,93 @@ $listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
 
     const data = Object.fromEntries(new FormData(form).entries());
     const id = document.getElementById('id_empresa').value;
-
     const url = `${API_URL}?table=empresas${id ? '&id=' + id : ''}`;
     const method = id ? 'PUT' : 'POST';
 
     try {
       const resp = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer <?= $token ?>'
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <?= $token ?>' },
         body: JSON.stringify(data)
       });
-
-      const text = await resp.text();
-      let res;
-      try { res = JSON.parse(text); } catch { return Swal.fire('Error', 'La API devolvió HTML o error.', 'error'); }
-
+      const res = await resp.json();
       if (res.id || res.ok) {
-        Swal.fire('¡Éxito!', res.mensaje || 'Empresa guardada', 'success').then(() => location.reload());
+        Swal.fire('¡Éxito!', 'Empresa guardada', 'success').then(() => location.reload());
       } else {
         Swal.fire('Error', res.error || 'No se pudo guardar', 'error');
       }
-    } catch (e) {
-      Swal.fire('Error', 'No se pudo conectar', 'error');
+    } catch (e) { Swal.fire('Error', 'No se pudo conectar', 'error'); }
+  }
+
+  // ==========================================
+  // FUNCIONES SST
+  // ==========================================
+  function abrirModalSST(idEmpresa, nombreEmpresa) {
+    document.getElementById('formSST').reset();
+    document.getElementById('id_personal_sst').value = ""; 
+    document.getElementById('sst_id_empresa').value = idEmpresa;
+    document.getElementById('sst_nombre_empresa').value = nombreEmpresa;
+
+    // ✅ Limpiar Base64 e imagen de SST
+    document.getElementById('firma_sst_url').value = "";
+    document.getElementById('prev_firma_sst').style.display = 'none';
+    document.getElementById('input_firma_sst').value = "";
+
+    const sstData = listaSSTMacro.find(sst => sst.id_empresa == idEmpresa);
+    
+    if (puedeCrearSST) {
+      if (sstData) llenarDatosSST(sstData);
+      modalSST.show();
+    } else if (puedeEditarSST && sstData) {
+      llenarDatosSST(sstData);
+      modalSST.show();
+    } else {
+      Swal.fire('Acceso denegado', 'Permisos insuficientes.', 'warning');
     }
   }
 
-  // ✅ DECISIÓN DINÁMICA: POST o PUT
+  function llenarDatosSST(sstData) {
+      document.getElementById('id_personal_sst').value = sstData.id_personal_sst || ""; 
+      document.getElementById('proyecto_rige').value = sstData.proyecto_rige || 'IMPLEMENTACIÓN ESTÁNDARES MÍNIMOS';
+      document.getElementById('nombre_profesional').value = sstData.nombre_profesional || '';
+      document.getElementById('correo_sst').value = sstData.correo_sst || '';
+      document.getElementById('telefono_sst').value = sstData.telefono_sst || '';
+      
+      // ✅ Cargar firma SST si existe
+      const firmaSST = sstData.firma_sst_url || "";
+      document.getElementById('firma_sst_url').value = firmaSST;
+      const pFirmaSST = document.getElementById('prev_firma_sst');
+      
+      if(firmaSST) { 
+          pFirmaSST.src = firmaSST; 
+          pFirmaSST.style.display = 'inline-block'; 
+      } else { 
+          pFirmaSST.style.display = 'none'; 
+      }
+  }
+
   async function guardarSST() {
     const form = document.getElementById('formSST');
     if (!form.checkValidity()) return form.reportValidity();
-
+    
     const data = Object.fromEntries(new FormData(form).entries());
-    const id_personal_sst = document.getElementById('id_personal_sst').value;
-
-    // Si el input oculto tiene ID, es PUT (Editar). Si está vacío, es POST (Crear).
-    const method = id_personal_sst ? 'PUT' : 'POST';
-    const url = id_personal_sst 
-                ? `${API_URL}?table=personal_sst&id=${id_personal_sst}` 
-                : `${API_URL}?table=personal_sst`;
-
+    const id = document.getElementById('id_personal_sst').value;
+    const url = id ? `${API_URL}?table=personal_sst&id=${id}` : `${API_URL}?table=personal_sst`;
+    
     try {
       const resp = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer <?= $token ?>'
-        },
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <?= $token ?>' },
         body: JSON.stringify(data)
       });
-
-      const text = await resp.text();
-      let res;
-      try { res = JSON.parse(text); }
-      catch { return Swal.fire('Error', 'La API devolvió un error interno o HTML.', 'error'); }
-
-      if (res.id || res.ok || res.status === 'success') {
-        const accion = id_personal_sst ? 'actualizados' : 'registrados';
-        Swal.fire('¡Éxito!', `Datos SST ${accion} correctamente`, 'success').then(() => location.reload());
+      const res = await resp.json();
+      if (res.id || res.ok) {
+          Swal.fire('¡Éxito!', 'SST guardado', 'success').then(() => location.reload());
       } else {
-        Swal.fire('Error', res.error || res.mensaje || 'No se pudo guardar', 'error');
+          Swal.fire('Error', res.error || 'No se pudo guardar SST', 'error');
       }
-    } catch (e) {
-      Swal.fire('Error', 'No se pudo conectar con la API', 'error');
-    }
+    } catch (e) { Swal.fire('Error', 'Error de red', 'error'); }
   }
 </script>
-
 </body>
 </html>
