@@ -1,8 +1,30 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN
+// Ajusta esta ruta dependiendo de la ubicación de este archivo
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   header("Location: ../../../index.php");
   exit;
+}
+
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+
+// --- Lógica de Empresa y Logo ---
+$logoEmpresaUrl = "";
+
+if ($empresa > 0) {
+    // Solicitamos a la API exclusivamente la empresa logueada pasando el ID
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? ''; // <--- Extraemos el logo
+    }
 }
 
 // Helpers
@@ -464,11 +486,14 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 <div class="sst-page">
   <div class="sst-paper">
 
-    <!-- Header formato -->
     <div class="format-head">
       <div class="grid">
         <div class="logo-box">
-          <div class="logo-placeholder">TU LOGO AQUÍ</div>
+          <?php if(!empty($logoEmpresaUrl)): ?>
+              <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+          <?php else: ?>
+              <div class="logo-placeholder">TU LOGO AQUÍ</div>
+          <?php endif; ?>
         </div>
 
         <div class="title-box">
@@ -489,7 +514,6 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
       <span class="tiny"><strong>Nota:</strong> Diligencie la información por trabajador y marque el seguimiento mensual al final.</span>
     </div>
 
-    <!-- Info -->
     <div class="info-row">
       <div class="info-card">
         <div class="small">Parámetros</div>
@@ -533,7 +557,6 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
       </div>
     </div>
 
-    <!-- Tabla -->
     <div class="table-wrap">
       <table id="tabla">
         <thead>
@@ -788,7 +811,6 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 
   window.addEventListener("message", () => {});
 </script>
-
 
 <script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>

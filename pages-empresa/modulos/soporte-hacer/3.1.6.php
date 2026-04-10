@@ -1,13 +1,63 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
 }
 
-function oldv($key, $default = '')
-{
-    return isset($_POST[$key]) ? htmlspecialchars((string)$_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu BD (ej: 49 para Recomendaciones Médicas)
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 49; 
+
+// --- Lógica de Empresa (Logo y Datos desde tu API) ---
+$logoEmpresaUrl = "";
+$nombreEmpresaDefault = "MS InnovaTech"; 
+$ciudadDefault = "Cali"; // Como la API no trae ciudad, dejamos una por defecto
+$firmaNombreDefault = "Miguel Alonso Estepa Bonilla";
+$firmaCcDefault = "CC.";
+$firmaRlUrl = ""; // Aquí guardaremos la URL de la firma
+
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        // Tu API a veces manda el objeto directo o dentro de un array, validamos ambos:
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        
+        // Mapeo EXACTO con los campos que me indicaste de tu API:
+        if (!empty($empData['nombre_empresa'])) $nombreEmpresaDefault = $empData['nombre_empresa'];
+        if (!empty($empData['nombre_rl'])) $firmaNombreDefault = $empData['nombre_rl'];
+        if (!empty($empData['documento_rl'])) $firmaCcDefault = "CC. " . $empData['documento_rl'];
+        if (!empty($empData['firma_rl'])) $firmaRlUrl = $empData['firma_rl'];
+        
+        // Por si en un futuro agregas el logo a la API
+        if (!empty($empData['logo_url'])) $logoEmpresaUrl = $empData['logo_url'];
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE (Formatos Dinámicos)
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = $resFormulario['data']['data']['campos'] ?? $resFormulario['data']['campos'] ?? $resFormulario['campos'] ?? null;
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true) ?: [];
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// 3. FUNCIÓN PARA LEER DATOS
+function oldv($key, $default = '') {
+    global $datosCampos;
+    if (isset($datosCampos[$key]) && $datosCampos[$key] !== '') {
+        return htmlspecialchars((string)$datosCampos[$key], ENT_QUOTES, 'UTF-8');
+    }
+    return htmlspecialchars((string)$default, ENT_QUOTES, 'UTF-8');
 }
 
 $recomendacionesDefault = [
@@ -21,6 +71,11 @@ $recomendacionesDefault = [
     'Realizar pausas activas ocupacionales según cronograma de la empresa',
     'Hacer uso de EPP y dotación suministrados por la compañía'
 ];
+
+// Generar párrafo por defecto dinámico usando $nombreEmpresaDefault
+$meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+$fechaActualText = date('d') . " de " . $meses[date('n')-1] . " de " . date('Y');
+$parrafoDefault = "Teniendo en cuenta los exámenes médicos ocupacionales realizados por la IPS a solicitud de $nombreEmpresaDefault, el día $fechaActualText, se generaron las siguientes recomendaciones por parte del médico ocupacional, las cuales usted debe atender y entregar el soporte médico al área de Recursos Humanos.";
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -28,6 +83,9 @@ $recomendacionesDefault = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3.1.6 - Recomendaciones Médicas Laborales</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         *{
             box-sizing:border-box;
@@ -114,7 +172,6 @@ $recomendacionesDefault = [
         .logo-box{
             width:140px;
             height:65px;
-            border:2px dashed #c8c8c8;
             display:flex;
             align-items:center;
             justify-content:center;
@@ -132,17 +189,6 @@ $recomendacionesDefault = [
 
         .subtitulo{
             font-size:14px;
-        }
-
-        .save-msg{
-            margin:0 0 15px 0;
-            padding:10px 14px;
-            border-radius:8px;
-            background:#e9f7ef;
-            color:#166534;
-            border:1px solid #b7e4c7;
-            font-size:14px;
-            font-weight:700;
         }
 
         .carta{
@@ -165,6 +211,10 @@ $recomendacionesDefault = [
             background:transparent;
             padding:4px 6px;
             font-size:15px;
+        }
+
+        .input-inline:focus, .input-linea:focus, .rec-item input:focus, .firma input:focus, .textarea-ref:focus, .textarea-parrafo:focus {
+            background: #f8fbff;
         }
 
         .input-ciudad{ min-width:130px; text-align:center; }
@@ -224,6 +274,7 @@ $recomendacionesDefault = [
             min-height:64px;
             white-space:pre-wrap;
             word-break:break-word;
+            background: transparent;
         }
 
         .textarea-parrafo{
@@ -295,8 +346,8 @@ $recomendacionesDefault = [
                 padding:0;
             }
 
-            .toolbar{
-                display:none;
+            .toolbar, .print-hide{
+                display:none !important;
             }
 
             .contenedor{
@@ -320,6 +371,7 @@ $recomendacionesDefault = [
             .textarea-ref,
             .textarea-parrafo{
                 border:none !important;
+                background:transparent !important;
                 padding-left:0;
                 padding-right:0;
             }
@@ -329,32 +381,34 @@ $recomendacionesDefault = [
 <body>
 
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>3.1.6 - Recomendaciones Médicas Laborales</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="form316">Guardar</button>
-            <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Carta</button>
+            <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir PDF</button>
         </div>
     </div>
 
     <div class="formulario">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="form316" method="POST" action="">
+        <form id="form316">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:20%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:20%; padding:0;">
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:60%;">SISTEMA DE GESTIÓN DE LA SEGURIDAD Y SALUD EN EL TRABAJO</td>
                     <td style="width:20%; font-weight:700;">Versión: 2</td>
                 </tr>
                 <tr>
                     <td class="subtitulo">RECOMENDACIONES MÉDICAS LABORALES</td>
-                    <td style="font-weight:700;">AN-PM-SST-01<br>Fecha: 10-06-2023</td>
+                    <td style="font-weight:700;">AN-PM-SST-01<br>Fecha: <?= date('d-m-Y') ?></td>
                 </tr>
             </table>
 
@@ -362,17 +416,17 @@ $recomendacionesDefault = [
 
                 <div class="fila-derecha">
                     <div>
-                        <input class="input-inline input-ciudad" type="text" name="ciudad" value="<?= oldv('ciudad', 'Ciudad') ?>">
+                        <input class="input-inline input-ciudad" type="text" name="ciudad" value="<?= oldv('ciudad', $ciudadDefault) ?>">
                         ,
-                        <input class="input-inline input-fecha" type="text" name="fecha_carta" value="<?= oldv('fecha_carta', '30 de Junio de 20XX') ?>">
+                        <input class="input-inline input-fecha" type="text" name="fecha_carta" value="<?= oldv('fecha_carta', $fechaActualText) ?>">
                     </div>
                 </div>
 
                 <div class="bloque">
-                    <label class="etiqueta">Señor:</label>
-                    <input class="input-linea" type="text" name="senor" value="<?= oldv('senor', 'xxxxxxx') ?>">
+                    <label class="etiqueta">Señor(a):</label>
+                    <input class="input-linea" type="text" name="senor" value="<?= oldv('senor', 'Nombre del trabajador') ?>" placeholder="Nombre del trabajador">
 
-                    <input class="input-linea" type="text" name="destinatario" value="<?= oldv('destinatario', 'xxxxxxxxxxxxxxxxx') ?>" style="margin-top:8px;">
+                    <input class="input-linea" type="text" name="destinatario" value="<?= oldv('destinatario', 'Cargo o Dependencia') ?>" style="margin-top:8px;" placeholder="Cargo o Dependencia">
                 </div>
 
                 <div class="referencia">
@@ -383,7 +437,7 @@ $recomendacionesDefault = [
                 <div class="bloque">
                     <p>Reciba un cordial saludo,</p>
 
-                    <textarea class="textarea-parrafo" name="parrafo_principal"><?= oldv('parrafo_principal', 'Teniendo en cuenta los exámenes médicos ocupacionales realizados por la IPS a solicitud de NOMBRE DE LA EMPRESA, el día 04 de Julio de 20XX, se generaron las siguientes recomendaciones por parte del médico ocupacional, las cuales usted debe atender y entregar el soporte médico al área de Recursos Humanos.') ?></textarea>
+                    <textarea class="textarea-parrafo" name="parrafo_principal"><?= oldv('parrafo_principal', $parrafoDefault) ?></textarea>
 
                     <p style="margin-top:14px;">
                         <input class="input-inline" type="text" name="plazo" value="<?= oldv('plazo', 'Estas recomendaciones se deben atender en un plazo máximo de 1 mes.') ?>" style="width:100%;">
@@ -404,15 +458,19 @@ $recomendacionesDefault = [
                 </div>
 
                 <div class="firma">
+                    <?php if(!empty($firmaRlUrl)): ?>
+                        <img src="<?= htmlspecialchars($firmaRlUrl, ENT_QUOTES, 'UTF-8') ?>" alt="Firma Representante" style="max-height: 80px; margin-bottom: 5px; display: block;">
+                    <?php endif; ?>
+                    
                     <div class="linea-firma"></div>
-                    <input type="text" name="firma_nombre" value="<?= oldv('firma_nombre', 'Nombre') ?>">
-                    <input type="text" name="firma_cc" value="<?= oldv('firma_cc', 'CC.') ?>">
+                    <input type="text" name="firma_nombre" value="<?= oldv('firma_nombre', $firmaNombreDefault) ?>">
+                    <input type="text" name="firma_cc" value="<?= oldv('firma_cc', $firmaCcDefault) ?>">
                     <input type="text" name="firma_cargo" value="<?= oldv('firma_cargo', 'Representante Legal') ?>">
-                    <input type="text" name="firma_fecha" value="<?= oldv('firma_fecha', 'Fecha de emisión:') ?>">
+                    <input type="text" name="firma_fecha" value="<?= oldv('firma_fecha', 'Fecha de emisión: ' . date('d/m/Y')) ?>">
                 </div>
 
                 <div class="footer-info">
-                    Carrera 41 No 33B – 18 Barzal Alto PBX: (6) 6836680 Meta - Colombia
+                    Generado por Sistema de Gestión - <?= $nombreEmpresaDefault ?>
                 </div>
             </div>
         </form>
@@ -420,6 +478,7 @@ $recomendacionesDefault = [
 </div>
 
 <script>
+// Auto ajuste de textareas
 function autoResizeTextarea(el) {
     el.style.height = 'auto';
     el.style.height = el.scrollHeight + 'px';
@@ -432,6 +491,67 @@ document.addEventListener('DOMContentLoaded', function () {
             autoResizeTextarea(this);
         });
     });
+});
+
+// Guardado del formulario vía Fetch
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('form316');
+    const formData = new FormData(form);
+    
+    // Construir el objeto JSON
+    const datosJSON = Object.fromEntries(formData.entries());
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'La carta de recomendaciones ha sido guardada correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 });
 </script>
 

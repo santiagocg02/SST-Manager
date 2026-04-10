@@ -18,6 +18,14 @@ $idItem = isset($_GET['item']) ? (int)$_GET['item'] : 1; // Ajustado a 1 según 
 // 2. SOLICITAMOS LOS DATOS DEL FORMULARIO A LA API
 $resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
 
+// --- NUEVO: SOLICITAMOS DATOS DE LA EMPRESA (LOGO) Y DEL PERSONAL SST (FIRMA) ---
+$resEmpresaInfo = $api->solicitar("empresas/$empresa", "GET", null, $token);
+$logoEmpresaUrl = $resEmpresaInfo['data']['logo_url'] ?? '';
+
+$resSST = $api->solicitar("personal_sst/empresa/$empresa", "GET", null, $token);
+$profesionalSST = $resSST['data'] ?? null;
+// --------------------------------------------------------------------------------
+
 $datosCampos = [];
 $camposCrudos = null;
 
@@ -122,8 +130,14 @@ if (is_string($camposCrudos)) {
         <table class="sst-table">
           <tr>
             <td style="width:18%;">
-              <div class="logo-box">
-                <div>TU LOGO</div><div>AQUÍ</div>
+              <div class="logo-box" style="border: none;">
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 72px; object-fit: contain;">
+                <?php else: ?>
+                    <div style="width:100%; border:2px dashed #b5b5b5; padding: 10px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                        <div>TU LOGO</div><div>AQUÍ</div>
+                    </div>
+                <?php endif; ?>
               </div>
             </td>
             <td colspan="3">
@@ -242,10 +256,19 @@ if (is_string($camposCrudos)) {
           <tr><td colspan="5"><textarea name="responsabilidad_sst" class="sst-textarea">Promover el cumplimiento de los requisitos legales en SST.</textarea></td></tr>
 
           <tr>
-            <td colspan="5" class="center bold" style="padding:18px;">
-              <input class="sst-input center bold" type="text" value="FIRMA RECIBIDO Y ENTERADO" readonly>
-              <div class="signature-space"></div>
-              <div class="signature-line"></div>
+            <td colspan="5" class="center bold" style="padding:30px 18px 20px 18px;">
+              <div style="width: 60%; margin: 0 auto; text-align: center;">
+                <div style="height: 80px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 5px;">
+                    <?php if($profesionalSST && !empty($profesionalSST['firma_sst_url'])): ?>
+                        <img src="<?= $profesionalSST['firma_sst_url'] ?>" alt="Firma SST" style="max-height: 80px; object-fit: contain;">
+                    <?php endif; ?>
+                </div>
+                <div class="signature-line" style="border-top: 1px solid #000; width: 100%; margin: 0 auto;"></div>
+                <input class="sst-input center bold mt-1" type="text" value="FIRMA RECIBIDO Y ENTERADO" readonly>
+                <div style="font-size: 11px; font-weight: normal; margin-top: 4px;">
+                    <?= $profesionalSST['nombre'] ?? 'PROFESIONAL SST' ?> - Licencia: <?= $profesionalSST['licencia'] ?? '---' ?>
+                </div>
+              </div>
             </td>
           </tr>
         </table>
@@ -358,7 +381,6 @@ if (is_string($camposCrudos)) {
         }
     });
   </script>
-
 
 <script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>

@@ -15,9 +15,10 @@ $token = $_SESSION["token"] ?? "";
 $empresa = (int)($_SESSION["id_empresa"] ?? 0);
 $idItem = isset($_GET['item']) ? (int)$_GET['item'] : 2; // ID del ítem anclado a este manual
 
-// --- Lógica de Permisos y Plan (Optimizada) ---
+// --- Lógica de Permisos, Plan y Logo (Optimizada) ---
 $nombreEmpresaLogeada = "Sin Empresa";
 $idPlanEmpresa = 0;
+$logoEmpresaUrl = ""; // <--- NUEVO: Variable para el logo
 
 if ($empresa > 0) {
     // Solicitamos a la API exclusivamente la empresa logueada pasando el ID
@@ -27,6 +28,7 @@ if ($empresa > 0) {
         $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
         $nombreEmpresaLogeada = $empData['nombre_empresa'] ?? 'Sin Empresa';
         $idPlanEmpresa = (int)($empData['id_plan'] ?? 0);
+        $logoEmpresaUrl = $empData['logo_url'] ?? ''; // <--- NUEVO: Obtenemos el logo
     }
 }
 
@@ -163,7 +165,13 @@ if (is_string($camposCrudos)) {
                 </colgroup>
                 <tr>
                     <td rowspan="3">
-                        <div class="logo-box">LOGO EMPRESA</div>
+                        <?php if(!empty($logoEmpresaUrl)): ?>
+                            <div class="logo-box" style="border: none;">
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                            </div>
+                        <?php else: ?>
+                            <div class="logo-box">LOGO EMPRESA</div>
+                        <?php endif; ?>
                     </td>
                     <td><textarea name="doc_title_1" class="sst-textarea doc-title">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO SG-SST - PESV</textarea></td>
                     <td><strong>Versión:</strong> <textarea name="doc_version_1" class="sst-textarea center">0</textarea></td>
@@ -185,7 +193,15 @@ if (is_string($camposCrudos)) {
                 <div class="cover-title">
                     <textarea name="cover_title" class="sst-textarea center bold" style="font-size:28px; text-transform:uppercase;">MANUAL DE FUNCIONES Y COMPETENCIAS</textarea>
                 </div>
-                <div class="cover-logo">LOGO</div>
+                
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <div class="cover-logo" style="border: none;">
+                        <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                    </div>
+                <?php else: ?>
+                    <div class="cover-logo">LOGO</div>
+                <?php endif; ?>
+
                 <div class="cover-version">
                     <textarea name="cover_version" class="sst-textarea center bold">Versión 0</textarea>
                 </div>
@@ -209,7 +225,13 @@ if (is_string($camposCrudos)) {
                 </colgroup>
                 <tr>
                     <td rowspan="3">
-                        <div class="logo-box">LOGO EMPRESA</div>
+                        <?php if(!empty($logoEmpresaUrl)): ?>
+                            <div class="logo-box" style="border: none;">
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                            </div>
+                        <?php else: ?>
+                            <div class="logo-box">LOGO EMPRESA</div>
+                        <?php endif; ?>
                     </td>
                     <td><textarea name="doc_title_2" class="sst-textarea doc-title">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO SG-SST - PESV</textarea></td>
                     <td><strong>Versión:</strong> <textarea name="doc_version_2" class="sst-textarea center">0</textarea></td>

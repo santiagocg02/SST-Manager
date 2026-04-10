@@ -1,10 +1,53 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     header("Location: ../../../index.php");
     exit;
 }
 
+function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos (Ej: 28 para "Listado Maestro")
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 28; 
+
+// --- Lógica de Empresa Optimizada (Logo) ---
+$logoEmpresaUrl = "";
+
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE A LA API
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// DATOS BASE DEL SISTEMA
 $documentos = [
     ['tipo'=>'Políticas', 'nombre'=>'Políticas del SG SST', 'version'=>'0', 'codigo'=>'PO-SST-01', 'fecha'=>'1/1/2025', 'ubicacion'=>'Plataforma y Pc Administrador'],
 
@@ -115,6 +158,7 @@ foreach ($documentos as $doc) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>2.5.1-2 - Listado Maestro de Documentos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root{
             --blue:#1f5fa8;
@@ -145,7 +189,45 @@ foreach ($documentos as $doc) {
             gap:10px;
             margin-bottom:12px;
             flex-wrap:wrap;
+            background: #d9dde2;
+            padding: 10px 16px;
+            border: 1px solid #c8cdd3;
+            border-radius: 6px;
         }
+        .btn-action{
+            border:1px solid #cfd6e4;
+            background:#fff;
+            color: #2f62b6;
+            padding:6px 12px;
+            border-radius:6px;
+            font-weight:800;
+            cursor:pointer;
+            font-size:12px;
+        }
+        .btn-action:hover { background: #eef4ff; }
+        .btn-primary-action{
+            border-color:#1b4fbd;
+            background:#1b4fbd;
+            color:#fff;
+            padding:6px 12px;
+            border-radius:6px;
+            font-weight:800;
+            cursor:pointer;
+            font-size:12px;
+        }
+        .btn-primary-action:hover { background: #0f3484; }
+        .btn-success-action {
+            border: 1px solid #198754;
+            background: #198754;
+            color: #fff;
+            padding:6px 12px;
+            border-radius:6px;
+            font-weight:800;
+            cursor:pointer;
+            font-size:12px;
+        }
+        .btn-success-action:hover { background: #146c43; }
+        .tiny{ font-size:11px; color:#6b7280; font-weight:700; }
 
         .sheet{
             background:#fff;
@@ -201,6 +283,7 @@ foreach ($documentos as $doc) {
 
         .logo-cell{
             width:150px;
+            padding: 4px !important;
         }
 
         .logo-box{
@@ -213,6 +296,7 @@ foreach ($documentos as $doc) {
             font-size:11px;
             font-weight:800;
             text-align:center;
+            padding: 2px;
         }
 
         .title-main{
@@ -258,7 +342,7 @@ foreach ($documentos as $doc) {
         @media print{
             body{ background:#fff; }
             .toolbar, .top-scroll{ display:none !important; }
-            .sheet{ box-shadow:none; }
+            .sheet{ box-shadow:none; border:2px solid #000; }
             .table-wrap{
                 max-height:none;
                 overflow:visible;
@@ -266,103 +350,120 @@ foreach ($documentos as $doc) {
             }
         }
     </style>
-  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
+    <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 <div class="wrap">
 
-    <div class="toolbar">
-        <a href="../planear.php" class="btn btn-outline-secondary btn-sm">← Atrás</a>
-        <button class="btn btn-primary btn-sm" onclick="window.print()">Imprimir</button>
+    <div class="toolbar print-hide">
+        <div style="display:flex; gap:8px;">
+            <button class="btn-action" type="button" onclick="history.back()">← Atrás</button>
+            <button class="btn-action" type="button" onclick="window.location.reload()">Recargar</button>
+            <button class="btn-success-action" type="button" id="btnGuardar">Guardar Cambios</button>
+            <button class="btn-primary-action" type="button" onclick="window.print()">Imprimir PDF</button>
+        </div>
+        <div class="tiny text-end">
+            <span style="font-size: 14px; font-weight: 900; color: #0f2f5c;">LISTADO MAESTRO DOCUMENTOS</span><br>
+            Usuario: <strong><?= e($_SESSION["usuario"] ?? "Usuario") ?></strong> · <span id="hoyTxt"></span>
+        </div>
     </div>
 
-    <div class="sheet">
+    <form id="form-sst-dinamico">
+        <div class="sheet">
 
-        <div class="top-scroll" id="topScroll">
-            <div class="top-scroll-inner" id="topScrollInner"></div>
-        </div>
+            <div class="top-scroll" id="topScroll">
+                <div class="top-scroll-inner" id="topScrollInner"></div>
+            </div>
 
-        <div class="table-wrap" id="tableWrap">
-            <table class="master" id="masterTable">
-                <colgroup>
-                    <col class="w-tipo">
-                    <col class="w-nombre">
-                    <col class="w-version">
-                    <col class="w-codigo">
-                    <col class="w-fecha">
-                    <col class="w-ubicacion">
-                </colgroup>
+            <div class="table-wrap" id="tableWrap">
+                <table class="master" id="masterTable">
+                    <colgroup>
+                        <col class="w-tipo">
+                        <col class="w-nombre">
+                        <col class="w-version">
+                        <col class="w-codigo">
+                        <col class="w-fecha">
+                        <col class="w-ubicacion">
+                    </colgroup>
 
-                <thead>
-                    <tr>
-                        <th rowspan="2" class="logo-cell head-box">
-                            <div class="logo-box">LOGO<br>EMPRESA</div>
-                        </th>
-                        <th colspan="4" class="head-box title-main">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</th>
-                        <th class="head-box">0</th>
-                    </tr>
-                    <tr>
-                        <th colspan="4" class="head-box title-sub">LISTADO MAESTRO DE DOCUMENTOS</th>
-                        <th class="head-box">AN-SST-05</th>
-                    </tr>
-                    <tr>
-                        <th colspan="5" class="head-box"></th>
-                        <th class="head-box">XX/XX/2025</th>
-                    </tr>
-                    <tr>
-                        <th>TIPO DE DOCUMENTO</th>
-                        <th>NOMBRE DEL DOCUMENTO</th>
-                        <th>VERSIÓN</th>
-                        <th>CÓDIGO</th>
-                        <th>FECHA</th>
-                        <th>UBICACIÓN</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    <?php foreach ($grupos as $tipo => $items): ?>
-                        <?php $rowspan = count($items); ?>
-                        <?php foreach ($items as $index => $item): ?>
-                            <tr>
-                                <?php if ($index === 0): ?>
-                                    <td rowspan="<?php echo $rowspan; ?>" class="type-cell">
-                                        <?php echo htmlspecialchars($tipo); ?>
-                                    </td>
-                                <?php endif; ?>
-
-                                <td>
-                                    <input class="edit" type="text" value="<?php echo htmlspecialchars($item['nombre']); ?>">
-                                </td>
-                                <td>
-                                    <input class="edit center" type="text" value="<?php echo htmlspecialchars($item['version']); ?>">
-                                </td>
-                                <td>
-                                    <input class="edit center" type="text" value="<?php echo htmlspecialchars($item['codigo']); ?>">
-                                </td>
-                                <td>
-                                    <input class="edit center" type="text" value="<?php echo htmlspecialchars($item['fecha']); ?>">
-                                </td>
-                                <td>
-                                    <input class="edit" type="text" value="<?php echo htmlspecialchars($item['ubicacion']); ?>">
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endforeach; ?>
-
-                    <?php for($i=0; $i<6; $i++): ?>
+                    <thead>
                         <tr>
-                            <td class="type-cell"><input class="edit center" type="text" value=""></td>
-                            <td><input class="edit" type="text" value=""></td>
-                            <td><input class="edit center" type="text" value=""></td>
-                            <td><input class="edit center" type="text" value=""></td>
-                            <td><input class="edit center" type="text" value=""></td>
-                            <td><input class="edit" type="text" value=""></td>
+                            <th rowspan="2" class="logo-cell head-box">
+                                <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? '' : 'border:none; background:transparent;' ?>">
+                                    <?php if(!empty($logoEmpresaUrl)): ?>
+                                        <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 65px; object-fit: contain;">
+                                    <?php else: ?>
+                                        LOGO<br>EMPRESA
+                                    <?php endif; ?>
+                                </div>
+                            </th>
+                            <th colspan="4" class="head-box title-main">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</th>
+                            <th class="head-box">0</th>
                         </tr>
-                    <?php endfor; ?>
-                </tbody>
-            </table>
+                        <tr>
+                            <th colspan="4" class="head-box title-sub">LISTADO MAESTRO DE DOCUMENTOS</th>
+                            <th class="head-box">AN-SST-05</th>
+                        </tr>
+                        <tr>
+                            <th colspan="5" class="head-box"></th>
+                            <th class="head-box"><input type="date" name="meta_fecha" id="metaFecha" style="border:none; font-size:12px; font-weight:900; outline:none; background:transparent; text-align:center; width:100%;"></th>
+                        </tr>
+                        <tr>
+                            <th>TIPO DE DOCUMENTO</th>
+                            <th>NOMBRE DEL DOCUMENTO</th>
+                            <th>VERSIÓN</th>
+                            <th>CÓDIGO</th>
+                            <th>FECHA</th>
+                            <th>UBICACIÓN</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <?php foreach ($grupos as $tipo => $items): ?>
+                            <?php $rowspan = count($items); ?>
+                            <?php foreach ($items as $index => $item): ?>
+                                <tr>
+                                    <?php if ($index === 0): ?>
+                                        <td rowspan="<?php echo $rowspan; ?>" class="type-cell">
+                                            <?php echo htmlspecialchars($tipo); ?>
+                                        </td>
+                                    <?php endif; ?>
+
+                                    <td>
+                                        <input type="hidden" name="doc_tipo[]" value="<?php echo htmlspecialchars($tipo); ?>">
+                                        <input name="doc_nombre[]" class="edit" type="text" value="<?php echo htmlspecialchars($item['nombre']); ?>">
+                                    </td>
+                                    <td>
+                                        <input name="doc_version[]" class="edit center" type="text" value="<?php echo htmlspecialchars($item['version']); ?>">
+                                    </td>
+                                    <td>
+                                        <input name="doc_codigo[]" class="edit center" type="text" value="<?php echo htmlspecialchars($item['codigo']); ?>">
+                                    </td>
+                                    <td>
+                                        <input name="doc_fecha[]" class="edit center" type="text" value="<?php echo htmlspecialchars($item['fecha']); ?>">
+                                    </td>
+                                    <td>
+                                        <input name="doc_ubicacion[]" class="edit" type="text" value="<?php echo htmlspecialchars($item['ubicacion']); ?>">
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endforeach; ?>
+
+                        <?php for($i=0; $i<10; $i++): ?>
+                            <tr>
+                                <td class="type-cell"><input name="doc_tipo[]" class="edit center" type="text" value="" placeholder="Ej: Registros"></td>
+                                <td><input name="doc_nombre[]" class="edit" type="text" value=""></td>
+                                <td><input name="doc_version[]" class="edit center" type="text" value=""></td>
+                                <td><input name="doc_codigo[]" class="edit center" type="text" value=""></td>
+                                <td><input name="doc_fecha[]" class="edit center" type="text" value=""></td>
+                                <td><input name="doc_ubicacion[]" class="edit" type="text" value=""></td>
+                            </tr>
+                        <?php endfor; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+    </form>
 </div>
 
 <script>
@@ -385,6 +486,112 @@ foreach ($documentos as $doc) {
 
     window.addEventListener('load', syncTopScrollWidth);
     window.addEventListener('resize', syncTopScrollWidth);
+
+    // Poner fecha de hoy por defecto si está vacía
+    function setHoy(){
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,"0");
+        const dd = String(d.getDate()).padStart(2,"0");
+        document.getElementById("hoyTxt").textContent = `${y}/${m}/${dd}`;
+        
+        const fmeta = document.getElementById("metaFecha");
+        if (fmeta && !fmeta.value) fmeta.value = `${y}-${m}-${dd}`;
+    }
+    setHoy();
+
+    // --- LÓGICA DE CARGADO DE DATOS DESDE PHP ---
+    document.addEventListener('DOMContentLoaded', function () {
+        let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
+        if (typeof datosGuardados === 'string') {
+            try { datosGuardados = JSON.parse(datosGuardados); } catch(e) {}
+        }
+
+        if (datosGuardados && Object.keys(datosGuardados).length > 0) {
+            for (const [key, value] of Object.entries(datosGuardados)) {
+                if (Array.isArray(value)) {
+                    let campos = document.querySelectorAll(`[name="${key}[]"]`);
+                    value.forEach((val, i) => {
+                        if (campos[i]) campos[i].value = typeof val === 'string' ? val.replace(/\\n/g, '\n') : val;
+                    });
+                } else {
+                    const campo = document.querySelector(`[name="${key}"]`);
+                    if (campo) {
+                        campo.value = typeof value === 'string' ? value.replace(/\\n/g, '\n') : value;
+                    }
+                }
+            }
+        }
+    });
+
+    // --- LÓGICA DE GUARDADO ---
+    document.getElementById('btnGuardar').addEventListener('click', async function() {
+        const btn = this;
+        const form = document.getElementById('form-sst-dinamico');
+        const formData = new FormData(form);
+        const datosJSON = {};
+
+        for (const [key, value] of formData.entries()) {
+            if (key.endsWith('[]')) {
+                const cleanKey = key.replace('[]', '');
+                if (!datosJSON[cleanKey]) datosJSON[cleanKey] = [];
+                datosJSON[cleanKey].push(value);
+            } else {
+                datosJSON[key] = value;
+            }
+        }
+
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Guardando...';
+        btn.disabled = true;
+
+        try {
+            const token = "<?= $token ?>";
+            const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+            const response = await fetch(urlAPI, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    id_empresa: <?= $empresa ?>,
+                    id_item_sst: <?= $idItem ?>,
+                    datos: datosJSON
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.ok) {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'Listado Maestro guardado correctamente',
+                    icon: 'success',
+                    confirmButtonColor: '#198754'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error al guardar',
+                    text: result.error || "No se pudo completar la operación.",
+                    icon: 'error',
+                    confirmButtonColor: '#1b4fbd'
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            Swal.fire({
+                title: 'Error de conexión',
+                text: 'No se pudo contactar al servidor para guardar.',
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
 </script>
 
 <script src="../../../assets/js/soporte-toolbar-unificado.js"></script>

@@ -1,10 +1,63 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     header("Location: ../../../index.php");
     exit;
 }
 
+function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos (Ej: 26 para "2.4.1")
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 26; 
+
+// --- Lógica de Empresa Optimizada (Logo, Nombres y Firmas) ---
+$logoEmpresaUrl = "";
+$nombreRL = "";
+$firmaRL = "";
+$nombreSST = "";
+$firmaSST = "";
+
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+        
+        // Priorizando campos _rl y _sst
+        $nombreRL = $empData['nombre_rl'] ?? $empData['representante_legal'] ?? '';
+        $firmaRL = $empData['firma_rl'] ?? $empData['firma_representante'] ?? '';
+        $nombreSST = $empData['nombre_sst'] ?? $empData['responsable_sst'] ?? '';
+        $firmaSST = $empData['firma_sst'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE A LA API
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// ARREGLO DE ACTIVIDADES
 $actividades = [
     ['ciclo'=>'I. PLANEAR', 'grupo'=>'RECURSOS', 'item'=>'Estándar 1.1.1 Responsable del SG-SST', 'meta'=>'Mantener', 'responsable'=>'Alta Dirección', 'recursos'=>'X'],
     ['ciclo'=>'', 'grupo'=>'', 'item'=>'Estándar 1.1.2 Responsabilidades en el SG-SST', 'meta'=>'Mantener', 'responsable'=>'Responsable SG-SST', 'recursos'=>'X'],
@@ -71,6 +124,7 @@ $actividades = [
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>2.4.1 - Plan de Trabajo Anual SG-SST</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root{
             --blue:#2c5d99;
@@ -103,7 +157,45 @@ $actividades = [
             gap:10px;
             margin-bottom:12px;
             flex-wrap:wrap;
+            background: #d9dde2;
+            padding: 10px 16px;
+            border: 1px solid #c8cdd3;
+            border-radius: 6px;
         }
+        .btn-action{
+            border:1px solid #cfd6e4;
+            background:#fff;
+            color: #2f62b6;
+            padding:6px 12px;
+            border-radius:6px;
+            font-weight:800;
+            cursor:pointer;
+            font-size:12px;
+        }
+        .btn-action:hover { background: #eef4ff; }
+        .btn-primary-action{
+            border-color:#1b4fbd;
+            background:#1b4fbd;
+            color:#fff;
+            padding:6px 12px;
+            border-radius:6px;
+            font-weight:800;
+            cursor:pointer;
+            font-size:12px;
+        }
+        .btn-primary-action:hover { background: #0f3484; }
+        .btn-success-action {
+            border: 1px solid #198754;
+            background: #198754;
+            color: #fff;
+            padding:6px 12px;
+            border-radius:6px;
+            font-weight:800;
+            cursor:pointer;
+            font-size:12px;
+        }
+        .btn-success-action:hover { background: #146c43; }
+        .tiny{ font-size:11px; color:#6b7280; font-weight:700; }
 
         .sheet{
             background:#fff;
@@ -138,6 +230,7 @@ $actividades = [
             font-size:9px;
             color:#a0a0a0;
             font-weight:700;
+            padding: 2px;
         }
 
         .title-main{
@@ -384,260 +477,297 @@ $actividades = [
             text-align:center;
             font-size:10px;
             font-weight:700;
+            position: relative;
         }
 
         @media print{
             body{ background:#fff; }
             .toolbar, .top-scroll{ display:none !important; }
-            .sheet{ box-shadow:none; }
+            .sheet{ box-shadow:none; border:2px solid #000; }
             .table-wrap{
                 max-height:none;
                 overflow:visible;
                 border:none;
             }
+            .plan-table{ min-width: 100%; width: 100%; }
         }
     </style>
-  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
+    <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 <div class="wrap">
-    <div class="toolbar">
-        <a href="../planear.php" class="btn btn-outline-secondary btn-sm">← Atrás</a>
-        <button class="btn btn-primary btn-sm" onclick="window.print()">Imprimir</button>
+    <div class="toolbar print-hide">
+        <div style="display:flex; gap:8px;">
+            <button class="btn-action" type="button" onclick="history.back()">← Atrás</button>
+            <button class="btn-action" type="button" onclick="window.location.reload()">Recargar</button>
+            <button class="btn-success-action" type="button" id="btnGuardar">Guardar Cambios</button>
+            <button class="btn-primary-action" type="button" onclick="window.print()">Imprimir PDF</button>
+        </div>
+        <div class="tiny text-end">
+            <span style="font-size: 14px; font-weight: 900; color: #0f2f5c;">PLAN DE TRABAJO ANUAL</span><br>
+            Usuario: <strong><?= e($_SESSION["usuario"] ?? "Usuario") ?></strong> · <span id="hoyTxt"></span>
+        </div>
     </div>
 
-    <div class="sheet">
+    <form id="form-sst-dinamico">
+        <div class="sheet">
 
-        <table class="top-table">
-            <colgroup>
-                <col style="width:80px">
-                <col>
-                <col style="width:80px">
-                <col style="width:80px">
-            </colgroup>
-            <tr>
-                <td rowspan="2"><div class="logo-box">TU LOGO AQUÍ</div></td>
-                <td class="title-main">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
-                <td class="center"><strong>CÓDIGO:</strong></td>
-                <td class="center">PL-SST-02</td>
-            </tr>
-            <tr>
-                <td class="title-sub">PLAN DE TRABAJO ANUAL SG-SST</td>
-                <td class="center"><strong>VERSIÓN:</strong></td>
-                <td class="center">1</td>
-            </tr>
-            <tr>
-                <td colspan="2" class="top-label">
-                    <strong>OBJETIVO:</strong>
-                    <input class="mini-input" value="Planear y ejecutar las actividades para cumplir y mantener el SG-SST">
-                </td>
-                <td class="center"><strong>FECHA:</strong></td>
-                <td class="center">XX/XX/2025</td>
-            </tr>
-            <tr>
-                <td colspan="2" class="top-label">
-                    <strong>ALCANCE:</strong>
-                    <input class="mini-input" value="Aplica para las áreas, trabajadores y actividades de la empresa">
-                </td>
-                <td colspan="2" class="top-label">
-                    <strong>PLANEAR</strong>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="4" class="top-label">
-                    <strong>META:</strong>
-                    <input class="mini-input center" value="Dar cumplimiento al 100%">
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2" class="top-label">
-                    <strong>INDICADORES:</strong>
-                    <input class="mini-input" value="Cumplimiento del plan de trabajo">
-                </td>
-                <td colspan="2" class="top-label">
-                    <strong>FÓRMULA:</strong>
-                    <input class="mini-input" value="N° de actividades ejecutadas / N° de actividades programadas x 100">
-                </td>
-            </tr>
-        </table>
-
-        <div class="top-scroll" id="topScroll">
-            <div class="top-scroll-inner" id="topScrollInner"></div>
-        </div>
-
-        <div class="table-wrap" id="tableWrap">
-            <table class="plan-table" id="planTable">
-                <thead>
-                    <tr>
-                        <th rowspan="3" class="w-ciclo">CICLO</th>
-                        <th rowspan="3" class="w-estandar">ESTÁNDAR</th>
-                        <th rowspan="3" class="w-item">ÍTEM DEL ESTÁNDAR</th>
-                        <th rowspan="3" class="w-meta">META</th>
-                        <th rowspan="3" class="w-responsable">RESPONSABLE</th>
-                        <th colspan="3">RECURSOS</th>
-                        <th colspan="24">mes-año</th>
-                        <th rowspan="3" class="w-obs">OBSERVACIONES</th>
-                    </tr>
-                    <tr>
-                        <th class="w-recurso-a">Humano</th>
-                        <th class="w-recurso-b">Físico</th>
-                        <th class="w-recurso-c">Económico</th>
-
-                        <th colspan="2">ene-25</th>
-                        <th colspan="2">feb-25</th>
-                        <th colspan="2">mar-25</th>
-                        <th colspan="2">abr-25</th>
-                        <th colspan="2">may-25</th>
-                        <th colspan="2">jun-25</th>
-                        <th colspan="2">jul-25</th>
-                        <th colspan="2">ago-25</th>
-                        <th colspan="2">sep-25</th>
-                        <th colspan="2">oct-25</th>
-                        <th colspan="2">nov-25</th>
-                        <th colspan="2">dic-25</th>
-                    </tr>
-                    <tr>
-                        <th>X</th>
-                        <th>X</th>
-                        <th>X</th>
-
-                        <?php for($i=0; $i<12; $i++): ?>
-                            <th class="ep-head w-mes">E</th>
-                            <th class="ep-head w-mes">P</th>
-                        <?php endfor; ?>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($actividades as $idx => $a): ?>
-                        <?php
-                            $groupClass = '';
-                            $grupoTxt = strtoupper($a['grupo']);
-                            if (str_contains($grupoTxt, 'RECURSOS') || str_contains($grupoTxt, 'GESTIÓN INTEGRAL')) $groupClass = 'group-planear';
-                            elseif (str_contains($grupoTxt, 'GESTIÓN DE LA SALUD')) $groupClass = 'group-hacer';
-                            elseif (str_contains($grupoTxt, 'PELIGROS') || str_contains($grupoTxt, 'AMENAZAS')) $groupClass = 'group-riesgos';
-                            elseif (str_contains($grupoTxt, 'VERIFICACIÓN')) $groupClass = 'group-verificar';
-                            elseif (str_contains($grupoTxt, 'MEJORAMIENTO')) $groupClass = 'group-actuar';
-                        ?>
-                        <tr>
-                            <td class="cycle-col w-ciclo"><?php echo htmlspecialchars($a['ciclo']); ?></td>
-                            <td class="group-col <?php echo $groupClass; ?> w-estandar"><?php echo htmlspecialchars($a['grupo']); ?></td>
-                            <td class="left w-item"><input class="cell-input left" value="<?php echo htmlspecialchars($a['item']); ?>"></td>
-                            <td class="center w-meta"><input class="cell-input center" value="<?php echo htmlspecialchars($a['meta']); ?>"></td>
-                            <td class="left w-responsable"><input class="cell-input left" value="<?php echo htmlspecialchars($a['responsable']); ?>"></td>
-                            <td class="center w-recurso-a"><input class="cell-input center" value="<?php echo htmlspecialchars($a['recursos']); ?>"></td>
-                            <td class="center w-recurso-b"><input class="cell-input center" value=""></td>
-                            <td class="center w-recurso-c"><input class="cell-input center" value=""></td>
-
-                            <?php for($m=1; $m<=12; $m++): ?>
-                                <td class="ep-cell ep-e w-mes"><input class="cell-input center" value=""></td>
-                                <td class="ep-cell ep-p w-mes"><input class="cell-input center" value=""></td>
-                            <?php endfor; ?>
-
-                            <td class="left w-obs"><input class="cell-input left" value=""></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
+            <table class="top-table">
+                <colgroup>
+                    <col style="width:80px">
+                    <col>
+                    <col style="width:80px">
+                    <col style="width:80px">
+                </colgroup>
+                <tr>
+                    <td rowspan="2">
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? '' : 'border:none; background:transparent;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 40px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO AQUÍ
+                            <?php endif; ?>
+                        </div>
+                    </td>
+                    <td class="title-main">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
+                    <td class="center"><strong>CÓDIGO:</strong></td>
+                    <td class="center">PL-SST-02</td>
+                </tr>
+                <tr>
+                    <td class="title-sub">PLAN DE TRABAJO ANUAL SG-SST</td>
+                    <td class="center"><strong>VERSIÓN:</strong></td>
+                    <td class="center">1</td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="top-label">
+                        <strong>OBJETIVO:</strong>
+                        <input name="meta_objetivo" class="mini-input" value="Planear y ejecutar las actividades para cumplir y mantener el SG-SST">
+                    </td>
+                    <td class="center"><strong>FECHA:</strong></td>
+                    <td class="center"><input type="date" name="meta_fecha" id="metaFecha" style="border:none; background:transparent; font-size:10px; font-weight:900; outline:none; text-align:center; width:100%;"></td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="top-label">
+                        <strong>ALCANCE:</strong>
+                        <input name="meta_alcance" class="mini-input" value="Aplica para las áreas, trabajadores y actividades de la empresa">
+                    </td>
+                    <td colspan="2" class="top-label center">
+                        <strong>PLANEAR</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="top-label">
+                        <strong>META:</strong>
+                        <input name="meta_meta" class="mini-input center" value="Dar cumplimiento al 100%">
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="top-label">
+                        <strong>INDICADORES:</strong>
+                        <input name="meta_indicadores" class="mini-input" value="Cumplimiento del plan de trabajo">
+                    </td>
+                    <td colspan="2" class="top-label">
+                        <strong>FÓRMULA:</strong>
+                        <input name="meta_formula" class="mini-input" value="N° de actividades ejecutadas / N° de actividades programadas x 100">
+                    </td>
+                </tr>
             </table>
-        </div>
 
-        <table class="summary-table">
-            <colgroup>
-                <col style="width:280px">
-                <col>
-                <col style="width:120px">
-                <col style="width:120px">
-            </colgroup>
-            <tr>
-                <th class="section-head">INDICADOR - RESULTADOS POR TRIMESTRE</th>
-                <th class="section-head">mes-año</th>
-                <th class="section-head">% DE CUMPLIMIENTO</th>
-                <th class="section-head">ESTADO</th>
-            </tr>
-            <tr>
-                <td>Cumplimiento de las actividades programadas del Plan de Trabajo</td>
-                <td>ene-25 a mar-25</td>
-                <td class="center">92%</td>
-                <td class="center">ALTO</td>
-            </tr>
-            <tr>
-                <td>Cumplimiento de las actividades programadas del Plan de Trabajo</td>
-                <td>abr-25 a jun-25</td>
-                <td class="center">95%</td>
-                <td class="center">ALTO</td>
-            </tr>
-            <tr>
-                <td>Cumplimiento de las actividades programadas del Plan de Trabajo</td>
-                <td>jul-25 a sep-25</td>
-                <td class="center">89%</td>
-                <td class="center">MEDIO</td>
-            </tr>
-            <tr>
-                <td>Cumplimiento de las actividades programadas del Plan de Trabajo</td>
-                <td>oct-25 a dic-25</td>
-                <td class="center">97%</td>
-                <td class="center">ALTO</td>
-            </tr>
-            <tr>
-                <td colspan="2" class="right"><strong>% DE CUMPLIMIENTO ANUAL</strong></td>
-                <td class="center"><strong>93%</strong></td>
-                <td class="center"><strong>ALTO</strong></td>
-            </tr>
-        </table>
+            <div class="top-scroll" id="topScroll">
+                <div class="top-scroll-inner" id="topScrollInner"></div>
+            </div>
 
-        <div class="charts-row">
-            <div class="chart-box">
-                <div class="section-head mb-2">CUMPLIMIENTO DEL PLAN DE TRABAJO</div>
-                <canvas id="barChart" height="110"></canvas>
-            </div>
-            <div class="chart-box">
-                <div class="section-head mb-2">CUMPLIMIENTO</div>
-                <canvas id="pieChart" height="180"></canvas>
-            </div>
-        </div>
+            <div class="table-wrap" id="tableWrap">
+                <table class="plan-table" id="planTable">
+                    <thead>
+                        <tr>
+                            <th rowspan="3" class="w-ciclo">CICLO</th>
+                            <th rowspan="3" class="w-estandar">ESTÁNDAR</th>
+                            <th rowspan="3" class="w-item">ÍTEM DEL ESTÁNDAR</th>
+                            <th rowspan="3" class="w-meta">META</th>
+                            <th rowspan="3" class="w-responsable">RESPONSABLE</th>
+                            <th colspan="3">RECURSOS</th>
+                            <th colspan="24">mes-año</th>
+                            <th rowspan="3" class="w-obs">OBSERVACIONES</th>
+                        </tr>
+                        <tr>
+                            <th class="w-recurso-a">Humano</th>
+                            <th class="w-recurso-b">Físico</th>
+                            <th class="w-recurso-c">Económico</th>
 
-        <div class="analysis-grid">
-            <div class="analysis-item">
-                <div class="analysis-title">ANÁLISIS TRIMESTRE 1</div>
-                <div class="analysis-body"><input class="cell-input left" value=""></div>
-            </div>
-            <div class="analysis-item">
-                <div class="analysis-title">ANÁLISIS TRIMESTRE 2</div>
-                <div class="analysis-body"><input class="cell-input left" value=""></div>
-            </div>
-            <div class="analysis-item">
-                <div class="analysis-title">ANÁLISIS TRIMESTRE 3</div>
-                <div class="analysis-body"><input class="cell-input left" value=""></div>
-            </div>
-            <div class="analysis-item">
-                <div class="analysis-title">ANÁLISIS TRIMESTRE 4</div>
-                <div class="analysis-body"><input class="cell-input left" value=""></div>
-            </div>
-        </div>
+                            <th colspan="2">ene-25</th>
+                            <th colspan="2">feb-25</th>
+                            <th colspan="2">mar-25</th>
+                            <th colspan="2">abr-25</th>
+                            <th colspan="2">may-25</th>
+                            <th colspan="2">jun-25</th>
+                            <th colspan="2">jul-25</th>
+                            <th colspan="2">ago-25</th>
+                            <th colspan="2">sep-25</th>
+                            <th colspan="2">oct-25</th>
+                            <th colspan="2">nov-25</th>
+                            <th colspan="2">dic-25</th>
+                        </tr>
+                        <tr>
+                            <th>X</th>
+                            <th>X</th>
+                            <th>X</th>
 
-        <div class="bottom-grid">
-            <div class="bottom-box">
-                <div class="bottom-title">RECURSOS NECESARIOS</div>
-                <div class="bottom-body">
-                    <div><input class="cell-input left" value="Personal responsable del SG-SST"></div>
-                    <div><input class="cell-input left" value="Capacitaciones y acompañamiento de la ARL"></div>
-                    <div><input class="cell-input left" value="Elementos de protección personal"></div>
-                    <div><input class="cell-input left" value="Inspecciones y seguimiento"></div>
-                    <div><input class="cell-input left" value="Presupuesto anual SG-SST"></div>
+                            <?php for($i=0; $i<12; $i++): ?>
+                                <th class="ep-head w-mes">E</th>
+                                <th class="ep-head w-mes">P</th>
+                            <?php endfor; ?>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($actividades as $idx => $a): ?>
+                            <?php
+                                $groupClass = '';
+                                $grupoTxt = strtoupper($a['grupo']);
+                                if (str_contains($grupoTxt, 'RECURSOS') || str_contains($grupoTxt, 'GESTIÓN INTEGRAL')) $groupClass = 'group-planear';
+                                elseif (str_contains($grupoTxt, 'GESTIÓN DE LA SALUD')) $groupClass = 'group-hacer';
+                                elseif (str_contains($grupoTxt, 'PELIGROS') || str_contains($grupoTxt, 'AMENAZAS')) $groupClass = 'group-riesgos';
+                                elseif (str_contains($grupoTxt, 'VERIFICACIÓN')) $groupClass = 'group-verificar';
+                                elseif (str_contains($grupoTxt, 'MEJORAMIENTO')) $groupClass = 'group-actuar';
+                            ?>
+                            <tr>
+                                <td class="cycle-col w-ciclo"><?php echo htmlspecialchars($a['ciclo']); ?></td>
+                                <td class="group-col <?php echo $groupClass; ?> w-estandar"><?php echo htmlspecialchars($a['grupo']); ?></td>
+                                <td class="left w-item"><input name="plan_item[]" class="cell-input left" value="<?php echo htmlspecialchars($a['item']); ?>"></td>
+                                <td class="center w-meta"><input name="plan_meta[]" class="cell-input center" value="<?php echo htmlspecialchars($a['meta']); ?>"></td>
+                                <td class="left w-responsable"><input name="plan_responsable[]" class="cell-input left" value="<?php echo htmlspecialchars($a['responsable']); ?>"></td>
+                                <td class="center w-recurso-a"><input name="plan_rec_humano[]" class="cell-input center" value="<?php echo htmlspecialchars($a['recursos']); ?>"></td>
+                                <td class="center w-recurso-b"><input name="plan_rec_fisico[]" class="cell-input center" value=""></td>
+                                <td class="center w-recurso-c"><input name="plan_rec_economico[]" class="cell-input center" value=""></td>
+
+                                <?php for($m=1; $m<=12; $m++): ?>
+                                    <td class="ep-cell ep-e w-mes"><input name="plan_mes_e_<?= $m ?>[]" class="cell-input center" value=""></td>
+                                    <td class="ep-cell ep-p w-mes"><input name="plan_mes_p_<?= $m ?>[]" class="cell-input center" value=""></td>
+                                <?php endfor; ?>
+
+                                <td class="left w-obs"><input name="plan_obs[]" class="cell-input left" value=""></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <table class="summary-table">
+                <colgroup>
+                    <col style="width:280px">
+                    <col>
+                    <col style="width:120px">
+                    <col style="width:120px">
+                </colgroup>
+                <tr>
+                    <th class="section-head">INDICADOR - RESULTADOS POR TRIMESTRE</th>
+                    <th class="section-head">mes-año</th>
+                    <th class="section-head">% DE CUMPLIMIENTO</th>
+                    <th class="section-head">ESTADO</th>
+                </tr>
+                <tr>
+                    <td>Cumplimiento de las actividades programadas del Plan de Trabajo</td>
+                    <td>ene-25 a mar-25</td>
+                    <td class="center"><input name="trim_1_porc" class="cell-input center" value="92%"></td>
+                    <td class="center"><input name="trim_1_estado" class="cell-input center" value="ALTO"></td>
+                </tr>
+                <tr>
+                    <td>Cumplimiento de las actividades programadas del Plan de Trabajo</td>
+                    <td>abr-25 a jun-25</td>
+                    <td class="center"><input name="trim_2_porc" class="cell-input center" value="95%"></td>
+                    <td class="center"><input name="trim_2_estado" class="cell-input center" value="ALTO"></td>
+                </tr>
+                <tr>
+                    <td>Cumplimiento de las actividades programadas del Plan de Trabajo</td>
+                    <td>jul-25 a sep-25</td>
+                    <td class="center"><input name="trim_3_porc" class="cell-input center" value="89%"></td>
+                    <td class="center"><input name="trim_3_estado" class="cell-input center" value="MEDIO"></td>
+                </tr>
+                <tr>
+                    <td>Cumplimiento de las actividades programadas del Plan de Trabajo</td>
+                    <td>oct-25 a dic-25</td>
+                    <td class="center"><input name="trim_4_porc" class="cell-input center" value="97%"></td>
+                    <td class="center"><input name="trim_4_estado" class="cell-input center" value="ALTO"></td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="right"><strong>% DE CUMPLIMIENTO ANUAL</strong></td>
+                    <td class="center"><strong><input name="trim_anual_porc" class="cell-input center" value="93%" style="font-weight:900;"></strong></td>
+                    <td class="center"><strong><input name="trim_anual_estado" class="cell-input center" value="ALTO" style="font-weight:900;"></strong></td>
+                </tr>
+            </table>
+
+            <div class="charts-row">
+                <div class="chart-box">
+                    <div class="section-head mb-2">CUMPLIMIENTO DEL PLAN DE TRABAJO</div>
+                    <canvas id="barChart" height="110"></canvas>
+                </div>
+                <div class="chart-box">
+                    <div class="section-head mb-2">CUMPLIMIENTO</div>
+                    <canvas id="pieChart" height="180"></canvas>
                 </div>
             </div>
-            <div class="bottom-box">
-                <div class="bottom-title">OBSERVACIONES</div>
-                <div class="bottom-body">
-                    <input class="cell-input left" value="">
+
+            <div class="analysis-grid">
+                <div class="analysis-item">
+                    <div class="analysis-title">ANÁLISIS TRIMESTRE 1</div>
+                    <div class="analysis-body"><textarea name="analisis_1" class="cell-input left" style="height:45px; resize:none;" placeholder="Análisis aquí..."></textarea></div>
+                </div>
+                <div class="analysis-item">
+                    <div class="analysis-title">ANÁLISIS TRIMESTRE 2</div>
+                    <div class="analysis-body"><textarea name="analisis_2" class="cell-input left" style="height:45px; resize:none;" placeholder="Análisis aquí..."></textarea></div>
+                </div>
+                <div class="analysis-item">
+                    <div class="analysis-title">ANÁLISIS TRIMESTRE 3</div>
+                    <div class="analysis-body"><textarea name="analisis_3" class="cell-input left" style="height:45px; resize:none;" placeholder="Análisis aquí..."></textarea></div>
+                </div>
+                <div class="analysis-item">
+                    <div class="analysis-title">ANÁLISIS TRIMESTRE 4</div>
+                    <div class="analysis-body"><textarea name="analisis_4" class="cell-input left" style="height:45px; resize:none;" placeholder="Análisis aquí..."></textarea></div>
+                </div>
+            </div>
+
+            <div class="bottom-grid">
+                <div class="bottom-box">
+                    <div class="bottom-title">RECURSOS NECESARIOS</div>
+                    <div class="bottom-body">
+                        <div><input name="rec_nec[]" class="cell-input left" value="Personal responsable del SG-SST"></div>
+                        <div><input name="rec_nec[]" class="cell-input left" value="Capacitaciones y acompañamiento de la ARL"></div>
+                        <div><input name="rec_nec[]" class="cell-input left" value="Elementos de protección personal"></div>
+                        <div><input name="rec_nec[]" class="cell-input left" value="Inspecciones y seguimiento"></div>
+                        <div><input name="rec_nec[]" class="cell-input left" value="Presupuesto anual SG-SST"></div>
+                    </div>
+                </div>
+                <div class="bottom-box">
+                    <div class="bottom-title">OBSERVACIONES</div>
+                    <div class="bottom-body">
+                        <textarea name="obs_general" class="cell-input left" style="height:60px; resize:none;" placeholder="Observaciones generales..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sign-grid" style="border:none;">
+                <div class="sign" style="border-top:1px solid #111; padding-top:8px;">
+                    <div style="min-height: 40px; position:relative; margin-bottom:5px;">
+                        <?php if(!empty($firmaSST)): ?>
+                            <img src="<?= $firmaSST ?>" alt="Firma Elaborador" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
+                        <?php endif; ?>
+                    </div>
+                    ELABORADO POR<br>
+                    <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreSST) ?></span>
+                </div>
+                
+                <div class="sign" style="border-top:1px solid #111; padding-top:8px;">
+                    <div style="min-height: 40px; position:relative; margin-bottom:5px;">
+                        <?php if(!empty($firmaRL)): ?>
+                            <img src="<?= $firmaRL ?>" alt="Firma Aprobador" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
+                        <?php endif; ?>
+                    </div>
+                    APROBADO POR<br>
+                    <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreRL) ?></span>
                 </div>
             </div>
         </div>
-
-        <div class="sign-grid">
-            <div class="sign">ELABORADO POR</div>
-            <div class="sign">APROBADO POR</div>
-        </div>
-    </div>
+    </form>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -662,6 +792,7 @@ $actividades = [
     window.addEventListener('load', syncTopScrollWidth);
     window.addEventListener('resize', syncTopScrollWidth);
 
+    // Gráficos (Visuales fijos de momento según plantilla)
     const barCtx = document.getElementById('barChart');
     new Chart(barCtx, {
         type: 'bar',
@@ -700,6 +831,111 @@ $actividades = [
                 legend: { position: 'bottom' }
             },
             cutout: '65%'
+        }
+    });
+
+    // Poner fecha de hoy por defecto si está vacía
+    function setHoy(){
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,"0");
+        const dd = String(d.getDate()).padStart(2,"0");
+        document.getElementById("hoyTxt").textContent = `${y}/${m}/${dd}`;
+        const fmeta = document.getElementById("metaFecha");
+        if (fmeta && !fmeta.value) fmeta.value = `${y}-${m}-${dd}`;
+    }
+    setHoy();
+
+    // --- LÓGICA DE CARGADO DE DATOS DESDE PHP ---
+    document.addEventListener('DOMContentLoaded', function () {
+        let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
+        if (typeof datosGuardados === 'string') {
+            try { datosGuardados = JSON.parse(datosGuardados); } catch(e) {}
+        }
+
+        if (datosGuardados && Object.keys(datosGuardados).length > 0) {
+            for (const [key, value] of Object.entries(datosGuardados)) {
+                if (Array.isArray(value)) {
+                    let campos = document.querySelectorAll(`[name="${key}[]"]`);
+                    value.forEach((val, i) => {
+                        if (campos[i]) campos[i].value = typeof val === 'string' ? val.replace(/\\n/g, '\n') : val;
+                    });
+                } else {
+                    const campo = document.querySelector(`[name="${key}"]`);
+                    if (campo) {
+                        campo.value = typeof value === 'string' ? value.replace(/\\n/g, '\n') : value;
+                    }
+                }
+            }
+        }
+    });
+
+    // --- LÓGICA DE GUARDADO ---
+    document.getElementById('btnGuardar').addEventListener('click', async function() {
+        const btn = this;
+        const form = document.getElementById('form-sst-dinamico');
+        const formData = new FormData(form);
+        const datosJSON = {};
+
+        for (const [key, value] of formData.entries()) {
+            if (key.endsWith('[]')) {
+                const cleanKey = key.replace('[]', '');
+                if (!datosJSON[cleanKey]) datosJSON[cleanKey] = [];
+                datosJSON[cleanKey].push(value);
+            } else {
+                datosJSON[key] = value;
+            }
+        }
+
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Guardando...';
+        btn.disabled = true;
+
+        try {
+            const token = "<?= $token ?>";
+            const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+            const response = await fetch(urlAPI, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    id_empresa: <?= $empresa ?>,
+                    id_item_sst: <?= $idItem ?>,
+                    datos: datosJSON
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.ok) {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'Plan de trabajo guardado correctamente',
+                    icon: 'success',
+                    confirmButtonColor: '#198754'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error al guardar',
+                    text: result.error || "No se pudo completar la operación.",
+                    icon: 'error',
+                    confirmButtonColor: '#1b4fbd'
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            Swal.fire({
+                title: 'Error de conexión',
+                text: 'No se pudo contactar al servidor para guardar.',
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         }
     });
 </script>

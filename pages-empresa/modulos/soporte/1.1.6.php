@@ -15,14 +15,26 @@ $empresa = (int)($_SESSION["id_empresa"] ?? 0);
 // Ajusta el ID de este ítem según tu base de datos (Ej: 6 para "1.1.6")
 $idItem = isset($_GET['item']) ? (int)$_GET['item'] : 6; 
 
-// --- Lógica de Empresa Optimizada ---
+// --- Lógica de Empresa Optimizada (Logo, Nombres y Firmas) ---
 $nombreEmpresaLogeada = "NOMBRE DE LA EMPRESA";
+$logoEmpresaUrl = "";
+$nombreRL = "";
+$firmaRL = "";
+$nombreSST = "";
+$firmaSST = "";
 
 if ($empresa > 0) {
     $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
     if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
         $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
         $nombreEmpresaLogeada = $empData['nombre_empresa'] ?? 'NOMBRE DE LA EMPRESA';
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+        
+        // Ajusta estos nombres de campos si en tu base de datos se llaman diferente
+        $nombreRL = $empData['representante_legal'] ?? $empData['nombre_representante'] ?? '';
+        $firmaRL = $empData['firma_representante'] ?? $empData['firma_rl'] ?? '';
+        $nombreSST = $empData['responsable_sst'] ?? $empData['nombre_sst'] ?? '';
+        $firmaSST = $empData['firma_sst'] ?? '';
     }
 }
 
@@ -167,7 +179,9 @@ if (is_string($camposCrudos)) {
     .subtitle{ font-weight:900; text-align:center; font-size:12px; }
     .code-box{ text-align:center; font-weight:900; font-size:12px; background:#fafafa; }
     .badge-mod{ display:inline-block; border:1px solid var(--blue); padding:4px 10px; background:var(--soft); font-weight:800; font-size:11px; border-radius:0; }
-    .logo-box{ border:1px dashed #666; height:68px; display:flex; align-items:center; justify-content:center; text-align:center; font-size:11px; font-weight:800; color:#666; background:#fafafa; }
+    
+    .logo-box{ border:1px dashed #666; height:68px; display:flex; align-items:center; justify-content:center; text-align:center; font-size:11px; font-weight:800; color:#666; background:#fafafa; padding: 4px;}
+    
     .sec-h{ background:var(--head); border:1px solid #9fb2c9; color:#10233c; font-weight:900; text-transform:uppercase; padding:9px 12px; font-size:14px; letter-spacing:.2px; margin:12px 0 10px; }
     .p{ margin-bottom:10px; font-size:12px; line-height:1.6; }
     .in{ width:100%; min-height:34px; border:1px solid #8f8f8f; background:#fff; padding:6px 8px; outline:none; border-radius:0; box-shadow:none; font-size:12px; }
@@ -292,10 +306,12 @@ if (is_string($camposCrudos)) {
     <button type="button" class="btn-ui secondary" onclick="volverPlanear()">← Atrás</button>
     <button type="button" class="btn-ui secondary" onclick="abrirOtraPestana()">Abrir pestaña</button>
     <button type="button" class="btn-ui secondary" onclick="recargarFormato()">Recargar</button>
+    <button type="button" class="btn-ui btn-success" id="btnGuardar">Guardar</button>
     <button type="button" class="btn-ui" onclick="window.print()">Imprimir</button>
   </div>
 </div>
 
+<form id="form-sst-dinamico">
     <div class="sheet page-break">
       <table class="format">
         <colgroup>
@@ -305,7 +321,15 @@ if (is_string($camposCrudos)) {
           <col style="width:160px">
         </colgroup>
         <tr>
-          <td rowspan="2"><div class="logo-box">TU LOGO<br>AQUÍ</div></td>
+          <td rowspan="2">
+              <div class="logo-box" style="border: <?= empty($logoEmpresaUrl) ? '1px dashed #666' : 'none' ?>; background: <?= empty($logoEmpresaUrl) ? '#fafafa' : 'transparent' ?>; padding: 0;">
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                <?php else: ?>
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">TU LOGO<br>AQUÍ</div>
+                <?php endif; ?>
+              </div>
+          </td>
           <td class="title">SISTEMA DE GESTIÓN EN SEGURIDAD Y SALUD EN EL TRABAJO</td>
           <td class="code-box">0</td>
           <td class="code-box">ANEXO 1</td>
@@ -346,9 +370,12 @@ if (is_string($camposCrudos)) {
 
       <div class="sign-line">
         <div class="sig">
-          <div class="line"></div>
+          <?php if(!empty($firmaRL)): ?>
+              <div style="text-align: center;"><img src="<?= $firmaRL ?>" alt="Firma RL" style="max-height: 50px; object-fit: contain;"></div>
+          <?php endif; ?>
+          <div class="line" <?= !empty($firmaRL) ? 'style="margin-top: 5px;"' : '' ?>></div>
           <div class="lbl">
-            <input name="anx1_gerente_nombre" class="in center" style="border:none;" placeholder="Nombre Gerente / Representante Legal">
+            <input name="anx1_gerente_nombre" class="in center" style="border:none;" placeholder="Nombre Gerente / Representante Legal" value="<?= htmlspecialchars($nombreRL) ?>">
           </div>
         </div>
         <div class="sig">
@@ -367,7 +394,15 @@ if (is_string($camposCrudos)) {
           <col style="width:160px">
         </colgroup>
         <tr>
-          <td rowspan="2"><div class="logo-box">TU LOGO<br>AQUÍ</div></td>
+          <td rowspan="2">
+              <div class="logo-box" style="border: <?= empty($logoEmpresaUrl) ? '1px dashed #666' : 'none' ?>; background: <?= empty($logoEmpresaUrl) ? '#fafafa' : 'transparent' ?>; padding: 0;">
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                <?php else: ?>
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">TU LOGO<br>AQUÍ</div>
+                <?php endif; ?>
+              </div>
+          </td>
           <td class="title">INSCRIPCIÓN CANDIDATOS AL COMITÉ PARITARIO DE SST</td>
           <td class="code-box">ANEXO 2</td>
           <td class="code-box"><span class="badge-mod">PLANEAR</span></td>
@@ -375,7 +410,7 @@ if (is_string($camposCrudos)) {
         <tr>
           <td class="subtitle">CONFORMACIÓN COPASST</td>
           <td class="code-box">Responsable</td>
-          <td class="code-box"><input name="anx2_resp" class="in center" placeholder="Nombre"></td>
+          <td class="code-box"><input name="anx2_resp" class="in center" placeholder="Nombre" value="<?= htmlspecialchars($nombreSST) ?>"></td>
         </tr>
       </table>
 
@@ -423,7 +458,7 @@ if (is_string($camposCrudos)) {
         Fecha de cierre:
         <input name="anx2_cierre_fecha" class="in inline center" placeholder="AAAA-MM-DD">
         <span class="ms-3">Responsable:
-          <input name="anx2_cierre_resp" class="in inline" placeholder="Nombre responsable">
+          <input name="anx2_cierre_resp" class="in inline" placeholder="Nombre responsable" value="<?= htmlspecialchars($nombreSST) ?>">
         </span>
       </div>
 
@@ -470,7 +505,15 @@ if (is_string($camposCrudos)) {
           <col style="width:160px">
         </colgroup>
         <tr>
-          <td rowspan="2"><div class="logo-box">TU LOGO<br>AQUÍ</div></td>
+          <td rowspan="2">
+              <div class="logo-box" style="border: <?= empty($logoEmpresaUrl) ? '1px dashed #666' : 'none' ?>; background: <?= empty($logoEmpresaUrl) ? '#fafafa' : 'transparent' ?>; padding: 0;">
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                <?php else: ?>
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">TU LOGO<br>AQUÍ</div>
+                <?php endif; ?>
+              </div>
+          </td>
           <td class="title">ACTA APERTURA ELECCIONES CANDIDATOS COPASST</td>
           <td class="code-box">ANEXO 4</td>
           <td class="code-box"><span class="badge-mod">PLANEAR</span></td>
@@ -531,7 +574,15 @@ if (is_string($camposCrudos)) {
           <col style="width:160px">
         </colgroup>
         <tr>
-          <td rowspan="2"><div class="logo-box">TU LOGO<br>AQUÍ</div></td>
+          <td rowspan="2">
+              <div class="logo-box" style="border: <?= empty($logoEmpresaUrl) ? '1px dashed #666' : 'none' ?>; background: <?= empty($logoEmpresaUrl) ? '#fafafa' : 'transparent' ?>; padding: 0;">
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                <?php else: ?>
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">TU LOGO<br>AQUÍ</div>
+                <?php endif; ?>
+              </div>
+          </td>
           <td class="title">REGISTRO ASISTENCIA VOTACIÓN – COPASST</td>
           <td class="code-box">ANEXO 5</td>
           <td class="code-box"><span class="badge-mod">PLANEAR</span></td>
@@ -591,7 +642,15 @@ if (is_string($camposCrudos)) {
           <col style="width:160px">
         </colgroup>
         <tr>
-          <td rowspan="2"><div class="logo-box">TU LOGO<br>AQUÍ</div></td>
+          <td rowspan="2">
+              <div class="logo-box" style="border: <?= empty($logoEmpresaUrl) ? '1px dashed #666' : 'none' ?>; background: <?= empty($logoEmpresaUrl) ? '#fafafa' : 'transparent' ?>; padding: 0;">
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                <?php else: ?>
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">TU LOGO<br>AQUÍ</div>
+                <?php endif; ?>
+              </div>
+          </td>
           <td class="title">ACTA CIERRE VOTACIONES AL COMITÉ DE SST</td>
           <td class="code-box">ANEXO 6</td>
           <td class="code-box"><span class="badge-mod">PLANEAR</span></td>
@@ -696,7 +755,15 @@ if (is_string($camposCrudos)) {
           <col style="width:160px">
         </colgroup>
         <tr>
-          <td rowspan="2"><div class="logo-box">TU LOGO<br>AQUÍ</div></td>
+          <td rowspan="2">
+              <div class="logo-box" style="border: <?= empty($logoEmpresaUrl) ? '1px dashed #666' : 'none' ?>; background: <?= empty($logoEmpresaUrl) ? '#fafafa' : 'transparent' ?>; padding: 0;">
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                <?php else: ?>
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">TU LOGO<br>AQUÍ</div>
+                <?php endif; ?>
+              </div>
+          </td>
           <td class="title">ACTA DE CONSTITUCIÓN DEL COPASST</td>
           <td class="code-box">ANEXO 7</td>
           <td class="code-box"><span class="badge-mod">PLANEAR</span></td>
@@ -783,11 +850,14 @@ if (is_string($camposCrudos)) {
       <div class="sign-line">
         <div class="sig">
           <div class="line"></div>
-          <div class="lbl">Firma</div>
+          <div class="lbl">Firma del Presidente</div>
         </div>
         <div class="sig">
-          <div class="line"></div>
-          <div class="lbl">Representante Legal</div>
+          <?php if(!empty($firmaRL)): ?>
+              <div style="text-align: center;"><img src="<?= $firmaRL ?>" alt="Firma RL" style="max-height: 50px; object-fit: contain;"></div>
+          <?php endif; ?>
+          <div class="line" <?= !empty($firmaRL) ? 'style="margin-top: 5px;"' : '' ?>></div>
+          <div class="lbl">Representante Legal <br><span style="font-weight:normal;"><?= htmlspecialchars($nombreRL) ?></span></div>
         </div>
       </div>
     </div>
@@ -801,7 +871,15 @@ if (is_string($camposCrudos)) {
           <col style="width:160px">
         </colgroup>
         <tr>
-          <td rowspan="2"><div class="logo-box">TU LOGO<br>AQUÍ</div></td>
+          <td rowspan="2">
+              <div class="logo-box" style="border: <?= empty($logoEmpresaUrl) ? '1px dashed #666' : 'none' ?>; background: <?= empty($logoEmpresaUrl) ? '#fafafa' : 'transparent' ?>; padding: 0;">
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                <?php else: ?>
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">TU LOGO<br>AQUÍ</div>
+                <?php endif; ?>
+              </div>
+          </td>
           <td class="title">ACTA DE REUNIÓN MENSUAL COPASST</td>
           <td class="code-box">ANEXO 8</td>
           <td class="code-box"><span class="badge-mod">PLANEAR</span></td>
@@ -928,7 +1006,15 @@ if (is_string($camposCrudos)) {
           <col style="width:160px">
         </colgroup>
         <tr>
-          <td rowspan="2"><div class="logo-box">TU LOGO<br>AQUÍ</div></td>
+          <td rowspan="2">
+              <div class="logo-box" style="border: <?= empty($logoEmpresaUrl) ? '1px dashed #666' : 'none' ?>; background: <?= empty($logoEmpresaUrl) ? '#fafafa' : 'transparent' ?>; padding: 0;">
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                <?php else: ?>
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">TU LOGO<br>AQUÍ</div>
+                <?php endif; ?>
+              </div>
+          </td>
           <td class="title">ACTA DE NOMBRAMIENTO DEL VIGÍA EN SST</td>
           <td class="code-box">FORMATO</td>
           <td class="code-box"><span class="badge-mod">PLANEAR</span></td>
@@ -950,7 +1036,7 @@ if (is_string($camposCrudos)) {
 
       <div class="p">
         En cumplimiento a lo establecido en la Resolución 2013 de 1986, el representante legal
-        <input name="vig_gerente" class="in inline" style="min-width:260px" placeholder="Nombre del Gerente / RL">
+        <input name="vig_gerente" class="in inline" style="min-width:260px" placeholder="Nombre del Gerente / RL" value="<?= htmlspecialchars($nombreRL) ?>">
         de la empresa
         <input name="vig_empresa2" class="in inline" style="min-width:260px" value="<?= htmlspecialchars($nombreEmpresaLogeada) ?>">
         designa como Vigía en SST al Señor(a):
@@ -990,8 +1076,11 @@ if (is_string($camposCrudos)) {
 
       <div class="sign-line">
         <div class="sig">
-          <div class="line"></div>
-          <div class="lbl">Representante Legal</div>
+          <?php if(!empty($firmaRL)): ?>
+              <div style="text-align: center;"><img src="<?= $firmaRL ?>" alt="Firma RL" style="max-height: 50px; object-fit: contain;"></div>
+          <?php endif; ?>
+          <div class="line" <?= !empty($firmaRL) ? 'style="margin-top: 5px;"' : '' ?>></div>
+          <div class="lbl">Representante Legal <br><span style="font-weight:normal;"><?= htmlspecialchars($nombreRL) ?></span></div>
         </div>
         <div class="sig">
           <div class="line"></div>

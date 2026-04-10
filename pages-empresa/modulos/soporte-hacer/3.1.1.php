@@ -1,5 +1,50 @@
 <?php
-// 3.1.1.php
+session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
+if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
+    header("Location: ../../../index.php");
+    exit;
+}
+
+function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos para la Encuesta
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 45; 
+
+// --- Lógica de Empresa (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -7,6 +52,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3.1.1 Perfil Sociodemográfico</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         *{
             box-sizing:border-box;
@@ -104,7 +152,6 @@
         .logo-box{
             width:140px;
             height:65px;
-            border:2px dashed #c8c8c8;
             display:flex;
             align-items:center;
             justify-content:center;
@@ -220,6 +267,11 @@
             border-bottom:1px solid #333;
             outline:none;
             padding:3px 2px;
+            background: transparent;
+        }
+        
+        .linea-campo input:focus {
+            background: #f8fbff;
         }
 
         .footer-ley{
@@ -260,8 +312,8 @@
                 padding:0;
             }
 
-            .toolbar{
-                display:none;
+            .toolbar, .print-hide {
+                display:none !important;
             }
 
             .contenedor{
@@ -277,32 +329,38 @@
 </head>
 <body>
 
-<div class="marca-agua">Página 1</div>
+<div class="marca-agua print-hide">Página 1</div>
 
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>3.1.1 - Encuesta Perfil Sociodemográfico</h1>
         <div class="acciones">
-            <button class="btn btn-atras" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" onclick="document.getElementById('formPerfil').submit()">Guardar</button>
-            <button class="btn btn-imprimir" onclick="window.print()">Imprimir</button>
+            <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Encuesta</button>
+            <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir PDF</button>
         </div>
     </div>
 
     <div class="formulario">
-        <form id="formPerfil" action="guardar_3.1.1.php" method="POST">
+        <form id="formPerfil">
             
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:20%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:20%; padding:0;">
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
-                    <td class="titulo-principal" style="width:60%;">SISTEMA DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
+                    <td class="titulo-principal" style="width:60%;">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
                     <td style="width:20%; font-weight:700;">0</td>
                 </tr>
                 <tr>
                     <td class="subtitulo">ENCUESTA PARA EL PERFIL SOCIODEMOGRÁFICO</td>
-                    <td style="font-weight:700;">AN-SST-14<br>XX/XX/2025</td>
+                    <td style="font-weight:700;">AN-SST-14<br><?= date('d/m/Y') ?></td>
                 </tr>
             </table>
 
@@ -310,7 +368,7 @@
                 Esta encuesta hace parte del Sistema de Gestión en Seguridad y Salud en el Trabajo y el contenido de la misma es información clasificada.
             </p>
 
-            <a href="#" class="link-online">Clic para realizar en línea, duplica el formulario</a>
+            <a href="#" class="link-online print-hide">Clic para realizar en línea, duplica el formulario</a>
 
             <div class="datos-grid">
                 <div class="datos-labels">
@@ -319,23 +377,18 @@
                     <div>Fecha:</div>
                 </div>
                 <div class="datos-inputs">
-                    <div><input type="text" name="nombre" style="width:100%; border:none; outline:none;"></div>
-                    <div><input type="text" name="cargo" style="width:100%; border:none; outline:none;"></div>
-                    <div><input type="date" name="fecha" style="width:100%; border:none; outline:none;"></div>
+                    <div><input type="text" name="nombre" style="width:100%; border:none; outline:none; background:transparent;"></div>
+                    <div><input type="text" name="cargo" style="width:100%; border:none; outline:none; background:transparent;"></div>
+                    <div><input type="date" name="fecha" style="width:100%; border:none; outline:none; background:transparent;"></div>
                 </div>
             </div>
 
             <div class="seccion-instruccion">Seleccione la respuesta que le corresponda:</div>
 
             <div class="grid-preguntas">
+                
                 <div class="bloque">
                     <h3>1. Edad</h3>
-                    <?php
-                    $edades = ['Menor de 18 año', '18 - 27 años', '28 - 37 años', '38 - 47 años', '48 años o mas'];
-                    foreach($edades as $i => $item){
-                        echo '<div class="opcion"><label>a'.($i>0?'.':'').'</label></div>';
-                    }
-                    ?>
                     <div class="opcion"><label><input type="radio" name="edad" value="Menor de 18 año"> Menor de 18 año</label></div>
                     <div class="opcion"><label><input type="radio" name="edad" value="18 - 27 años"> 18 - 27 años</label></div>
                     <div class="opcion"><label><input type="radio" name="edad" value="28 - 37 años"> 28 - 37 años</label></div>
@@ -480,6 +533,7 @@
                         <div class="linea-campo"><span>Ocasional</span><input type="text" name="deporte_ocasional"></div>
                     </div>
                 </div>
+
             </div>
 
             <div class="footer-ley">
@@ -488,6 +542,123 @@
         </form>
     </div>
 </div>
+
+<script>
+// Lógica 1: Cargar datos desde la base de datos al renderizar
+document.addEventListener('DOMContentLoaded', function () {
+    let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
+    
+    // Si viene como string escapado, lo parseamos
+    if (typeof datosGuardados === 'string') {
+        try { datosGuardados = JSON.parse(datosGuardados); } catch(e) {}
+    }
+
+    if (datosGuardados && Object.keys(datosGuardados).length > 0) {
+        for (const [key, value] of Object.entries(datosGuardados)) {
+            
+            // Para Checkboxes (Array de valores)
+            if (Array.isArray(value)) {
+                value.forEach(val => {
+                    const checkbox = document.querySelector(`input[name="${key}[]"][value="${val}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            } else {
+                // Para Radios
+                const radio = document.querySelector(`input[name="${key}"][value="${value}"]`);
+                if (radio) {
+                    radio.checked = true;
+                } else {
+                    // Para Inputs de Texto (nombre, cargo, fecha, etc)
+                    const input = document.querySelector(`input[name="${key}"]`);
+                    if (input && input.type !== 'radio' && input.type !== 'checkbox') {
+                        input.value = value;
+                    }
+                }
+            }
+        }
+    } else {
+        // Establecer la fecha actual por defecto si está vacío
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const fInput = document.querySelector('input[name="fecha"]');
+        if (fInput) fInput.value = `${y}-${m}-${dd}`;
+    }
+});
+
+// Lógica 2: Capturar formulario y guardar vía Fetch API
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('formPerfil');
+    const formData = new FormData(form);
+    
+    // Construir el objeto JSON para enviar
+    const datosJSON = {};
+    for (const [key, value] of formData.entries()) {
+        // Detectar si el nombre termina en [] (Checkboxes)
+        if (key.endsWith('[]')) {
+            const cleanKey = key.replace('[]', '');
+            if (!datosJSON[cleanKey]) datosJSON[cleanKey] = [];
+            datosJSON[cleanKey].push(value);
+        } else {
+            datosJSON[key] = value;
+        }
+    }
+
+    // Efectos de carga en el botón
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'La encuesta fue guardada correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+</script>
 
 </body>
 </html>

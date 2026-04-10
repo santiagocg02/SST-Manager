@@ -17,6 +17,8 @@ $idItem = isset($_GET['item']) ? (int)$_GET['item'] : 5; // ID del ítem anclado
 
 // --- Lógica de Permisos y Empresa (Optimizada) ---
 $nombreEmpresaLogeada = "NOMBRE DE LA EMPRESA";
+$logoEmpresaUrl = "";
+$firmaRLUrl = "";
 
 if ($empresa > 0) {
     // Solicitamos a la API exclusivamente la empresa logueada pasando el ID
@@ -25,8 +27,17 @@ if ($empresa > 0) {
     if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
         $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
         $nombreEmpresaLogeada = $empData['nombre_empresa'] ?? 'NOMBRE DE LA EMPRESA';
+        
+        // Obtenemos el logo y la firma del Representante Legal
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+        $firmaRLUrl = $empData['firma_rl'] ?? '';
     }
 }
+
+// --- SOLICITAMOS DATOS DEL PERSONAL SST (Firma Encargado) ---
+$resSST = $api->solicitar("personal_sst/empresa/$empresa", "GET", null, $token);
+$profesionalSST = $resSST['data'] ?? null;
+$firmaSSTUrl = $profesionalSST['firma_sst_url'] ?? '';
 
 // 2. SOLICITAMOS LOS DATOS DEL FORMULARIO A LA API
 $resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
@@ -194,9 +205,14 @@ if (is_string($camposCrudos)) {
         <table class="sst-table">
           <tr>
             <td style="width:18%;">
-              <div class="logo-box">
-                <div>TU LOGO</div>
-                <div>AQUÍ</div>
+              <div class="logo-box" style="border: none;">
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 72px; object-fit: contain;">
+                <?php else: ?>
+                    <div style="width:100%; border:2px dashed #b5b5b5; padding: 10px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                        <div>TU LOGO</div><div>AQUÍ</div>
+                    </div>
+                <?php endif; ?>
               </div>
             </td>
 
@@ -284,7 +300,12 @@ if (is_string($camposCrudos)) {
           <tr>
             <td colspan="2">
               <div class="firma-wrapper">
-                <div class="firma-line"></div>
+                <div style="height: 80px; display: flex; align-items: flex-end; justify-content: center;">
+                    <?php if(!empty($firmaRLUrl)): ?>
+                        <img src="<?= $firmaRLUrl ?>" alt="Firma Representante Legal" style="max-height: 80px; object-fit: contain;">
+                    <?php endif; ?>
+                </div>
+                <div class="firma-line" style="margin-top: 5px;"></div>
                 <input name="firma_rep_legal" class="sst-input center bold" type="text" value="Representante Legal">
               </div>
             </td>
@@ -293,8 +314,13 @@ if (is_string($camposCrudos)) {
 
             <td colspan="2">
               <div class="firma-wrapper">
-                <div class="firma-line"></div>
-                <input name="firma_encargado" class="sst-input center bold" type="text" value="Encargado SST">
+                <div style="height: 80px; display: flex; align-items: flex-end; justify-content: center;">
+                    <?php if(!empty($firmaSSTUrl)): ?>
+                        <img src="<?= $firmaSSTUrl ?>" alt="Firma SST" style="max-height: 80px; object-fit: contain;">
+                    <?php endif; ?>
+                </div>
+                <div class="firma-line" style="margin-top: 5px;"></div>
+                <input name="firma_sst_nombre" class="sst-input center bold" type="text" value="<?= htmlspecialchars($profesionalSST['nombre'] ?? 'Encargado SST') ?>">
               </div>
             </td>
           </tr>
@@ -387,7 +413,6 @@ if (is_string($camposCrudos)) {
         }
     });
   </script>
-
 
 <script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>

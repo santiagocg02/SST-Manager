@@ -1,8 +1,53 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN
+// Ajusta esta ruta dependiendo de la ubicación de este archivo
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   header("Location: ../../../../index.php");
   exit;
+}
+
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 3; // ID del ítem anclado a este formato
+
+// --- Lógica de Empresa y Logo ---
+$nombreEmpresaLogeada = "Sin Empresa";
+$logoEmpresaUrl = "";
+
+if ($empresa > 0) {
+    // Solicitamos a la API exclusivamente la empresa logueada pasando el ID
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $nombreEmpresaLogeada = $empData['nombre_empresa'] ?? 'Sin Empresa';
+        $logoEmpresaUrl = $empData['logo_url'] ?? ''; // <--- Extraemos el logo
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS DEL FORMULARIO A LA API (Para cuando pongas atributos 'name' a los inputs)
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
 }
 ?>
 <!doctype html>
@@ -14,6 +59,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     :root{
@@ -64,8 +110,8 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      border:1px solid var(--blue);
-      background:var(--blue);
+      border:1px solid #1b4fbd;
+      background:#1b4fbd;
       color:#fff;
       padding:7px 14px;
       font-size:12px;
@@ -77,20 +123,20 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     }
 
     .btn-ui:hover{
-      background:var(--blue-dark);
-      border-color:var(--blue-dark);
+      background:#0f3484;
+      border-color:#0f3484;
       color:#fff;
     }
 
     .btn-ui.secondary{
       background:#fff;
-      color:var(--blue);
+      color:#1b4fbd;
     }
 
     .btn-ui.secondary:hover{
-      background:var(--soft);
-      color:var(--blue-dark);
-      border-color:var(--blue-dark);
+      background:#eaf2ff;
+      color:#0f3484;
+      border-color:#0f3484;
     }
 
     .sheet{
@@ -100,7 +146,6 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
       padding:14px;
       margin-bottom:18px;
     }
-
 
     .sst-page{
       padding:20px;
@@ -434,398 +479,405 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 </head>
 <body>
     
-
     <div class="sst-toolbar">
-      <h1 class="sst-toolbar-title">Consolidado General Presupuesto</h1>
+      <h1 class="sst-toolbar-title" style="margin:0; font-size:15px; font-weight:800; color:#213b67; flex:1;">Consolidado General Presupuesto</h1>
         <button type="button" class="btn-ui secondary" onclick="volverPlanear()">← Atrás</button>
         <button type="button" class="btn-ui secondary" onclick="abrirOtraPestana()">Abrir pestaña</button>
         <button type="button" class="btn-ui secondary" onclick="recargarFormato()">Recargar</button>
+        <button type="button" class="btn-ui btn-success" id="btnGuardar">Guardar</button>
         <button type="button" class="btn-ui" onclick="window.print()">Imprimir</button>
     </div>
 
-  <div class="sst-page">
-    <div class="sst-paper">
+  <form id="form-sst-dinamico">
+    <div class="sst-page">
+      <div class="sst-paper">
 
-      <table class="sst-table mb-2">
-        <colgroup>
-          <col style="width:18%;">
-          <col style="width:64%;">
-          <col style="width:18%;">
-        </colgroup>
-        <tr>
-          <td rowspan="2">
-            <div class="logo-box">
-              <div>TU LOGO</div>
-              <div>AQUÍ</div>
-            </div>
-          </td>
+        <table class="sst-table mb-2">
+          <colgroup>
+            <col style="width:18%;">
+            <col style="width:64%;">
+            <col style="width:18%;">
+          </colgroup>
+          <tr>
+            <td rowspan="2">
+              <div class="logo-box" style="border: none;">
+                <?php if(!empty($logoEmpresaUrl)): ?>
+                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 72px; object-fit: contain;">
+                <?php else: ?>
+                    <div style="width:100%; border:2px dashed #b5b5b5; padding: 10px; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%;">
+                        <div>TU LOGO</div><div>AQUÍ</div>
+                    </div>
+                <?php endif; ?>
+              </div>
+            </td>
 
-          <td>
-            <div class="header-main">
-              SISTEMA DE GESTIÓN EN SEGURIDAD Y SALUD EN EL TRABAJO
-            </div>
-          </td>
+            <td>
+              <div class="header-main">
+                SISTEMA DE GESTIÓN EN SEGURIDAD Y SALUD EN EL TRABAJO
+              </div>
+            </td>
 
-          <td rowspan="2">
-            <div class="meta-box">
-              <div class="meta-item">0</div>
-              <div class="meta-item">AN-SST-03</div>
-              <div class="meta-item">
-                <input class="sst-input-line" type="text" value="XX/XX/2025">
+            <td rowspan="2">
+              <div class="meta-box">
+                <div class="meta-item">0</div>
+                <div class="meta-item">AN-SST-03</div>
+                <div class="meta-item">
+                  <input name="fecha_documento" class="sst-input-line" type="text" value="XX/XX/2025">
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="header-main">CONSOLIDADO GENERAL PRESUPUESTO</div>
+            </td>
+          </tr>
+        </table>
+
+        <div class="note-box">
+          Nota: diligencie los campos en naranja, los costos, gastos mensuales y el análisis tendencial.
+        </div>
+
+        <div class="sst-table-wrap">
+          <table class="sst-table">
+            <colgroup>
+              <col style="width:26%">
+              <col style="width:10%">
+              <col style="width:10%">
+              <col style="width:4%">
+              <col style="width:10%">
+              <col style="width:4%">
+              <col span="12" style="width:3%">
+            </colgroup>
+
+            <thead>
+              <tr class="sst-title">
+                <th rowspan="2">ACTIVIDADES</th>
+                <th rowspan="2">PRESUPUESTO PROYECTADO</th>
+                <th rowspan="2">PRESUPUESTO EJECUTADO</th>
+                <th rowspan="2">%</th>
+                <th rowspan="2">PRESUPUESTO POR EJECUTAR</th>
+                <th rowspan="2">%</th>
+                <th colspan="12">20XX</th>
+              </tr>
+              <tr class="months">
+                <th>ENE</th><th>FEB</th><th>MAR</th><th>ABR</th><th>MAY</th><th>JUN</th>
+                <th>JUL</th><th>AGO</th><th>SEPT</th><th>OCT</th><th>NOV</th><th>DIC</th>
+              </tr>
+            </thead>
+
+            <tbody id="budgetBody">
+              <tr class="section-row">
+                <td>Medicina Preventiva, del Trabajo y Otros</td>
+                <td></td><td></td><td></td><td></td><td></td>
+                <td></td><td></td><td></td><td></td><td></td><td></td>
+                <td></td><td></td><td></td><td></td><td></td><td></td>
+              </tr>
+
+              <tr data-row-type="editable" data-section="medicina">
+                <td><input class="sst-input" type="text" value="Exámenes médicos (Emo, Paraclínicos y la…)"></td>
+                <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+              </tr>
+
+              <tr data-row-type="editable" data-section="medicina">
+                <td><input class="sst-input" type="text" value="Vacunación"></td>
+                <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+              </tr>
+
+              <tr data-row-type="editable" data-section="medicina">
+                <td><input class="sst-input" type="text" value="Compra medicamentos para el botiquín"></td>
+                <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+              </tr>
+
+              <tr class="add-row-trigger" data-section="medicina">
+                <td colspan="18" class="add-row-cell">
+                  <button type="button" class="add-row-btn-inline" onclick="addRowToSection('medicina', this)">
+                    <span class="plus">+</span> Agregar fila en Medicina Preventiva
+                  </button>
+                </td>
+              </tr>
+
+              <tr class="section-row">
+                <td>Higiene Industrial y manejo ambiental</td>
+                <td></td><td></td><td></td><td></td><td></td>
+                <td></td><td></td><td></td><td></td><td></td><td></td>
+                <td></td><td></td><td></td><td></td><td></td><td></td>
+              </tr>
+
+              <tr data-row-type="editable" data-section="higiene">
+                <td><input class="sst-input" type="text" value="Mediciones de Higiene"></td>
+                <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+              </tr>
+
+              <tr data-row-type="editable" data-section="higiene">
+                <td><input class="sst-input" type="text" value="Punto Ecológico"></td>
+                <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+              </tr>
+
+              <tr data-row-type="editable" data-section="higiene">
+                <td><input class="sst-input" type="text" value="Tableros informativos"></td>
+                <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+              </tr>
+
+              <tr class="add-row-trigger" data-section="higiene">
+                <td colspan="18" class="add-row-cell">
+                  <button type="button" class="add-row-btn-inline" onclick="addRowToSection('higiene', this)">
+                    <span class="plus">+</span> Agregar fila en Higiene Industrial
+                  </button>
+                </td>
+              </tr>
+
+              <tr class="section-row">
+                <td>Seguridad Industrial</td>
+                <td></td><td></td><td></td><td></td><td></td>
+                <td></td><td></td><td></td><td></td><td></td><td></td>
+                <td></td><td></td><td></td><td></td><td></td><td></td>
+              </tr>
+
+              <tr data-row-type="editable" data-section="seguridad">
+                <td><input class="sst-input" type="text" value="Compra Dotación Personal y EPP"></td>
+                <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+              </tr>
+
+              <tr data-row-type="editable" data-section="seguridad">
+                <td><input class="sst-input" type="text" value="Compra y mantenimiento de extintores"></td>
+                <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+                <td><input class="sst-input center" type="text"></td>
+              </tr>
+
+              <tr class="add-row-trigger" data-section="seguridad">
+                <td colspan="18" class="add-row-cell">
+                  <button type="button" class="add-row-btn-inline" onclick="addRowToSection('seguridad', this)">
+                    <span class="plus">+</span> Agregar fila en Seguridad Industrial
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+
+            <tfoot>
+              <tr class="total-row">
+                <td>Total</td>
+                <td><input class="sst-input right orange" type="text" placeholder="0"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td><input class="sst-input right" type="text" placeholder="0"></td>
+                <td><input class="sst-input center" type="text" placeholder="0%"></td>
+                <td></td><td></td><td></td><td></td><td></td><td></td>
+                <td></td><td></td><td></td><td></td><td></td><td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="signature-label">FIRMA DEL REPRESENTANTE LEGAL</div>
+
+        <div class="block-title">ANALISIS TENDENCIAL</div>
+
+        <div class="sst-table-wrap">
+          <table class="sst-table">
+            <colgroup>
+              <col style="width:22%">
+              <col span="12" style="width:6.5%">
+            </colgroup>
+
+            <thead>
+              <tr class="months">
+                <th class="center">MES</th>
+                <th>ENE</th><th>FEB</th><th>MAR</th><th>ABR</th><th>MAY</th><th>JUN</th>
+                <th>JUL</th><th>AGO</th><th>SEPT</th><th>OCT</th><th>NOV</th><th>DIC</th>
+              </tr>
+            </thead>
+
+            <tbody id="analysisBody">
+              <tr>
+                <td class="bold center">TOTAL</td>
+                <td><input class="sst-input center orange js-month" data-month="ENE" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange js-month" data-month="FEB" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange js-month" data-month="MAR" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange js-month" data-month="ABR" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange js-month" data-month="MAY" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange js-month" data-month="JUN" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange js-month" data-month="JUL" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange js-month" data-month="AGO" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange js-month" data-month="SEPT" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange js-month" data-month="OCT" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange js-month" data-month="NOV" type="text" placeholder="0"></td>
+                <td><input class="sst-input center orange js-month" data-month="DIC" type="text" placeholder="0"></td>
+              </tr>
+              <tr>
+                <td class="bold center">%</td>
+                <td><input class="sst-input center orange js-pct" data-month="ENE" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange js-pct" data-month="FEB" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange js-pct" data-month="MAR" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange js-pct" data-month="ABR" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange js-pct" data-month="MAY" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange js-pct" data-month="JUN" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange js-pct" data-month="JUL" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange js-pct" data-month="AGO" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange js-pct" data-month="SEPT" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange js-pct" data-month="OCT" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange js-pct" data-month="NOV" type="text" placeholder="0%"></td>
+                <td><input class="sst-input center orange js-pct" data-month="DIC" type="text" placeholder="0%"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="block-title">ANALISIS TENDENCIAL</div>
+
+        <div class="row g-3 mt-1">
+          <div class="col-12 col-lg-8">
+            <div class="chart-box">
+              <div class="chart-title">PRESUPUESTO EJECUTADO 20XX</div>
+              <div class="chart-canvas-wrap">
+                <canvas id="budgetChart"></canvas>
               </div>
             </div>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <div class="header-main">CONSOLIDADO GENERAL PRESUPUESTO</div>
-          </td>
-        </tr>
-      </table>
+          </div>
 
-      <div class="note-box">
-        Nota: diligencie los campos en naranja, los costos, gastos mensuales y el análisis tendencial.
-      </div>
+          <div class="col-12 col-lg-4">
+            <div class="semester mb-3">
+              <div class="t">I SEMESTRE</div>
+              <textarea name="analisis_semestre_1" placeholder="Escriba el análisis del primer semestre..."></textarea>
+            </div>
 
-      <div class="sst-table-wrap">
-        <table class="sst-table">
-          <colgroup>
-            <col style="width:26%">
-            <col style="width:10%">
-            <col style="width:10%">
-            <col style="width:4%">
-            <col style="width:10%">
-            <col style="width:4%">
-            <col span="12" style="width:3%">
-          </colgroup>
-
-          <thead>
-            <tr class="sst-title">
-              <th rowspan="2">ACTIVIDADES</th>
-              <th rowspan="2">PRESUPUESTO PROYECTADO</th>
-              <th rowspan="2">PRESUPUESTO EJECUTADO</th>
-              <th rowspan="2">%</th>
-              <th rowspan="2">PRESUPUESTO POR EJECUTAR</th>
-              <th rowspan="2">%</th>
-              <th colspan="12">20XX</th>
-            </tr>
-            <tr class="months">
-              <th>ENE</th><th>FEB</th><th>MAR</th><th>ABR</th><th>MAY</th><th>JUN</th>
-              <th>JUL</th><th>AGO</th><th>SEPT</th><th>OCT</th><th>NOV</th><th>DIC</th>
-            </tr>
-          </thead>
-
-          <tbody id="budgetBody">
-            <tr class="section-row">
-              <td>Medicina Preventiva, del Trabajo y Otros</td>
-              <td></td><td></td><td></td><td></td><td></td>
-              <td></td><td></td><td></td><td></td><td></td><td></td>
-              <td></td><td></td><td></td><td></td><td></td><td></td>
-            </tr>
-
-            <tr data-row-type="editable" data-section="medicina">
-              <td><input class="sst-input" type="text" value="Exámenes médicos (Emo, Paraclínicos y la…)"></td>
-              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-            </tr>
-
-            <tr data-row-type="editable" data-section="medicina">
-              <td><input class="sst-input" type="text" value="Vacunación"></td>
-              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-            </tr>
-
-            <tr data-row-type="editable" data-section="medicina">
-              <td><input class="sst-input" type="text" value="Compra medicamentos para el botiquín"></td>
-              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-            </tr>
-
-            <tr class="add-row-trigger" data-section="medicina">
-              <td colspan="18" class="add-row-cell">
-                <button type="button" class="add-row-btn-inline" onclick="addRowToSection('medicina', this)">
-                  <span class="plus">+</span> Agregar fila en Medicina Preventiva
-                </button>
-              </td>
-            </tr>
-
-            <tr class="section-row">
-              <td>Higiene Industrial y manejo ambiental</td>
-              <td></td><td></td><td></td><td></td><td></td>
-              <td></td><td></td><td></td><td></td><td></td><td></td>
-              <td></td><td></td><td></td><td></td><td></td><td></td>
-            </tr>
-
-            <tr data-row-type="editable" data-section="higiene">
-              <td><input class="sst-input" type="text" value="Mediciones de Higiene"></td>
-              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-            </tr>
-
-            <tr data-row-type="editable" data-section="higiene">
-              <td><input class="sst-input" type="text" value="Punto Ecológico"></td>
-              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-            </tr>
-
-            <tr data-row-type="editable" data-section="higiene">
-              <td><input class="sst-input" type="text" value="Tableros informativos"></td>
-              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-            </tr>
-
-            <tr class="add-row-trigger" data-section="higiene">
-              <td colspan="18" class="add-row-cell">
-                <button type="button" class="add-row-btn-inline" onclick="addRowToSection('higiene', this)">
-                  <span class="plus">+</span> Agregar fila en Higiene Industrial
-                </button>
-              </td>
-            </tr>
-
-            <tr class="section-row">
-              <td>Seguridad Industrial</td>
-              <td></td><td></td><td></td><td></td><td></td>
-              <td></td><td></td><td></td><td></td><td></td><td></td>
-              <td></td><td></td><td></td><td></td><td></td><td></td>
-            </tr>
-
-            <tr data-row-type="editable" data-section="seguridad">
-              <td><input class="sst-input" type="text" value="Compra Dotación Personal y EPP"></td>
-              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-            </tr>
-
-            <tr data-row-type="editable" data-section="seguridad">
-              <td><input class="sst-input" type="text" value="Compra y mantenimiento de extintores"></td>
-              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-              <td><input class="sst-input center" type="text"></td>
-            </tr>
-
-            <tr class="add-row-trigger" data-section="seguridad">
-              <td colspan="18" class="add-row-cell">
-                <button type="button" class="add-row-btn-inline" onclick="addRowToSection('seguridad', this)">
-                  <span class="plus">+</span> Agregar fila en Seguridad Industrial
-                </button>
-              </td>
-            </tr>
-          </tbody>
-
-          <tfoot>
-            <tr class="total-row">
-              <td>Total</td>
-              <td><input class="sst-input right orange" type="text" placeholder="0"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td><input class="sst-input right" type="text" placeholder="0"></td>
-              <td><input class="sst-input center" type="text" placeholder="0%"></td>
-              <td></td><td></td><td></td><td></td><td></td><td></td>
-              <td></td><td></td><td></td><td></td><td></td><td></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      <div class="signature-label">FIRMA DEL REPRESENTANTE LEGAL</div>
-
-      <div class="block-title">ANALISIS TENDENCIAL</div>
-
-      <div class="sst-table-wrap">
-        <table class="sst-table">
-          <colgroup>
-            <col style="width:22%">
-            <col span="12" style="width:6.5%">
-          </colgroup>
-
-          <thead>
-            <tr class="months">
-              <th class="center">MES</th>
-              <th>ENE</th><th>FEB</th><th>MAR</th><th>ABR</th><th>MAY</th><th>JUN</th>
-              <th>JUL</th><th>AGO</th><th>SEPT</th><th>OCT</th><th>NOV</th><th>DIC</th>
-            </tr>
-          </thead>
-
-          <tbody id="analysisBody">
-            <tr>
-              <td class="bold center">TOTAL</td>
-              <td><input class="sst-input center orange js-month" data-month="ENE" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange js-month" data-month="FEB" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange js-month" data-month="MAR" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange js-month" data-month="ABR" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange js-month" data-month="MAY" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange js-month" data-month="JUN" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange js-month" data-month="JUL" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange js-month" data-month="AGO" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange js-month" data-month="SEPT" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange js-month" data-month="OCT" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange js-month" data-month="NOV" type="text" placeholder="0"></td>
-              <td><input class="sst-input center orange js-month" data-month="DIC" type="text" placeholder="0"></td>
-            </tr>
-            <tr>
-              <td class="bold center">%</td>
-              <td><input class="sst-input center orange js-pct" data-month="ENE" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange js-pct" data-month="FEB" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange js-pct" data-month="MAR" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange js-pct" data-month="ABR" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange js-pct" data-month="MAY" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange js-pct" data-month="JUN" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange js-pct" data-month="JUL" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange js-pct" data-month="AGO" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange js-pct" data-month="SEPT" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange js-pct" data-month="OCT" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange js-pct" data-month="NOV" type="text" placeholder="0%"></td>
-              <td><input class="sst-input center orange js-pct" data-month="DIC" type="text" placeholder="0%"></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="block-title">ANALISIS TENDENCIAL</div>
-
-      <div class="row g-3 mt-1">
-        <div class="col-12 col-lg-8">
-          <div class="chart-box">
-            <div class="chart-title">PRESUPUESTO EJECUTADO 20XX</div>
-            <div class="chart-canvas-wrap">
-              <canvas id="budgetChart"></canvas>
+            <div class="semester">
+              <div class="t">II SEMESTRE</div>
+              <textarea name="analisis_semestre_2" placeholder="Escriba el análisis del segundo semestre..."></textarea>
             </div>
           </div>
         </div>
 
-        <div class="col-12 col-lg-4">
-          <div class="semester mb-3">
-            <div class="t">I SEMESTRE</div>
-            <textarea placeholder="Escriba el análisis del primer semestre..."></textarea>
-          </div>
-
-          <div class="semester">
-            <div class="t">II SEMESTRE</div>
-            <textarea placeholder="Escriba el análisis del segundo semestre..."></textarea>
-          </div>
-        </div>
       </div>
-
     </div>
-  </div>
+  </form>
 
   <script>
     const monthOrder = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEPT","OCT","NOV","DIC"];
@@ -942,8 +994,85 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     });
 
     updateChartAndPercents();
-  </script>
 
+    // LÓGICA DE CARGADO DE DATOS DINÁMICOS
+    document.addEventListener('DOMContentLoaded', function () {
+        let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
+        
+        if (typeof datosGuardados === 'string') {
+            try { datosGuardados = JSON.parse(datosGuardados); } 
+            catch(e) { console.error("No se pudo parsear el JSON de datosGuardados"); }
+        }
+        
+        if (datosGuardados && Object.keys(datosGuardados).length > 0) {
+            for (const [key, value] of Object.entries(datosGuardados)) {
+                const campo = document.querySelector(`[name="${key}"]`);
+                if (campo) {
+                    campo.value = typeof value === 'string' ? value.replace(/\\n/g, '\n') : value;
+                }
+            }
+        }
+    });
+
+    // LÓGICA DE GUARDADO MEDIANTE FETCH
+    document.getElementById('btnGuardar').addEventListener('click', async function() {
+        const btn = this;
+        const form = document.getElementById('form-sst-dinamico');
+        const formData = new FormData(form);
+        const datosJSON = Object.fromEntries(formData.entries());
+
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Guardando...';
+        btn.disabled = true;
+
+        try {
+            const token = "<?= $token ?>";
+            const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+            const response = await fetch(urlAPI, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    id_empresa: <?= $empresa ?>,
+                    id_item_sst: <?= $idItem ?>,
+                    datos: datosJSON
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.ok) {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'Configuración guardada correctamente',
+                    icon: 'success',
+                    confirmButtonColor: '#1fa339'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error al guardar',
+                    text: result.error || "No se pudo completar la operación.",
+                    icon: 'error',
+                    confirmButtonColor: '#004176'
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            Swal.fire({
+                title: 'Error de conexión',
+                text: 'No se pudo contactar al servidor para guardar.',
+                icon: 'error',
+                confirmButtonColor: '#004176'
+            });
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
+  </script>
 
 <script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>

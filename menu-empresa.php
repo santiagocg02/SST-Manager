@@ -124,9 +124,15 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       </h2>
       <div id="collapseSST" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
         <div class="accordion-body py-2">
+          <?php if (puedeVer(17, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
           <a href="pages-empresa/modulos/planear.php" target="contentFrame" class="admin-subitem">Planear </a>
+          <?php endif; ?>
+           <?php if (puedeVer(18, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
           <a href="pages-empresa/modulos/hacer.php" target="contentFrame" class="admin-subitem">Hacer</a>
+          <?php endif; ?>
+          <?php if (puedeVer(16, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
           <a href="pages-empresa/modulos/verificar.php" target="contentFrame" class="admin-subitem">Verificar</a>
+        <?php endif; ?>
         </div>
       </div>
     </div>

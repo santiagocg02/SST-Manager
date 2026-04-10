@@ -1,13 +1,47 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
 }
 
-function post_value($key, $default = '')
-{
-    return isset($_POST[$key]) ? htmlspecialchars((string)$_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos para la encuesta sociodemográfica
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 44; 
+
+// --- Lógica de Empresa (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
 }
 ?>
 <!DOCTYPE html>
@@ -18,6 +52,7 @@ function post_value($key, $default = '')
     <title>3.1.1-2 - Análisis Encuesta Perfil Sociodemográfico</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         *{
@@ -105,7 +140,6 @@ function post_value($key, $default = '')
         .logo-box{
             width:140px;
             height:65px;
-            border:2px dashed #c8c8c8;
             display:flex;
             align-items:center;
             justify-content:center;
@@ -129,17 +163,6 @@ function post_value($key, $default = '')
             margin:14px 0 18px;
             font-size:14px;
             font-style:italic;
-        }
-
-        .save-msg{
-            margin:0 0 15px 0;
-            padding:10px 14px;
-            border-radius:8px;
-            background:#e9f7ef;
-            color:#166534;
-            border:1px solid #b7e4c7;
-            font-size:14px;
-            font-weight:700;
         }
 
         .grid-analisis{
@@ -290,45 +313,45 @@ function post_value($key, $default = '')
 <body>
 
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>3.1.1-2 - Análisis Encuesta Perfil Sociodemográfico</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="formAnalisis">Guardar</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Cambios</button>
             <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
         </div>
     </div>
 
     <div class="formulario">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="formAnalisis" action="" method="POST">
-
+        <form id="formAnalisis">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:20%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:20%; padding: 0;">
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:60%;">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
                     <td style="width:20%; font-weight:700;">0</td>
                 </tr>
                 <tr>
                     <td class="subtitulo">ANÁLISIS ENCUESTA PARA EL PERFIL SOCIODEMOGRÁFICO</td>
-                    <td style="font-weight:700;">AN-SST-15<br>XX/XX/2025</td>
+                    <td style="font-weight:700;">AN-SST-15<br><?= date('d/m/Y') ?></td>
                 </tr>
             </table>
 
-            <p class="texto-info">Ingresa los datos de la tabulación para el análisis</p>
+            <p class="texto-info print-hide">Ingresa los datos de la tabulación para el análisis</p>
 
-            <div class="top-actions">
+            <div class="top-actions print-hide">
                 <button type="button" class="btn-small" onclick="recalcularTodo()">Actualizar análisis y gráficas</button>
             </div>
 
             <div class="grid-analisis">
 
-                <!-- 1 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -341,11 +364,11 @@ function post_value($key, $default = '')
                                 <li>e. 48 años o más</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="edad_1" name="edad_1" value="<?= post_value('edad_1','0') ?>"></td><td id="edad_1_pct">0%</td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="edad_2" name="edad_2" value="<?= post_value('edad_2','4') ?>"></td><td id="edad_2_pct">0%</td></tr>
-                                <tr><td>c</td><td><input type="number" min="0" id="edad_3" name="edad_3" value="<?= post_value('edad_3','2') ?>"></td><td id="edad_3_pct">0%</td></tr>
-                                <tr><td>d</td><td><input type="number" min="0" id="edad_4" name="edad_4" value="<?= post_value('edad_4','1') ?>"></td><td id="edad_4_pct">0%</td></tr>
-                                <tr><td>e</td><td><input type="number" min="0" id="edad_5" name="edad_5" value="<?= post_value('edad_5','0') ?>"></td><td id="edad_5_pct">0%</td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="edad_1" name="edad_1" value="0"></td><td id="edad_1_pct">0%</td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="edad_2" name="edad_2" value="4"></td><td id="edad_2_pct">0%</td></tr>
+                                <tr><td>c</td><td><input type="number" min="0" id="edad_3" name="edad_3" value="2"></td><td id="edad_3_pct">0%</td></tr>
+                                <tr><td>d</td><td><input type="number" min="0" id="edad_4" name="edad_4" value="1"></td><td id="edad_4_pct">0%</td></tr>
+                                <tr><td>e</td><td><input type="number" min="0" id="edad_5" name="edad_5" value="0"></td><td id="edad_5_pct">0%</td></tr>
                                 <tr><th colspan="2">TOTAL</th><th id="edad_total">0</th></tr>
                             </table>
                         </div>
@@ -354,7 +377,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_edad"></div>
                 </div>
 
-                <!-- 2 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -366,10 +388,10 @@ function post_value($key, $default = '')
                                 <li>d. Viudo(a)</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="civil_1" name="civil_1" value="<?= post_value('civil_1','3') ?>"></td><td id="civil_1_pct">0%</td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="civil_2" name="civil_2" value="<?= post_value('civil_2','2') ?>"></td><td id="civil_2_pct">0%</td></tr>
-                                <tr><td>c</td><td><input type="number" min="0" id="civil_3" name="civil_3" value="<?= post_value('civil_3','1') ?>"></td><td id="civil_3_pct">0%</td></tr>
-                                <tr><td>d</td><td><input type="number" min="0" id="civil_4" name="civil_4" value="<?= post_value('civil_4','1') ?>"></td><td id="civil_4_pct">0%</td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="civil_1" name="civil_1" value="3"></td><td id="civil_1_pct">0%</td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="civil_2" name="civil_2" value="2"></td><td id="civil_2_pct">0%</td></tr>
+                                <tr><td>c</td><td><input type="number" min="0" id="civil_3" name="civil_3" value="1"></td><td id="civil_3_pct">0%</td></tr>
+                                <tr><td>d</td><td><input type="number" min="0" id="civil_4" name="civil_4" value="1"></td><td id="civil_4_pct">0%</td></tr>
                                 <tr><th colspan="2">TOTAL</th><th id="civil_total">0</th></tr>
                             </table>
                         </div>
@@ -378,7 +400,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_civil"></div>
                 </div>
 
-                <!-- 3 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -388,8 +409,8 @@ function post_value($key, $default = '')
                                 <li>b. Femenino</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="genero_1" name="genero_1" value="<?= post_value('genero_1','2') ?>"></td><td id="genero_1_pct">0%</td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="genero_2" name="genero_2" value="<?= post_value('genero_2','5') ?>"></td><td id="genero_2_pct">0%</td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="genero_1" name="genero_1" value="2"></td><td id="genero_1_pct">0%</td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="genero_2" name="genero_2" value="5"></td><td id="genero_2_pct">0%</td></tr>
                                 <tr><th colspan="2">TOTAL</th><th id="genero_total">0</th></tr>
                             </table>
                         </div>
@@ -398,7 +419,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_genero"></div>
                 </div>
 
-                <!-- 4 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -410,10 +430,10 @@ function post_value($key, $default = '')
                                 <li>d. Más de 6 personas</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="cargo_1" name="cargo_1" value="<?= post_value('cargo_1','4') ?>"></td><td id="cargo_1_pct">0%</td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="cargo_2" name="cargo_2" value="<?= post_value('cargo_2','3') ?>"></td><td id="cargo_2_pct">0%</td></tr>
-                                <tr><td>c</td><td><input type="number" min="0" id="cargo_3" name="cargo_3" value="<?= post_value('cargo_3','0') ?>"></td><td id="cargo_3_pct">0%</td></tr>
-                                <tr><td>d</td><td><input type="number" min="0" id="cargo_4" name="cargo_4" value="<?= post_value('cargo_4','0') ?>"></td><td id="cargo_4_pct">0%</td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="cargo_1" name="cargo_1" value="4"></td><td id="cargo_1_pct">0%</td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="cargo_2" name="cargo_2" value="3"></td><td id="cargo_2_pct">0%</td></tr>
+                                <tr><td>c</td><td><input type="number" min="0" id="cargo_3" name="cargo_3" value="0"></td><td id="cargo_3_pct">0%</td></tr>
+                                <tr><td>d</td><td><input type="number" min="0" id="cargo_4" name="cargo_4" value="0"></td><td id="cargo_4_pct">0%</td></tr>
                                 <tr><th colspan="2">TOTAL</th><th id="cargo_total">0</th></tr>
                             </table>
                         </div>
@@ -422,7 +442,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_cargo"></div>
                 </div>
 
-                <!-- 5 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -435,11 +454,11 @@ function post_value($key, $default = '')
                                 <li>e. Especialista / Maestría</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="esc_1" name="esc_1" value="<?= post_value('esc_1','0') ?>"></td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="esc_2" name="esc_2" value="<?= post_value('esc_2','1') ?>"></td></tr>
-                                <tr><td>c</td><td><input type="number" min="0" id="esc_3" name="esc_3" value="<?= post_value('esc_3','4') ?>"></td></tr>
-                                <tr><td>d</td><td><input type="number" min="0" id="esc_4" name="esc_4" value="<?= post_value('esc_4','1') ?>"></td></tr>
-                                <tr><td>e</td><td><input type="number" min="0" id="esc_5" name="esc_5" value="<?= post_value('esc_5','1') ?>"></td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="esc_1" name="esc_1" value="0"></td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="esc_2" name="esc_2" value="1"></td></tr>
+                                <tr><td>c</td><td><input type="number" min="0" id="esc_3" name="esc_3" value="4"></td></tr>
+                                <tr><td>d</td><td><input type="number" min="0" id="esc_4" name="esc_4" value="1"></td></tr>
+                                <tr><td>e</td><td><input type="number" min="0" id="esc_5" name="esc_5" value="1"></td></tr>
                                 <tr><th>TOTAL</th><th id="esc_total">0</th></tr>
                             </table>
                         </div>
@@ -448,7 +467,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_esc"></div>
                 </div>
 
-                <!-- 6 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -460,10 +478,10 @@ function post_value($key, $default = '')
                                 <li>d. Compartida con otra(s) familia(s)</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="viv_1" name="viv_1" value="<?= post_value('viv_1','1') ?>"></td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="viv_2" name="viv_2" value="<?= post_value('viv_2','4') ?>"></td></tr>
-                                <tr><td>c</td><td><input type="number" min="0" id="viv_3" name="viv_3" value="<?= post_value('viv_3','1') ?>"></td></tr>
-                                <tr><td>d</td><td><input type="number" min="0" id="viv_4" name="viv_4" value="<?= post_value('viv_4','1') ?>"></td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="viv_1" name="viv_1" value="1"></td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="viv_2" name="viv_2" value="4"></td></tr>
+                                <tr><td>c</td><td><input type="number" min="0" id="viv_3" name="viv_3" value="1"></td></tr>
+                                <tr><td>d</td><td><input type="number" min="0" id="viv_4" name="viv_4" value="1"></td></tr>
                                 <tr><th>TOTAL</th><th id="viv_total">0</th></tr>
                             </table>
                         </div>
@@ -472,7 +490,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_viv"></div>
                 </div>
 
-                <!-- 7 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -485,11 +502,11 @@ function post_value($key, $default = '')
                                 <li>e. Ninguno</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="tiempo_1" name="tiempo_1" value="<?= post_value('tiempo_1','2') ?>"></td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="tiempo_2" name="tiempo_2" value="<?= post_value('tiempo_2','2') ?>"></td></tr>
-                                <tr><td>c</td><td><input type="number" min="0" id="tiempo_3" name="tiempo_3" value="<?= post_value('tiempo_3','3') ?>"></td></tr>
-                                <tr><td>d</td><td><input type="number" min="0" id="tiempo_4" name="tiempo_4" value="<?= post_value('tiempo_4','2') ?>"></td></tr>
-                                <tr><td>e</td><td><input type="number" min="0" id="tiempo_5" name="tiempo_5" value="<?= post_value('tiempo_5','0') ?>"></td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="tiempo_1" name="tiempo_1" value="2"></td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="tiempo_2" name="tiempo_2" value="2"></td></tr>
+                                <tr><td>c</td><td><input type="number" min="0" id="tiempo_3" name="tiempo_3" value="3"></td></tr>
+                                <tr><td>d</td><td><input type="number" min="0" id="tiempo_4" name="tiempo_4" value="2"></td></tr>
+                                <tr><td>e</td><td><input type="number" min="0" id="tiempo_5" name="tiempo_5" value="0"></td></tr>
                                 <tr><th>TOTAL</th><th id="tiempo_total">0</th></tr>
                             </table>
                         </div>
@@ -498,7 +515,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_tiempo"></div>
                 </div>
 
-                <!-- 8 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -511,11 +527,11 @@ function post_value($key, $default = '')
                                 <li>e. Más de 7 S.M.L.</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="ing_1" name="ing_1" value="<?= post_value('ing_1','2') ?>"></td><td id="ing_1_pct">0%</td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="ing_2" name="ing_2" value="<?= post_value('ing_2','5') ?>"></td><td id="ing_2_pct">0%</td></tr>
-                                <tr><td>c</td><td><input type="number" min="0" id="ing_3" name="ing_3" value="<?= post_value('ing_3','0') ?>"></td><td id="ing_3_pct">0%</td></tr>
-                                <tr><td>d</td><td><input type="number" min="0" id="ing_4" name="ing_4" value="<?= post_value('ing_4','0') ?>"></td><td id="ing_4_pct">0%</td></tr>
-                                <tr><td>e</td><td><input type="number" min="0" id="ing_5" name="ing_5" value="<?= post_value('ing_5','0') ?>"></td><td id="ing_5_pct">0%</td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="ing_1" name="ing_1" value="2"></td><td id="ing_1_pct">0%</td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="ing_2" name="ing_2" value="5"></td><td id="ing_2_pct">0%</td></tr>
+                                <tr><td>c</td><td><input type="number" min="0" id="ing_3" name="ing_3" value="0"></td><td id="ing_3_pct">0%</td></tr>
+                                <tr><td>d</td><td><input type="number" min="0" id="ing_4" name="ing_4" value="0"></td><td id="ing_4_pct">0%</td></tr>
+                                <tr><td>e</td><td><input type="number" min="0" id="ing_5" name="ing_5" value="0"></td><td id="ing_5_pct">0%</td></tr>
                                 <tr><th colspan="2">TOTAL</th><th id="ing_total">0</th></tr>
                             </table>
                         </div>
@@ -524,7 +540,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_ing"></div>
                 </div>
 
-                <!-- 9 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -537,11 +552,11 @@ function post_value($key, $default = '')
                                 <li>e. Más de 15 años</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="antemp_1" name="antemp_1" value="<?= post_value('antemp_1','1') ?>"></td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="antemp_2" name="antemp_2" value="<?= post_value('antemp_2','6') ?>"></td></tr>
-                                <tr><td>c</td><td><input type="number" min="0" id="antemp_3" name="antemp_3" value="<?= post_value('antemp_3','0') ?>"></td></tr>
-                                <tr><td>d</td><td><input type="number" min="0" id="antemp_4" name="antemp_4" value="<?= post_value('antemp_4','0') ?>"></td></tr>
-                                <tr><td>e</td><td><input type="number" min="0" id="antemp_5" name="antemp_5" value="<?= post_value('antemp_5','0') ?>"></td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="antemp_1" name="antemp_1" value="1"></td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="antemp_2" name="antemp_2" value="6"></td></tr>
+                                <tr><td>c</td><td><input type="number" min="0" id="antemp_3" name="antemp_3" value="0"></td></tr>
+                                <tr><td>d</td><td><input type="number" min="0" id="antemp_4" name="antemp_4" value="0"></td></tr>
+                                <tr><td>e</td><td><input type="number" min="0" id="antemp_5" name="antemp_5" value="0"></td></tr>
                                 <tr><th>TOTAL</th><th id="antemp_total">0</th></tr>
                             </table>
                         </div>
@@ -550,7 +565,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_antemp"></div>
                 </div>
 
-                <!-- 10 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -563,11 +577,11 @@ function post_value($key, $default = '')
                                 <li>e. Más de 15 años</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="antcar_1" name="antcar_1" value="<?= post_value('antcar_1','4') ?>"></td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="antcar_2" name="antcar_2" value="<?= post_value('antcar_2','3') ?>"></td></tr>
-                                <tr><td>c</td><td><input type="number" min="0" id="antcar_3" name="antcar_3" value="<?= post_value('antcar_3','0') ?>"></td></tr>
-                                <tr><td>d</td><td><input type="number" min="0" id="antcar_4" name="antcar_4" value="<?= post_value('antcar_4','0') ?>"></td></tr>
-                                <tr><td>e</td><td><input type="number" min="0" id="antcar_5" name="antcar_5" value="<?= post_value('antcar_5','0') ?>"></td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="antcar_1" name="antcar_1" value="4"></td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="antcar_2" name="antcar_2" value="3"></td></tr>
+                                <tr><td>c</td><td><input type="number" min="0" id="antcar_3" name="antcar_3" value="0"></td></tr>
+                                <tr><td>d</td><td><input type="number" min="0" id="antcar_4" name="antcar_4" value="0"></td></tr>
+                                <tr><td>e</td><td><input type="number" min="0" id="antcar_5" name="antcar_5" value="0"></td></tr>
                                 <tr><th>TOTAL</th><th id="antcar_total">0</th></tr>
                             </table>
                         </div>
@@ -576,7 +590,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_antcar"></div>
                 </div>
 
-                <!-- 11 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -589,11 +602,11 @@ function post_value($key, $default = '')
                                 <li>e. Honorarios/servicios profesionales</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="contr_1" name="contr_1" value="<?= post_value('contr_1','3') ?>"></td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="contr_2" name="contr_2" value="<?= post_value('contr_2','4') ?>"></td></tr>
-                                <tr><td>c</td><td><input type="number" min="0" id="contr_3" name="contr_3" value="<?= post_value('contr_3','0') ?>"></td></tr>
-                                <tr><td>d</td><td><input type="number" min="0" id="contr_4" name="contr_4" value="<?= post_value('contr_4','0') ?>"></td></tr>
-                                <tr><td>e</td><td><input type="number" min="0" id="contr_5" name="contr_5" value="<?= post_value('contr_5','0') ?>"></td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="contr_1" name="contr_1" value="3"></td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="contr_2" name="contr_2" value="4"></td></tr>
+                                <tr><td>c</td><td><input type="number" min="0" id="contr_3" name="contr_3" value="0"></td></tr>
+                                <tr><td>d</td><td><input type="number" min="0" id="contr_4" name="contr_4" value="0"></td></tr>
+                                <tr><td>e</td><td><input type="number" min="0" id="contr_5" name="contr_5" value="0"></td></tr>
                                 <tr><th>TOTAL</th><th id="contr_total">0</th></tr>
                             </table>
                         </div>
@@ -602,7 +615,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_contr"></div>
                 </div>
 
-                <!-- 12 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -617,13 +629,13 @@ function post_value($key, $default = '')
                                 <li>g. Ninguna</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>a</td><td><input type="number" min="0" id="salud_1" name="salud_1" value="<?= post_value('salud_1','0') ?>"></td></tr>
-                                <tr><td>b</td><td><input type="number" min="0" id="salud_2" name="salud_2" value="<?= post_value('salud_2','0') ?>"></td></tr>
-                                <tr><td>c</td><td><input type="number" min="0" id="salud_3" name="salud_3" value="<?= post_value('salud_3','0') ?>"></td></tr>
-                                <tr><td>d</td><td><input type="number" min="0" id="salud_4" name="salud_4" value="<?= post_value('salud_4','0') ?>"></td></tr>
-                                <tr><td>e</td><td><input type="number" min="0" id="salud_5" name="salud_5" value="<?= post_value('salud_5','0') ?>"></td></tr>
-                                <tr><td>f</td><td><input type="number" min="0" id="salud_6" name="salud_6" value="<?= post_value('salud_6','3') ?>"></td></tr>
-                                <tr><td>g</td><td><input type="number" min="0" id="salud_7" name="salud_7" value="<?= post_value('salud_7','0') ?>"></td></tr>
+                                <tr><td>a</td><td><input type="number" min="0" id="salud_1" name="salud_1" value="0"></td></tr>
+                                <tr><td>b</td><td><input type="number" min="0" id="salud_2" name="salud_2" value="0"></td></tr>
+                                <tr><td>c</td><td><input type="number" min="0" id="salud_3" name="salud_3" value="0"></td></tr>
+                                <tr><td>d</td><td><input type="number" min="0" id="salud_4" name="salud_4" value="0"></td></tr>
+                                <tr><td>e</td><td><input type="number" min="0" id="salud_5" name="salud_5" value="0"></td></tr>
+                                <tr><td>f</td><td><input type="number" min="0" id="salud_6" name="salud_6" value="3"></td></tr>
+                                <tr><td>g</td><td><input type="number" min="0" id="salud_7" name="salud_7" value="0"></td></tr>
                                 <tr><th>TOTAL</th><th id="salud_total">0</th></tr>
                             </table>
                         </div>
@@ -632,7 +644,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_salud"></div>
                 </div>
 
-                <!-- 13 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -646,12 +657,12 @@ function post_value($key, $default = '')
                                 <li>Ocasional</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>No</td><td><input type="number" min="0" id="alcohol_no" name="alcohol_no" value="<?= post_value('alcohol_no','3') ?>"></td></tr>
-                                <tr><td>Sí</td><td><input type="number" min="0" id="alcohol_si" name="alcohol_si" value="<?= post_value('alcohol_si','4') ?>"></td></tr>
-                                <tr><td>Semanal</td><td><input type="number" min="0" id="alcohol_sem" name="alcohol_sem" value="<?= post_value('alcohol_sem','0') ?>"></td></tr>
-                                <tr><td>Mensual</td><td><input type="number" min="0" id="alcohol_men" name="alcohol_men" value="<?= post_value('alcohol_men','2') ?>"></td></tr>
-                                <tr><td>Quincenal</td><td><input type="number" min="0" id="alcohol_qui" name="alcohol_qui" value="<?= post_value('alcohol_qui','2') ?>"></td></tr>
-                                <tr><td>Ocasional</td><td><input type="number" min="0" id="alcohol_oca" name="alcohol_oca" value="<?= post_value('alcohol_oca','3') ?>"></td></tr>
+                                <tr><td>No</td><td><input type="number" min="0" id="alcohol_no" name="alcohol_no" value="3"></td></tr>
+                                <tr><td>Sí</td><td><input type="number" min="0" id="alcohol_si" name="alcohol_si" value="4"></td></tr>
+                                <tr><td>Semanal</td><td><input type="number" min="0" id="alcohol_sem" name="alcohol_sem" value="0"></td></tr>
+                                <tr><td>Mensual</td><td><input type="number" min="0" id="alcohol_men" name="alcohol_men" value="2"></td></tr>
+                                <tr><td>Quincenal</td><td><input type="number" min="0" id="alcohol_qui" name="alcohol_qui" value="2"></td></tr>
+                                <tr><td>Ocasional</td><td><input type="number" min="0" id="alcohol_oca" name="alcohol_oca" value="3"></td></tr>
                                 <tr><th>TOTAL</th><th id="alcohol_total">0</th></tr>
                             </table>
                         </div>
@@ -660,7 +671,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_alcohol"></div>
                 </div>
 
-                <!-- 14 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -671,9 +681,9 @@ function post_value($key, $default = '')
                                 <li>Promedio diario</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>Sí</td><td><input type="number" min="0" id="fuma_si" name="fuma_si" value="<?= post_value('fuma_si','1') ?>"></td><td id="fuma_si_pct">0%</td></tr>
-                                <tr><td>No</td><td><input type="number" min="0" id="fuma_no" name="fuma_no" value="<?= post_value('fuma_no','6') ?>"></td><td id="fuma_no_pct">0%</td></tr>
-                                <tr><td>Promedio diario</td><td colspan="2"><input type="text" id="fuma_promedio" name="fuma_promedio" value="<?= post_value('fuma_promedio','') ?>"></td></tr>
+                                <tr><td>Sí</td><td><input type="number" min="0" id="fuma_si" name="fuma_si" value="1"></td><td id="fuma_si_pct">0%</td></tr>
+                                <tr><td>No</td><td><input type="number" min="0" id="fuma_no" name="fuma_no" value="6"></td><td id="fuma_no_pct">0%</td></tr>
+                                <tr><td>Promedio diario</td><td colspan="2"><input type="text" id="fuma_promedio" name="fuma_promedio" value=""></td></tr>
                                 <tr><th colspan="2">TOTAL</th><th id="fuma_total">0</th></tr>
                             </table>
                         </div>
@@ -682,7 +692,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_fuma"></div>
                 </div>
 
-                <!-- 15 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -692,8 +701,8 @@ function post_value($key, $default = '')
                                 <li>b. Sí</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>No</td><td><input type="number" min="0" id="cons_no" name="cons_no" value="<?= post_value('cons_no','0') ?>"></td></tr>
-                                <tr><td>Sí</td><td><input type="number" min="0" id="cons_si" name="cons_si" value="<?= post_value('cons_si','7') ?>"></td></tr>
+                                <tr><td>No</td><td><input type="number" min="0" id="cons_no" name="cons_no" value="0"></td></tr>
+                                <tr><td>Sí</td><td><input type="number" min="0" id="cons_si" name="cons_si" value="7"></td></tr>
                                 <tr><th>TOTAL</th><th id="cons_total">0</th></tr>
                             </table>
                         </div>
@@ -702,7 +711,6 @@ function post_value($key, $default = '')
                     <div class="analisis-texto" id="analisis_cons"></div>
                 </div>
 
-                <!-- 16 -->
                 <div class="bloque">
                     <div class="bloque-top">
                         <div>
@@ -717,13 +725,13 @@ function post_value($key, $default = '')
                                 <li>Ocasional</li>
                             </ul>
                             <table class="mini-tabla">
-                                <tr><td>No</td><td><input type="number" min="0" id="dep_no" name="dep_no" value="<?= post_value('dep_no','2') ?>"></td><td id="dep_no_pct">0%</td></tr>
-                                <tr><td>Sí</td><td><input type="number" min="0" id="dep_si" name="dep_si" value="<?= post_value('dep_si','5') ?>"></td><td id="dep_si_pct">0%</td></tr>
-                                <tr><td>Diario</td><td><input type="number" min="0" id="dep_dia" name="dep_dia" value="<?= post_value('dep_dia','0') ?>"></td><td></td></tr>
-                                <tr><td>Semanal</td><td><input type="number" min="0" id="dep_sem" name="dep_sem" value="<?= post_value('dep_sem','2') ?>"></td><td></td></tr>
-                                <tr><td>Quincenal</td><td><input type="number" min="0" id="dep_qui" name="dep_qui" value="<?= post_value('dep_qui','0') ?>"></td><td></td></tr>
-                                <tr><td>Mensual</td><td><input type="number" min="0" id="dep_men" name="dep_men" value="<?= post_value('dep_men','2') ?>"></td><td></td></tr>
-                                <tr><td>Ocasional</td><td><input type="number" min="0" id="dep_oca" name="dep_oca" value="<?= post_value('dep_oca','1') ?>"></td><td></td></tr>
+                                <tr><td>No</td><td><input type="number" min="0" id="dep_no" name="dep_no" value="2"></td><td id="dep_no_pct">0%</td></tr>
+                                <tr><td>Sí</td><td><input type="number" min="0" id="dep_si" name="dep_si" value="5"></td><td id="dep_si_pct">0%</td></tr>
+                                <tr><td>Diario</td><td><input type="number" min="0" id="dep_dia" name="dep_dia" value="0"></td><td></td></tr>
+                                <tr><td>Semanal</td><td><input type="number" min="0" id="dep_sem" name="dep_sem" value="2"></td><td></td></tr>
+                                <tr><td>Quincenal</td><td><input type="number" min="0" id="dep_qui" name="dep_qui" value="0"></td><td></td></tr>
+                                <tr><td>Mensual</td><td><input type="number" min="0" id="dep_men" name="dep_men" value="2"></td><td></td></tr>
+                                <tr><td>Ocasional</td><td><input type="number" min="0" id="dep_oca" name="dep_oca" value="1"></td><td></td></tr>
                                 <tr><th colspan="2">TOTAL</th><th id="dep_total">0</th></tr>
                             </table>
                         </div>
@@ -793,6 +801,7 @@ function updateChart(chartId, type, labels, data, titleText){
             labels: labels,
             datasets: [{
                 data: data,
+                backgroundColor: '#4a76a8',
                 borderWidth: 1
             }]
         },
@@ -1117,13 +1126,93 @@ function recalcularTodo(){
     recalcularDeporte();
 }
 
+// 3. CARGAR DATOS GUARDADOS DESDE LA API AL INICIAR
+document.addEventListener('DOMContentLoaded', function() {
+    const datosGuardados = <?= json_encode($datosCampos ?: []) ?>;
+    
+    // Poblar los inputs con los datos si existen
+    if (datosGuardados && Object.keys(datosGuardados).length > 0) {
+        for (const [key, value] of Object.entries(datosGuardados)) {
+            const input = document.getElementsByName(key)[0];
+            if (input) {
+                input.value = value;
+            }
+        }
+    }
+    
+    // Iniciar gráficas y análisis
+    recalcularTodo();
+});
+
+// 4. ACTUALIZAR EN TIEMPO REAL
 document.addEventListener('input', function(e){
     if (e.target.matches('input')) {
         recalcularTodo();
     }
 });
 
-recalcularTodo();
+// 5. GUARDAR DATOS EN LA BASE DE DATOS
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('formAnalisis');
+    const formData = new FormData(form);
+    
+    // Convertir FormData a un objeto JSON
+    const datosJSON = {};
+    for (const [key, value] of formData.entries()) {
+        datosJSON[key] = value;
+    }
+
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer <?= $token ?>'
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'Análisis guardado correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+    }
+});
+
 </script>
 
 </body>

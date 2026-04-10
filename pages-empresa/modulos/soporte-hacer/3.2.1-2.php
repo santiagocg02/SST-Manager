@@ -1,13 +1,57 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
 }
 
-function oldv($key, $default = '')
-{
-    return isset($_POST[$key]) ? htmlspecialchars((string)$_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu BD (ej: 51 para Investigación Accidentes)
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 51; 
+
+// --- Lógica de Empresa (Logo y Datos) ---
+$logoEmpresaUrl = "";
+$nombreEmpresaDefault = "";
+
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        
+        if (!empty($empData['nombre_empresa'])) $nombreEmpresaDefault = $empData['nombre_empresa'];
+        if (!empty($empData['logo_url'])) $logoEmpresaUrl = $empData['logo_url'];
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = $resFormulario['data']['data']['campos'] ?? $resFormulario['data']['campos'] ?? $resFormulario['campos'] ?? null;
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true) ?: [];
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// 3. FUNCIONES PARA LEER DATOS
+function oldv($key, $default = '') {
+    global $datosCampos;
+    if (isset($datosCampos[$key]) && $datosCampos[$key] !== '') {
+        return htmlspecialchars((string)$datosCampos[$key], ENT_QUOTES, 'UTF-8');
+    }
+    return htmlspecialchars((string)$default, ENT_QUOTES, 'UTF-8');
+}
+
+function isChecked($key) {
+    global $datosCampos;
+    return (isset($datosCampos[$key]) && $datosCampos[$key] == '1') ? 'checked' : '';
 }
 ?>
 <!DOCTYPE html>
@@ -16,6 +60,9 @@ function oldv($key, $default = '')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3.2.1-2 - Investigación de Accidentes / Incidentes</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         *{
             box-sizing:border-box;
@@ -110,7 +157,6 @@ function oldv($key, $default = '')
         .logo-box{
             width:140px;
             height:65px;
-            border:2px dashed #c8c8c8;
             display:flex;
             align-items:center;
             justify-content:center;
@@ -128,17 +174,6 @@ function oldv($key, $default = '')
 
         .subtitulo{
             font-size:14px;
-        }
-
-        .save-msg{
-            margin:0 0 15px 0;
-            padding:10px 14px;
-            border-radius:8px;
-            background:#e9f7ef;
-            color:#166534;
-            border:1px solid #b7e4c7;
-            font-size:14px;
-            font-weight:700;
         }
 
         .seccion{
@@ -275,8 +310,8 @@ function oldv($key, $default = '')
                 padding:0;
             }
 
-            .toolbar{
-                display:none;
+            .toolbar, .print-hide{
+                display:none !important;
             }
 
             .contenedor{
@@ -299,32 +334,34 @@ function oldv($key, $default = '')
 <body>
 
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>3.2.1-2 - Investigación de Accidentes / Incidentes</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="form3212">Guardar</button>
-            <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar</button>
+            <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir PDF</button>
         </div>
     </div>
 
     <div class="formulario">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="form3212" method="POST" action="">
+        <form id="form3212">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:20%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:20%; padding:0;">
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:60%;">SISTEMA DE GESTIÓN EN SEGURIDAD Y SALUD EN EL TRABAJO</td>
                     <td style="width:20%; font-weight:700;">0</td>
                 </tr>
                 <tr>
                     <td class="subtitulo">INVESTIGACIÓN DE ACCIDENTES / INCIDENTES</td>
-                    <td style="font-weight:700;">RE-SST-10<br>XX/XX/2025</td>
+                    <td style="font-weight:700;">RE-SST-10<br><?= date('d/m/Y') ?></td>
                 </tr>
             </table>
 
@@ -343,15 +380,15 @@ function oldv($key, $default = '')
                         <td colspan="2">
                             <strong>Tipo de evento</strong>
                             <div class="checks-inline" style="margin-top:8px;">
-                                <label><input type="checkbox" name="accidente" value="1" <?= isset($_POST['accidente']) ? 'checked' : '' ?>> Accidente</label>
-                                <label><input type="checkbox" name="incidente" value="1" <?= isset($_POST['incidente']) ? 'checked' : '' ?>> Incidente</label>
+                                <label><input type="checkbox" name="accidente" value="1" <?= isChecked('accidente') ?>> Accidente</label>
+                                <label><input type="checkbox" name="incidente" value="1" <?= isChecked('incidente') ?>> Incidente</label>
                             </div>
                         </td>
                         <td colspan="2">
                             <strong>Zona</strong>
                             <div class="checks-inline" style="margin-top:8px;">
-                                <label><input type="checkbox" name="urbana" value="1" <?= isset($_POST['urbana']) ? 'checked' : '' ?>> Urbana</label>
-                                <label><input type="checkbox" name="rural" value="1" <?= isset($_POST['rural']) ? 'checked' : '' ?>> Rural</label>
+                                <label><input type="checkbox" name="urbana" value="1" <?= isChecked('urbana') ?>> Urbana</label>
+                                <label><input type="checkbox" name="rural" value="1" <?= isChecked('rural') ?>> Rural</label>
                             </div>
                         </td>
                         <td colspan="2"><strong>Fecha investigación</strong><br><input type="date" name="fecha_investigacion" value="<?= oldv('fecha_investigacion') ?>"></td>
@@ -377,10 +414,10 @@ function oldv($key, $default = '')
                         <td colspan="2">
                             <strong>Tipo de vinculación</strong>
                             <div class="checks-inline" style="margin-top:8px;">
-                                <label><input type="checkbox" name="tv_mision" value="1" <?= isset($_POST['tv_mision']) ? 'checked' : '' ?>> Misión</label>
-                                <label><input type="checkbox" name="tv_independiente" value="1" <?= isset($_POST['tv_independiente']) ? 'checked' : '' ?>> Independiente</label>
-                                <label><input type="checkbox" name="tv_estudiante" value="1" <?= isset($_POST['tv_estudiante']) ? 'checked' : '' ?>> Estudiante o aprendiz</label>
-                                <label><input type="checkbox" name="tv_contratista" value="1" <?= isset($_POST['tv_contratista']) ? 'checked' : '' ?>> Contratista</label>
+                                <label><input type="checkbox" name="tv_mision" value="1" <?= isChecked('tv_mision') ?>> Misión</label>
+                                <label><input type="checkbox" name="tv_independiente" value="1" <?= isChecked('tv_independiente') ?>> Independiente</label>
+                                <label><input type="checkbox" name="tv_estudiante" value="1" <?= isChecked('tv_estudiante') ?>> Estudiante o aprendiz</label>
+                                <label><input type="checkbox" name="tv_contratista" value="1" <?= isChecked('tv_contratista') ?>> Contratista</label>
                             </div>
                         </td>
                     </tr>
@@ -388,8 +425,8 @@ function oldv($key, $default = '')
                         <td colspan="3">
                             <strong>Inducción</strong>
                             <div class="checks-inline" style="margin-top:8px;">
-                                <label><input type="checkbox" name="induccion_si" value="1" <?= isset($_POST['induccion_si']) ? 'checked' : '' ?>> Sí</label>
-                                <label><input type="checkbox" name="induccion_no" value="1" <?= isset($_POST['induccion_no']) ? 'checked' : '' ?>> No</label>
+                                <label><input type="checkbox" name="induccion_si" value="1" <?= isChecked('induccion_si') ?>> Sí</label>
+                                <label><input type="checkbox" name="induccion_no" value="1" <?= isChecked('induccion_no') ?>> No</label>
                             </div>
                         </td>
                         <td colspan="3"><strong>Consecuencia / Lesión</strong><br><input type="text" name="lesion" value="<?= oldv('lesion') ?>"></td>
@@ -471,14 +508,14 @@ function oldv($key, $default = '')
                                     $name = 'contacto_' . $i;
                                 ?>
                                     <label>
-                                        <input type="checkbox" name="<?= $name ?>" value="1" <?= isset($_POST[$name]) ? 'checked' : '' ?>>
+                                        <input type="checkbox" name="<?= $name ?>" value="1" <?= isChecked($name) ?>>
                                         <span><?= htmlspecialchars($texto, ENT_QUOTES, 'UTF-8') ?></span>
                                     </label>
                                 <?php endforeach; ?>
                             </div>
                             <div style="margin-top:10px;">
                                 <strong>Otro / detalle:</strong>
-                                <input type="text" name="contacto_otro" value="<?= oldv('contacto_otro') ?>" style="width:100%; border:none; border-bottom:1px solid #8c8c8c; margin-top:6px; padding:6px 4px;">
+                                <input type="text" name="contacto_otro" value="<?= oldv('contacto_otro') ?>" style="width:100%; border:none; border-bottom:1px solid #8c8c8c; margin-top:6px; padding:6px 4px; background:transparent;">
                             </div>
                         </td>
                     </tr>
@@ -611,8 +648,8 @@ function oldv($key, $default = '')
                 </table>
             </div>
 
-            <div class="nota">
-                Adjuntar copia del FURAT para la investigación del accidente. Este formato fue estructurado con base en el archivo cargado del documento 3.2.1-2, que incluye antecedentes del trabajador, equipo investigador, tipo de contacto, causas inmediatas, causas básicas, plan de acción y seguimiento de la investigación. :contentReference[oaicite:1]{index=1}
+            <div class="nota print-hide">
+                Adjuntar copia del FURAT para la investigación del accidente. Este formato fue estructurado para incluir antecedentes del trabajador, equipo investigador, tipo de contacto, causas inmediatas, causas básicas, plan de acción y seguimiento de la investigación.
             </div>
         </form>
     </div>
@@ -631,6 +668,75 @@ document.addEventListener('DOMContentLoaded', function () {
             autoResizeTextarea(this);
         });
     });
+});
+
+// Guardado del formulario vía Fetch
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('form3212');
+    const formData = new FormData(form);
+    
+    // Capturar checkboxes no marcados (por defecto FormData los ignora)
+    const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        if (!cb.checked) {
+            formData.append(cb.name, '0');
+        }
+    });
+
+    // Construir el objeto JSON
+    const datosJSON = Object.fromEntries(formData.entries());
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'La investigación ha sido guardada correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 });
 </script>
 

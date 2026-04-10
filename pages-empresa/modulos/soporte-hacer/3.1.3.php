@@ -1,15 +1,44 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
 }
 
-function old($key, $default = '')
-{
-    return isset($_POST[$key]) ? htmlspecialchars((string)$_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
+function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu BD (ej: 46 para Profesiograma)
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 46; 
+
+// --- Lógica de Empresa (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
 }
 
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = $resFormulario['data']['data']['campos'] ?? $resFormulario['data']['campos'] ?? $resFormulario['campos'] ?? null;
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true) ?: [];
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// Matriz base por defecto
 $filasDefault = [
     [
         'cargo' => 'Cargo de Gerente',
@@ -97,6 +126,9 @@ $examCols = [
     'frotis_unas' => 'Frotis de uñas',
     'frotis_faringeo' => 'Frotis faríngeo',
 ];
+
+// Función para inicializar datos, da prioridad a la BD, sino usa los defaults
+$isSaved = !empty($datosCampos);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -104,267 +136,89 @@ $examCols = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3.1.3 - Profesiograma</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
-        *{
-            box-sizing:border-box;
-            margin:0;
-            padding:0;
-            font-family:Arial, Helvetica, sans-serif;
-        }
-        body{
-            background:#f2f4f7;
-            padding:20px;
-            color:#111;
-        }
-        .contenedor{
-            max-width:1700px;
-            margin:0 auto;
-            background:#fff;
-            border:1px solid #bfc7d1;
-            box-shadow:0 4px 18px rgba(0,0,0,.08);
-        }
-        .toolbar{
-            position:sticky;
-            top:0;
-            z-index:100;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            flex-wrap:wrap;
-            gap:12px;
-            padding:14px 18px;
-            background:#dde7f5;
-            border-bottom:1px solid #c8d3e2;
-        }
-        .toolbar h1{
-            font-size:20px;
-            color:#213b67;
-            font-weight:700;
-        }
-        .acciones{
-            display:flex;
-            gap:10px;
-            flex-wrap:wrap;
-        }
-        .btn{
-            border:none;
-            padding:10px 18px;
-            border-radius:8px;
-            font-size:14px;
-            font-weight:700;
-            cursor:pointer;
-            transition:.2s ease;
-        }
-        .btn:hover{
-            transform:translateY(-1px);
-            opacity:.95;
-        }
+        *{ box-sizing:border-box; margin:0; padding:0; font-family:Arial, Helvetica, sans-serif; }
+        body{ background:#f2f4f7; padding:20px; color:#111; }
+        .contenedor{ max-width:1700px; margin:0 auto; background:#fff; border:1px solid #bfc7d1; box-shadow:0 4px 18px rgba(0,0,0,.08); }
+        .toolbar{ position:sticky; top:0; z-index:100; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:14px 18px; background:#dde7f5; border-bottom:1px solid #c8d3e2; }
+        .toolbar h1{ font-size:20px; color:#213b67; font-weight:700; }
+        .acciones{ display:flex; gap:10px; flex-wrap:wrap; }
+        .btn{ border:none; padding:10px 18px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; transition:.2s ease; }
+        .btn:hover{ transform:translateY(-1px); opacity:.95; }
         .btn-guardar{ background:#198754; color:#fff; }
         .btn-atras{ background:#6c757d; color:#fff; }
         .btn-imprimir{ background:#0d6efd; color:#fff; }
+        .formulario{ padding:18px; }
+        table{ width:100%; border-collapse:collapse; }
+        .encabezado td, .encabezado th{ border:1px solid #6b6b6b; padding:10px; text-align:center; vertical-align:middle; }
+        .logo-box{ width:140px; height:65px; display:flex; align-items:center; justify-content:center; margin:auto; color:#999; font-weight:bold; font-size:14px; text-align:center; }
+        .titulo-principal{ font-size:16px; font-weight:700; }
+        .subtitulo{ font-size:14px; }
+        
+        .tabla-wrap{ margin-top:16px; overflow:auto; border:1px solid #6b6b6b; }
+        .pro-table{ min-width:1650px; font-size:12px; }
+        .pro-table th, .pro-table td{ border:1px solid #6b6b6b; padding:6px; vertical-align:top; }
+        .pro-table thead th{ text-align:center; background:#f4f6fa; position:sticky; top:0; z-index:2; }
+        .col-cargo{ width:180px; } .col-riesgo{ width:360px; } .col-pve{ width:190px; } .col-exam{ width:70px; text-align:center; vertical-align:middle !important; }
+        
+        textarea{ width:100%; min-height:110px; resize:none; overflow:hidden; border:none; outline:none; font-size:12px; line-height:1.4; white-space:pre-wrap; word-break:break-word; background: transparent;}
+        textarea:focus { background: #f8fbff; }
+        .cargo-input{ min-height:60px; }
+        .check-cell{ text-align:center; vertical-align:middle !important; }
+        .check-cell input{ transform:scale(1.1); cursor:pointer; }
+        
+        .firmas{ margin-top:18px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; }
+        .firma-box label{ display:block; font-weight:700; margin-bottom:6px; font-size:14px; }
+        .firma-box input, .firma-box textarea{ width:100%; border:1px solid #9ea9b8; border-radius:6px; padding:10px; font-size:14px; min-height:auto; outline:none;}
+        .firma-box input:focus, .firma-box textarea:focus { border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13,110,253,.25); }
+        .nota{ margin-top:16px; padding:12px; border:1px solid #d9d9d9; background:#fafafa; font-size:13px; line-height:1.5; font-weight:700; }
 
-        .formulario{
-            padding:18px;
-        }
-        table{
-            width:100%;
-            border-collapse:collapse;
-        }
-        .encabezado td, .encabezado th{
-            border:1px solid #6b6b6b;
-            padding:10px;
-            text-align:center;
-            vertical-align:middle;
-        }
-        .logo-box{
-            width:140px;
-            height:65px;
-            border:2px dashed #c8c8c8;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            margin:auto;
-            color:#999;
-            font-weight:bold;
-            font-size:14px;
-            text-align:center;
-        }
-        .titulo-principal{
-            font-size:16px;
-            font-weight:700;
-        }
-        .subtitulo{
-            font-size:14px;
-        }
-
-        .alerta-ok{
-            margin:14px 0;
-            padding:10px 14px;
-            border:1px solid #b7e4c7;
-            background:#e9f7ef;
-            color:#166534;
-            border-radius:8px;
-            font-size:14px;
-            font-weight:700;
-        }
-
-        .tabla-wrap{
-            margin-top:16px;
-            overflow:auto;
-            border:1px solid #6b6b6b;
-        }
-
-        .pro-table{
-            min-width:1650px;
-            font-size:12px;
-        }
-
-        .pro-table th,
-        .pro-table td{
-            border:1px solid #6b6b6b;
-            padding:6px;
-            vertical-align:top;
-        }
-
-        .pro-table thead th{
-            text-align:center;
-            background:#f4f6fa;
-            position:sticky;
-            top:0;
-            z-index:2;
-        }
-
-        .col-cargo{ width:180px; }
-        .col-riesgo{ width:360px; }
-        .col-pve{ width:190px; }
-        .col-exam{ width:70px; text-align:center; vertical-align:middle !important; }
-
-        textarea{
-    width:100%;
-    min-height:110px;
-    resize:none;
-    overflow:hidden;
-    border:none;
-    outline:none;
-    font-size:12px;
-    line-height:1.4;
-    white-space:pre-wrap;
-    word-break:break-word;
-}
-        .cargo-input{
-            min-height:60px;
-        }
-
-        .check-cell{
-            text-align:center;
-            vertical-align:middle !important;
-        }
-
-        .check-cell input{
-            transform:scale(1.1);
-            cursor:pointer;
-        }
-
-        .firmas{
-            margin-top:18px;
-            display:grid;
-            grid-template-columns:1fr 1fr 1fr;
-            gap:18px;
-        }
-
-        .firma-box label{
-            display:block;
-            font-weight:700;
-            margin-bottom:6px;
-            font-size:14px;
-        }
-
-        .firma-box input,
-        .firma-box textarea{
-            width:100%;
-            border:1px solid #9ea9b8;
-            border-radius:6px;
-            padding:10px;
-            font-size:14px;
-            min-height:auto;
-        }
-
-        .nota{
-            margin-top:16px;
-            padding:12px;
-            border:1px solid #d9d9d9;
-            background:#fafafa;
-            font-size:13px;
-            line-height:1.5;
-            font-weight:700;
-        }
-
-        @media (max-width: 1100px){
-            .firmas{
-                grid-template-columns:1fr;
-            }
-        }
-
+        @media (max-width: 1100px){ .firmas{ grid-template-columns:1fr; } }
         @media print{
-            body{
-                background:#fff;
-                padding:0;
-            }
-            .toolbar{
-                display:none;
-            }
-            .contenedor{
-                box-shadow:none;
-                border:none;
-            }
-            .formulario{
-                padding:8px;
-            }
-            .tabla-wrap{
-                overflow:visible;
-                border:none;
-            }
-            .pro-table{
-                min-width:unset;
-                width:100%;
-                font-size:10px;
-            }
-            textarea,
-            input{
-                border:none !important;
-            }
+            body{ background:#fff; padding:0; }
+            .toolbar, .print-hide{ display:none !important; }
+            .contenedor{ box-shadow:none; border:none; }
+            .formulario{ padding:8px; }
+            .tabla-wrap{ overflow:visible; border:none; }
+            .pro-table{ min-width:unset; width:100%; font-size:10px; }
+            textarea, input{ border:none !important; background:transparent !important; }
         }
     </style>
 </head>
 <body>
 
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>3.1.3 - Profesiograma</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="formProfesiograma">Guardar</button>
-            <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Cambios</button>
+            <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir PDF</button>
         </div>
     </div>
 
     <div class="formulario">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="alerta-ok">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="formProfesiograma" method="POST" action="">
+        <form id="formProfesiograma">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:20%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:20%; padding:0;">
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:60%;">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
                     <td style="width:20%; font-weight:700;">0</td>
                 </tr>
                 <tr>
                     <td class="subtitulo">PROFESIOGRAMA</td>
-                    <td style="font-weight:700;">AN-SST-11<br>XX/XX/2025</td>
+                    <td style="font-weight:700;">AN-SST-11<br><?= date('d/m/Y') ?></td>
                 </tr>
             </table>
 
@@ -381,24 +235,32 @@ $examCols = [
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($filasDefault as $i => $fila): ?>
+                        <?php foreach ($filasDefault as $i => $fila): 
+                            // Lógica de carga: Si hay datos guardados los usa, si no, usa el default
+                            $valCargo  = $isSaved ? ($datosCampos["cargo_$i"] ?? '') : $fila['cargo'];
+                            $valRiesgo = $isSaved ? ($datosCampos["riesgo_$i"] ?? '') : $fila['riesgo'];
+                            $valPve    = $isSaved ? ($datosCampos["pve_$i"] ?? '') : $fila['pve'];
+                        ?>
                             <tr>
                                 <td class="col-cargo">
-                                    <textarea class="cargo-input" name="cargo_<?= $i ?>"><?= old("cargo_$i", $fila['cargo']) ?></textarea>
+                                    <textarea class="cargo-input" name="cargo_<?= $i ?>"><?= e($valCargo) ?></textarea>
                                 </td>
                                 <td class="col-riesgo">
-                                    <textarea name="riesgo_<?= $i ?>"><?= old("riesgo_$i", $fila['riesgo']) ?></textarea>
+                                    <textarea name="riesgo_<?= $i ?>"><?= e($valRiesgo) ?></textarea>
                                 </td>
                                 <td class="col-pve">
-                                    <textarea name="pve_<?= $i ?>"><?= old("pve_$i", $fila['pve']) ?></textarea>
+                                    <textarea name="pve_<?= $i ?>"><?= e($valPve) ?></textarea>
                                 </td>
-                                <?php foreach ($examCols as $key => $label): ?>
-                                    <?php
-                                    $checkedDefault = in_array($key, $fila['examenes'], true);
-                                    $checked = isset($_POST["chk_{$i}_{$key}"]) ? true : $checkedDefault;
-                                    ?>
+                                <?php foreach ($examCols as $key => $label): 
+                                    // Logica de Checkbox
+                                    if ($isSaved) {
+                                        $checked = isset($datosCampos["chk_{$i}_{$key}"]) ? 'checked' : '';
+                                    } else {
+                                        $checked = in_array($key, $fila['examenes'], true) ? 'checked' : '';
+                                    }
+                                ?>
                                     <td class="check-cell col-exam">
-                                        <input type="checkbox" name="chk_<?= $i ?>_<?= $key ?>" value="1" <?= $checked ? 'checked' : '' ?>>
+                                        <input type="checkbox" name="chk_<?= $i ?>_<?= $key ?>" value="1" <?= $checked ?>>
                                     </td>
                                 <?php endforeach; ?>
                             </tr>
@@ -407,29 +269,29 @@ $examCols = [
                 </table>
             </div>
 
-            <div class="firmas">
+            <div class="firmas print-hide">
                 <div class="firma-box">
                     <label for="nombre_responsable">Nombre</label>
-                    <input type="text" id="nombre_responsable" name="nombre_responsable" value="<?= old('nombre_responsable', '') ?>">
+                    <input type="text" id="nombre_responsable" name="nombre_responsable" value="<?= e($datosCampos['nombre_responsable'] ?? '') ?>">
                 </div>
                 <div class="firma-box">
                     <label for="revision_hseq">Revisión HSEQ</label>
-                    <input type="text" id="revision_hseq" name="revision_hseq" value="<?= old('revision_hseq', '') ?>">
+                    <input type="text" id="revision_hseq" name="revision_hseq" value="<?= e($datosCampos['revision_hseq'] ?? '') ?>">
                 </div>
                 <div class="firma-box">
                     <label for="licencia_so">Licencia en Salud Ocupacional</label>
-                    <input type="text" id="licencia_so" name="licencia_so" value="<?= old('licencia_so', '') ?>">
+                    <input type="text" id="licencia_so" name="licencia_so" value="<?= e($datosCampos['licencia_so'] ?? '') ?>">
                 </div>
             </div>
 
-            <div class="firmas" style="margin-top:12px;">
+            <div class="firmas print-hide" style="margin-top:12px;">
                 <div class="firma-box">
                     <label for="firma_nombre">Firma Nombre</label>
-                    <input type="text" id="firma_nombre" name="firma_nombre" value="<?= old('firma_nombre', '') ?>">
+                    <input type="text" id="firma_nombre" name="firma_nombre" value="<?= e($datosCampos['firma_nombre'] ?? '') ?>">
                 </div>
                 <div class="firma-box" style="grid-column: span 2;">
                     <label for="observaciones">Observaciones</label>
-                    <textarea id="observaciones" name="observaciones" style="min-height:70px; border:1px solid #9ea9b8; border-radius:6px; padding:10px;"><?= old('observaciones', '') ?></textarea>
+                    <textarea id="observaciones" name="observaciones" style="min-height:70px;"><?= e($datosCampos['observaciones'] ?? '') ?></textarea>
                 </div>
             </div>
 
@@ -441,21 +303,81 @@ $examCols = [
 </div>
 
 <script>
+// Ajustar tamaño textareas
 function autoResizeTextarea(el) {
     el.style.height = 'auto';
-    el.style.height = el.scrollHeight + 'px';
+    el.style.height = (el.scrollHeight + 5) + 'px'; // +5 para evitar saltos en algunos navegadores
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     const textareas = document.querySelectorAll('textarea');
-
     textareas.forEach(textarea => {
         autoResizeTextarea(textarea);
-
         textarea.addEventListener('input', function () {
             autoResizeTextarea(this);
         });
     });
+});
+
+// Guardar datos mediante Fetch API
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('formProfesiograma');
+    const formData = new FormData(form);
+    
+    // Convertir FormData a un objeto JSON
+    const datosJSON = Object.fromEntries(formData.entries());
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'Profesiograma guardado correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 });
 </script>
 

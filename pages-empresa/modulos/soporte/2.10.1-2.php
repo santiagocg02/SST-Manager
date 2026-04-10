@@ -1,10 +1,50 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     header("Location: ../../../index.php");
     exit;
 }
+
 function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos (Ej: 37 para esta Lista de Chequeo)
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 37; 
+
+// --- Lógica de Empresa Optimizada (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE A LA API
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
 
 $bloque1 = [
     "Certificación expedida por su ARL en donde se evidencie el porcentaje de avance del SG SST, según la última revisión realizada y el nivel de riesgo al cual se encuentra expuesto",
@@ -41,6 +81,7 @@ $bloque2 = [
     <title>RE-SST-15 | Lista de chequeo para verificación de requerimientos generales del SG-SST para persona jurídicas</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         :root{
@@ -55,6 +96,8 @@ $bloque2 = [
             --muted:#6b7280;
             --btn:#0d6efd;
             --btn-hover:#0b5ed7;
+            --green:#198754;
+            --green-hover:#146c43;
         }
 
         *{ box-sizing:border-box; }
@@ -68,6 +111,8 @@ $bloque2 = [
 
         .page-wrap{
             padding:20px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .topbar{
@@ -77,6 +122,10 @@ $bloque2 = [
             gap:12px;
             flex-wrap:wrap;
             margin-bottom:16px;
+            background: #d9dde2;
+            padding: 10px 16px;
+            border: 1px solid #c8cdd3;
+            border-radius: 6px;
         }
 
         .topbar-left,
@@ -92,51 +141,40 @@ $bloque2 = [
             align-items:center;
             justify-content:center;
             gap:8px;
-            padding:9px 16px;
-            border-radius:10px;
+            padding:6px 12px;
+            border-radius:6px;
             border:1px solid var(--btn);
             background:var(--btn);
             color:#fff;
             text-decoration:none;
-            font-size:14px;
-            font-weight:700;
+            font-size:12px;
+            font-weight:800;
             transition:.2s ease;
             cursor:pointer;
-            box-shadow:0 4px 14px rgba(13,110,253,.15);
         }
 
-        .btn-ui:hover{
-            background:var(--btn-hover);
-            border-color:var(--btn-hover);
-            color:#fff;
-        }
+        .btn-ui:hover{ background:var(--btn-hover); border-color:var(--btn-hover); color:#fff; }
 
-        .btn-ui.secondary{
-            background:#fff;
-            color:var(--btn);
-        }
+        .btn-ui.secondary{ background:#fff; color:var(--btn); border-color:#cfd6e4; }
+        .btn-ui.secondary:hover{ background:#eef5ff; color:var(--btn-hover); }
 
-        .btn-ui.secondary:hover{
-            background:#eef5ff;
-            color:var(--btn-hover);
-        }
+        .btn-ui.success { background:var(--green); border-color:var(--green); color:#fff; }
+        .btn-ui.success:hover { background:var(--green-hover); }
 
         .badge-format{
             font-size:12px;
-            color:var(--muted);
-            background:#fff;
-            border:1px solid #d8dee6;
-            padding:7px 12px;
-            border-radius:999px;
-            font-weight:700;
+            color:#0f2f5c;
+            background:transparent;
+            font-weight:900;
         }
 
         .sheet-card{
             background:var(--paper);
             border:1px solid #d7dee6;
-            border-radius:18px;
+            border-radius:14px;
             overflow:hidden;
-            box-shadow:0 12px 28px rgba(31,41,55,.08);
+            box-shadow:0 8px 24px rgba(31,41,55,.08);
+            margin-bottom: 20px;
         }
 
         .sheet-header{
@@ -253,11 +291,14 @@ $bloque2 = [
             padding:7px 10px;
         }
 
+        .info-field input:focus { background: #f8fbff; }
+
         .instruction{
             background:#fff;
             padding:14px !important;
             font-size:13px;
             line-height:1.4;
+            font-weight: bold;
         }
 
         .table-head{
@@ -314,12 +355,14 @@ $bloque2 = [
             min-height:54px;
             border:none;
             outline:none;
-            resize:none;
+            resize:vertical;
             background:transparent;
             padding:10px;
             font-size:13px;
             line-height:1.35;
         }
+
+        .obs-cell textarea:focus { background: #f8fbff; }
 
         .signature-label{
             padding:10px !important;
@@ -329,8 +372,9 @@ $bloque2 = [
         }
 
         .signature-line{
-            height:42px;
+            height:60px;
             background:#fff;
+            position: relative;
         }
 
         .footer-help{
@@ -349,179 +393,296 @@ $bloque2 = [
         }
 
         @media print{
-            @page{
-                size:portrait;
-                margin:10mm;
-            }
-
-            body{
-                background:#fff !important;
-            }
-
-            .page-wrap{
-                padding:0 !important;
-            }
-
-            .topbar,
-            .sheet-header,
-            .footer-help{
-                display:none !important;
-            }
-
-            .sheet-card{
-                border:none !important;
-                border-radius:0 !important;
-                box-shadow:none !important;
-            }
-
-            .sheet-scroll{
-                overflow:visible !important;
-            }
-
-            .sheet{
-                min-width:100% !important;
-            }
+            @page{ size:portrait; margin:10mm; }
+            body{ background:#fff !important; }
+            .page-wrap{ padding:0 !important; max-width: 100%; }
+            .topbar, .sheet-header, .footer-help, .print-hide { display:none !important; }
+            .sheet-card{ border:none !important; border-radius:0 !important; box-shadow:none !important; margin: 0; }
+            .sheet-scroll{ overflow:visible !important; }
+            .sheet{ min-width:100% !important; }
+            .info-field input, .obs-cell textarea { background: transparent !important; }
         }
     </style>
-  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 
 <div class="page-wrap">
-    <div class="topbar">
+    <div class="topbar print-hide">
         <div class="topbar-left">
-            <a href="../planear.php" class="btn-ui">← Volver a Planear</a>
-            <button type="button" class="btn-ui secondary" onclick="window.print()">🖨 Imprimir</button>
+            <button class="btn-ui secondary" type="button" onclick="history.back()">← Atrás</button>
+            <button class="btn-ui secondary" type="button" onclick="window.location.reload()">Recargar</button>
+            <button class="btn-ui success" type="button" id="btnGuardar">Guardar Cambios</button>
+            <button class="btn-ui" type="button" onclick="window.print()">Imprimir PDF</button>
         </div>
         <div class="topbar-right">
-            <span class="badge-format">Formato 2.10.1-2 · RE-SST-15</span>
+            <span class="badge-format">LISTA CHEQUEO · RE-SST-15</span><br>
+            <span style="font-size:11px; color:#6b7280; font-weight:700;">Usuario: <?= e($_SESSION["usuario"] ?? "Usuario") ?></span>
         </div>
     </div>
 
-    <div class="sheet-card">
-        <div class="sheet-header">
-            <h1 class="sheet-header-title">Lista de chequeo para verificación de requerimientos generales del SG-SST para persona jurídicas</h1>
-            <p class="sheet-header-subtitle">Formato editable con presentación profesional para el módulo Planear</p>
-        </div>
+    <form id="form-sst-dinamico">
+        <div class="sheet-card">
+            <div class="sheet-header print-hide">
+                <h1 class="sheet-header-title">Lista de chequeo para verificación de requerimientos generales</h1>
+                <p class="sheet-header-subtitle">Formato para verificación de contratistas y proveedores</p>
+            </div>
 
-        <div class="sheet-scroll">
-            <div class="sheet">
-                <table class="form-sheet">
-                    <colgroup>
-                        <col style="width:170px">
-                        <col style="width:430px">
-                        <col style="width:85px">
-                        <col style="width:85px">
-                        <col style="width:85px">
-                        <col style="width:290px">
-                    </colgroup>
+            <div class="sheet-scroll">
+                <div class="sheet">
+                    <table class="form-sheet">
+                        <colgroup>
+                            <col style="width:170px">
+                            <col style="width:430px">
+                            <col style="width:85px">
+                            <col style="width:85px">
+                            <col style="width:85px">
+                            <col style="width:290px">
+                        </colgroup>
 
-                    <tr>
-                        <td rowspan="3" colspan="2" class="logo-box">
-                            <div class="logo-inner">
-                                <div class="logo-placeholder">TU LOGO<br>AQUÍ</div>
-                            </div>
-                        </td>
-                        <td colspan="3" class="top-title">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
-                        <td class="top-cell">0</td>
-                    </tr>
-                    <tr>
-                        <td colspan="3" class="top-subtitle">LISTA DE CHEQUEO PARA VERIFICACION DE REQUERIMIENTOS GENERALES DEL SG-SST PARA PERSONA JURIDICAS</td>
-                        <td class="top-cell">RE-SST-15</td>
-                    </tr>
-                    <tr>
-                        <td colspan="3" class="top-cell">&nbsp;</td>
-                        <td class="top-cell">XX/XX/2025</td>
-                    </tr>
+                        <tr>
+                            <td rowspan="3" colspan="2" class="logo-box">
+                                <div class="logo-inner">
+                                    <div class="logo-placeholder" style="<?= empty($logoEmpresaUrl) ? '' : 'border:none; padding:0;' ?>">
+                                        <?php if(!empty($logoEmpresaUrl)): ?>
+                                            <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 100px; object-fit: contain;">
+                                        <?php else: ?>
+                                            TU LOGO<br>AQUÍ
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </td>
+                            <td colspan="3" class="top-title">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
+                            <td class="top-cell">
+                                <input type="text" name="meta_version" value="0" style="width:100%; border:none; background:transparent; font-weight:bold; text-align:center;">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="top-subtitle">LISTA DE CHEQUEO PARA VERIFICACION DE REQUERIMIENTOS GENERALES DEL SG-SST PARA PERSONAS JURIDICAS</td>
+                            <td class="top-cell">
+                                <input type="text" name="meta_codigo" value="RE-SST-15" style="width:100%; border:none; background:transparent; font-weight:bold; text-align:center;">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="top-cell">&nbsp;</td>
+                            <td class="top-cell">
+                                <input type="date" name="meta_fecha" id="metaFecha" style="width:100%; border:none; background:transparent; font-weight:bold; text-align:center;">
+                            </td>
+                        </tr>
 
-                    <tr>
-                        <td class="info-label">Fecha:</td>
-                        <td class="info-field" colspan="2"><input type="text" name="fecha"></td>
-                        <td class="info-label">&nbsp;</td>
-                        <td class="info-label">&nbsp;</td>
-                        <td class="info-field"><input type="text"></td>
-                    </tr>
-                    <tr>
-                        <td class="info-label">Nombre del contratista</td>
-                        <td class="info-field" colspan="2"><input type="text" name="contratista"></td>
-                        <td class="info-label">Nit:</td>
-                        <td class="info-field" colspan="2"><input type="text" name="nit"></td>
-                    </tr>
-                    <tr>
-                        <td class="info-label">Nombre del Supervisor</td>
-                        <td class="info-field" colspan="2"><input type="text" name="supervisor"></td>
-                        <td class="info-label">CC</td>
-                        <td class="info-field" colspan="2"><input type="text" name="cc"></td>
-                    </tr>
+                        <tr>
+                            <td class="info-label">Fecha:</td>
+                            <td class="info-field" colspan="2"><input type="date" name="fecha_evaluacion" id="fechaEvaluacion"></td>
+                            <td class="info-label">&nbsp;</td>
+                            <td class="info-label">&nbsp;</td>
+                            <td class="info-field"><input type="text" name="codigo_evaluacion" placeholder="Cod. Evaluacion"></td>
+                        </tr>
+                        <tr>
+                            <td class="info-label">Nombre del contratista</td>
+                            <td class="info-field" colspan="2"><input type="text" name="contratista"></td>
+                            <td class="info-label" colspan="2" style="text-align: right;">Nit:</td>
+                            <td class="info-field"><input type="text" name="nit"></td>
+                        </tr>
+                        <tr>
+                            <td class="info-label">Nombre del Supervisor</td>
+                            <td class="info-field" colspan="2"><input type="text" name="supervisor" id="nombreSupervisor"></td>
+                            <td class="info-label" colspan="2" style="text-align: right;">CC</td>
+                            <td class="info-field"><input type="text" name="cc_supervisor"></td>
+                        </tr>
 
-                    <tr>
-                        <td colspan="6" class="instruction">1. Documentos que el proponente debe entregar con la propuesta.</td>
-                    </tr>
+                        <tr>
+                            <td colspan="6" class="instruction">1. Documentos que el proponente debe entregar con la propuesta.</td>
+                        </tr>
 
-                    <tr>
-                        <th class="table-head" rowspan="2">No</th>
-                        <th class="table-head" rowspan="2">REQUERIMIENTO</th>
-                        <th class="table-head" colspan="3">CUMPLE</th>
-                        <th class="table-head" rowspan="2">OBSERVACIONES</th>
-                    </tr>
-                    <tr>
-                        <th class="table-head-sub">SI</th>
-                        <th class="table-head-sub">NO</th>
-                        <th class="table-head-sub">N/A</th>
-                    </tr>
+                        <tr>
+                            <th class="table-head" rowspan="2">No</th>
+                            <th class="table-head" rowspan="2">REQUERIMIENTO</th>
+                            <th class="table-head" colspan="3">CUMPLE</th>
+                            <th class="table-head" rowspan="2">OBSERVACIONES</th>
+                        </tr>
+                        <tr>
+                            <th class="table-head-sub">SI</th>
+                            <th class="table-head-sub">NO</th>
+                            <th class="table-head-sub">N/A</th>
+                        </tr>
 
-                    <?php foreach($bloque1 as $i => $req): $n = $i + 1; ?>
-                    <tr>
-                        <td class="num-cell"><?= $n ?></td>
-                        <td class="req-cell"><?= e($req) ?></td>
-                        <td class="check-cell"><input type="radio" name="b1_<?= $n ?>" value="SI"></td>
-                        <td class="check-cell"><input type="radio" name="b1_<?= $n ?>" value="NO"></td>
-                        <td class="check-cell"><input type="radio" name="b1_<?= $n ?>" value="NA"></td>
-                        <td class="obs-cell"><textarea name="obs_b1_<?= $n ?>"></textarea></td>
-                    </tr>
-                    <?php endforeach; ?>
+                        <?php foreach($bloque1 as $i => $req): $n = $i + 1; ?>
+                        <tr>
+                            <td class="num-cell"><?= $n ?></td>
+                            <td class="req-cell"><?= e($req) ?></td>
+                            <td class="check-cell"><input type="radio" name="b1_<?= $n ?>" value="SI"></td>
+                            <td class="check-cell"><input type="radio" name="b1_<?= $n ?>" value="NO"></td>
+                            <td class="check-cell"><input type="radio" name="b1_<?= $n ?>" value="NA"></td>
+                            <td class="obs-cell"><textarea name="obs_b1_<?= $n ?>"></textarea></td>
+                        </tr>
+                        <?php endforeach; ?>
 
-                    <tr>
-                        <td colspan="6" class="instruction">2. Durante la ejecución del contrato u orden contractual, el contratista debe cumplir con los siguientes requerimientos:</td>
-                    </tr>
+                        <tr>
+                            <td colspan="6" class="instruction">2. Durante la ejecución del contrato u orden contractual, el contratista debe cumplir con los siguientes requerimientos:</td>
+                        </tr>
 
-                    <tr>
-                        <th class="table-head" rowspan="2">No</th>
-                        <th class="table-head" rowspan="2">REQUERIMIENTO</th>
-                        <th class="table-head" colspan="3">CUMPLE</th>
-                        <th class="table-head" rowspan="2">OBSERVACIONES</th>
-                    </tr>
-                    <tr>
-                        <th class="table-head-sub">SI</th>
-                        <th class="table-head-sub">NO</th>
-                        <th class="table-head-sub">N/A</th>
-                    </tr>
+                        <tr>
+                            <th class="table-head" rowspan="2">No</th>
+                            <th class="table-head" rowspan="2">REQUERIMIENTO</th>
+                            <th class="table-head" colspan="3">CUMPLE</th>
+                            <th class="table-head" rowspan="2">OBSERVACIONES</th>
+                        </tr>
+                        <tr>
+                            <th class="table-head-sub">SI</th>
+                            <th class="table-head-sub">NO</th>
+                            <th class="table-head-sub">N/A</th>
+                        </tr>
 
-                    <?php foreach($bloque2 as $i => $req): $n = $i + 1; ?>
-                    <tr>
-                        <td class="num-cell"><?= $n ?></td>
-                        <td class="req-cell"><?= e($req) ?></td>
-                        <td class="check-cell"><input type="radio" name="b2_<?= $n ?>" value="SI"></td>
-                        <td class="check-cell"><input type="radio" name="b2_<?= $n ?>" value="NO"></td>
-                        <td class="check-cell"><input type="radio" name="b2_<?= $n ?>" value="NA"></td>
-                        <td class="obs-cell"><textarea name="obs_b2_<?= $n ?>"></textarea></td>
-                    </tr>
-                    <?php endforeach; ?>
+                        <?php foreach($bloque2 as $i => $req): $n = $i + 1; ?>
+                        <tr>
+                            <td class="num-cell"><?= $n ?></td>
+                            <td class="req-cell"><?= e($req) ?></td>
+                            <td class="check-cell"><input type="radio" name="b2_<?= $n ?>" value="SI"></td>
+                            <td class="check-cell"><input type="radio" name="b2_<?= $n ?>" value="NO"></td>
+                            <td class="check-cell"><input type="radio" name="b2_<?= $n ?>" value="NA"></td>
+                            <td class="obs-cell"><textarea name="obs_b2_<?= $n ?>"></textarea></td>
+                        </tr>
+                        <?php endforeach; ?>
 
-                    <tr>
-                        <td colspan="2" class="signature-label">Firma del Supervisor:</td>
-                        <td colspan="4" class="signature-line"></td>
-                    </tr>
-                </table>
+                        <tr>
+                            <td colspan="2" class="signature-label" style="text-align: right; vertical-align: bottom;">Firma del Supervisor:</td>
+                            <td colspan="4" class="signature-line">
+                                <div style="border-bottom: 1px solid #111; width: 80%; margin: 30px auto 5px auto;"></div>
+                                <div style="text-align: center; font-size: 11px; font-weight: normal; color: #555;" id="firmaText">Firma</div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="footer-help print-hide">
+                Puedes diligenciar la información, marcar SI / NO / N/A y agregar observaciones. Recuerda presionar "Guardar Cambios".
             </div>
         </div>
-
-        <div class="footer-help">
-            Puedes diligenciar la información, marcar SI / NO / N/A y agregar observaciones antes de imprimir el formato.
-        </div>
-    </div>
+    </form>
 </div>
 
+<script>
+    // Poner fecha de hoy por defecto
+    function setHoy(){
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,"0");
+        const dd = String(d.getDate()).padStart(2,"0");
+        
+        const fmeta = document.getElementById("metaFecha");
+        if (fmeta && !fmeta.value) fmeta.value = `${y}-${m}-${dd}`;
+
+        const fEval = document.getElementById("fechaEvaluacion");
+        if (fEval && !fEval.value) fEval.value = `${y}-${m}-${dd}`;
+    }
+    setHoy();
+
+    // Actualizar nombre bajo la firma dinámicamente
+    document.getElementById('nombreSupervisor').addEventListener('input', function() {
+        document.getElementById('firmaText').textContent = this.value || "Firma";
+    });
+
+    // --- LÓGICA DE CARGADO DE DATOS DESDE PHP ---
+    document.addEventListener('DOMContentLoaded', function () {
+        let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
+        if (typeof datosGuardados === 'string') {
+            try { datosGuardados = JSON.parse(datosGuardados); } catch(e) {}
+        }
+
+        if (datosGuardados && Object.keys(datosGuardados).length > 0) {
+            for (const [key, value] of Object.entries(datosGuardados)) {
+                if (Array.isArray(value)) {
+                    // Si hubiera arrays...
+                } else {
+                    let campo = document.querySelector(`[name="${key}"]`);
+                    if (!campo) {
+                        // Buscar si es un Radio Button
+                        let radio = document.querySelector(`input[name="${key}"][value="${value}"]`);
+                        if(radio) radio.checked = true;
+                    } else if (campo.type === 'radio' || campo.type === 'checkbox') {
+                        // handled above or specific checkbox logic
+                    } else {
+                        campo.value = typeof value === 'string' ? value.replace(/\\n/g, '\n') : value;
+                    }
+                }
+            }
+            
+            // Actualizar nombre de firma al cargar
+            let sup = document.getElementById('nombreSupervisor').value;
+            if (sup) document.getElementById('firmaText').textContent = sup;
+        }
+    });
+
+    // --- LÓGICA DE GUARDADO ---
+    document.getElementById('btnGuardar').addEventListener('click', async function() {
+        const btn = this;
+        const form = document.getElementById('form-sst-dinamico');
+        const formData = new FormData(form);
+        const datosJSON = {};
+
+        // Recolectar datos y manejar inputs radio
+        for (const [key, value] of formData.entries()) {
+            if (key.endsWith('[]')) {
+                const cleanKey = key.replace('[]', '');
+                if (!datosJSON[cleanKey]) datosJSON[cleanKey] = [];
+                datosJSON[cleanKey].push(value);
+            } else {
+                datosJSON[key] = value;
+            }
+        }
+
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Guardando...';
+        btn.disabled = true;
+
+        try {
+            const token = "<?= $token ?>";
+            const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+            const response = await fetch(urlAPI, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    id_empresa: <?= $empresa ?>,
+                    id_item_sst: <?= $idItem ?>,
+                    datos: datosJSON
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.ok) {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'Lista de chequeo guardada correctamente',
+                    icon: 'success',
+                    confirmButtonColor: '#198754'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error al guardar',
+                    text: result.error || "No se pudo completar la operación.",
+                    icon: 'error',
+                    confirmButtonColor: '#1b4fbd'
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            Swal.fire({
+                title: 'Error de conexión',
+                text: 'No se pudo contactar al servidor para guardar.',
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
+</script>
 
 <script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>

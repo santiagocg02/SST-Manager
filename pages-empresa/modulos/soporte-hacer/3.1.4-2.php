@@ -1,16 +1,69 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
 }
 
-function oldv($key, $default = '')
-{
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu BD (ej: 48 para Matriz Exámenes)
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 48; 
+
+// --- Lógica de Empresa (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = $resFormulario['data']['data']['campos'] ?? $resFormulario['data']['campos'] ?? $resFormulario['campos'] ?? null;
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true) ?: [];
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// 3. DETERMINAR NÚMERO DE FILAS (Si se guardaron más de 12, amplía la tabla)
+$filas = 12;
+if (!empty($datosCampos)) {
+    $maxFila = 12;
+    foreach ($datosCampos as $key => $value) {
+        if (preg_match('/^num_(\d+)$/', $key, $matches)) {
+            $num = (int)$matches[1];
+            if ($num > $maxFila) {
+                $maxFila = $num;
+            }
+        }
+    }
+    $filas = $maxFila;
+}
+
+// 4. FUNCIONES ADAPTADAS PARA LEER DE LA API
+function oldv($key, $default = '') {
+    global $datosCampos;
+    if (isset($datosCampos[$key]) && $datosCampos[$key] !== '') {
+        return htmlspecialchars((string)$datosCampos[$key], ENT_QUOTES, 'UTF-8');
+    }
     return isset($_POST[$key]) ? htmlspecialchars((string)$_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
 }
 
-$filas = 12;
+function isChecked($key) {
+    global $datosCampos;
+    return (isset($datosCampos[$key]) && $datosCampos[$key] == '1') || isset($_POST[$key]) ? 'checked' : '';
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -18,6 +71,9 @@ $filas = 12;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3.1.4-2 - Matriz Seguimiento Exámenes Médicos</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         *{
             box-sizing:border-box;
@@ -105,7 +161,6 @@ $filas = 12;
         .logo-box{
             width:140px;
             height:65px;
-            border:2px dashed #c8c8c8;
             display:flex;
             align-items:center;
             justify-content:center;
@@ -123,17 +178,6 @@ $filas = 12;
 
         .subtitulo{
             font-size:14px;
-        }
-
-        .save-msg{
-            margin:0 0 15px 0;
-            padding:10px 14px;
-            border-radius:8px;
-            background:#e9f7ef;
-            color:#166534;
-            border:1px solid #b7e4c7;
-            font-size:14px;
-            font-weight:700;
         }
 
         .topbar{
@@ -180,6 +224,13 @@ $filas = 12;
             padding:4px;
             font-size:12px;
             background:transparent;
+        }
+
+        .matriz input[type="text"]:focus,
+        .matriz input[type="date"]:focus,
+        .matriz textarea:focus,
+        .matriz select:focus{
+            background: #f8fbff;
         }
 
         .matriz textarea{
@@ -233,8 +284,9 @@ $filas = 12;
             }
 
             .toolbar,
-            .topbar{
-                display:none;
+            .topbar,
+            .print-hide{
+                display:none !important;
             }
 
             .contenedor{
@@ -269,37 +321,39 @@ $filas = 12;
 <body>
 
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>3.1.4-2 - Matriz Seguimiento Exámenes Médicos</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="form3142">Guardar</button>
-            <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Matriz</button>
+            <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir PDF</button>
         </div>
     </div>
 
     <div class="formulario">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="form3142" method="POST" action="">
+        <form id="form3142">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:20%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:20%; padding:0;">
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:60%;">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
                     <td style="width:20%; font-weight:700;">0</td>
                 </tr>
                 <tr>
                     <td class="subtitulo">MATRIZ SEGUIMIENTO EXÁMENES MÉDICOS</td>
-                    <td style="font-weight:700;">AN-SST-30<br>XX/XX/2025</td>
+                    <td style="font-weight:700;">AN-SST-30<br><?= date('d/m/Y') ?></td>
                 </tr>
             </table>
 
-            <div class="topbar">
-                <button type="button" class="btn btn-add" onclick="agregarFila()">Agregar fila</button>
+            <div class="topbar print-hide">
+                <button type="button" class="btn btn-add" onclick="agregarFila()">+ Agregar fila</button>
             </div>
 
             <div class="tabla-wrap">
@@ -351,13 +405,13 @@ $filas = 12;
                                     <input type="text" name="nombre_<?= $i ?>" value="<?= oldv("nombre_$i") ?>">
                                 </td>
                                 <td class="check-cell w-check">
-                                    <input type="checkbox" name="i_<?= $i ?>" value="1" <?= isset($_POST["i_$i"]) ? 'checked' : '' ?>>
+                                    <input type="checkbox" name="i_<?= $i ?>" value="1" <?= isChecked("i_$i") ?>>
                                 </td>
                                 <td class="check-cell w-check">
-                                    <input type="checkbox" name="p_<?= $i ?>" value="1" <?= isset($_POST["p_$i"]) ? 'checked' : '' ?>>
+                                    <input type="checkbox" name="p_<?= $i ?>" value="1" <?= isChecked("p_$i") ?>>
                                 </td>
                                 <td class="check-cell w-check">
-                                    <input type="checkbox" name="e_<?= $i ?>" value="1" <?= isset($_POST["e_$i"]) ? 'checked' : '' ?>>
+                                    <input type="checkbox" name="e_<?= $i ?>" value="1" <?= isChecked("e_$i") ?>>
                                 </td>
                                 <td class="w-texto">
                                     <textarea name="rec_personal_<?= $i ?>"><?= oldv("rec_personal_$i") ?></textarea>
@@ -383,8 +437,8 @@ $filas = 12;
                 </table>
             </div>
 
-            <div class="ley">
-                En cumplimiento de lo previsto por la Ley N° 1581 de 2012 y su Decreto Reglamentario N° 1377 de 2013, los cuales tienen por objeto desarrollar el derecho constitucional que tienen todas las personas a conocer, actualizar y rectificar las informaciones que se hayan recogido sobre ellas en bases de datos o archivos, se informa que la empresa respeta la confidencialidad y seguridad de la información y que los datos personales suministrados al sistema serán administrados por la empresa, garantizando su tratamiento conforme a las disposiciones que regulan la protección de datos personales. :contentReference[oaicite:1]{index=1}
+            <div class="ley print-hide">
+                En cumplimiento de lo previsto por la Ley N° 1581 de 2012 y su Decreto Reglamentario N° 1377 de 2013, los cuales tienen por objeto desarrollar el derecho constitucional que tienen todas las personas a conocer, actualizar y rectificar las informaciones que se hayan recogido sobre ellas en bases de datos o archivos, se informa que la empresa respeta la confidencialidad y seguridad de la información y que los datos personales suministrados al sistema serán administrados por la empresa, garantizando su tratamiento conforme a las disposiciones que regulan la protección de datos personales.
             </div>
         </form>
     </div>
@@ -471,6 +525,67 @@ function agregarFila() {
 
 document.addEventListener('DOMContentLoaded', function () {
     activarAutoResize();
+});
+
+// Guardado del formulario vía Fetch
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('form3142');
+    const formData = new FormData(form);
+    
+    // Construir el objeto JSON
+    const datosJSON = Object.fromEntries(formData.entries());
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'La matriz ha sido guardada correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
 });
 </script>
 

@@ -1,10 +1,63 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   header("Location: ../../../index.php");
   exit;
 }
 
+function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos (Ej: 25 para "2.3.1")
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 25; 
+
+// --- Lógica de Empresa Optimizada (Logo, Nombres y Firmas) ---
+$logoEmpresaUrl = "";
+$nombreRL = "";
+$firmaRL = "";
+$nombreSST = "";
+$firmaSST = "";
+
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+        
+        // Priorizando campos _rl y _sst
+        $nombreRL = $empData['nombre_rl'] ?? $empData['representante_legal'] ?? '';
+        $firmaRL = $empData['firma_rl'] ?? $empData['firma_representante'] ?? '';
+        $nombreSST = $empData['nombre_sst'] ?? $empData['responsable_sst'] ?? '';
+        $firmaSST = $empData['firma_sst'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE A LA API
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// ARREGLO ESTÁTICO DE DATOS (Mantenido intacto)
 $rows = [
   [
     'ciclo' => 'I. PLANEAR',
@@ -243,6 +296,8 @@ $rows = [
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>2.3.1 - Diagnóstico Inicial</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
   <style>
     :root{
       --blue:#1f5fa8;
@@ -267,7 +322,46 @@ $rows = [
       gap:10px;
       margin-bottom:12px;
       flex-wrap:wrap;
+      background: #d9dde2;
+      padding: 10px 16px;
+      border: 1px solid #c8cdd3;
+      border-radius: 6px;
     }
+    .btn-action{
+      border:1px solid #cfd6e4;
+      background:#fff;
+      color: #2f62b6;
+      padding:6px 12px;
+      border-radius:6px;
+      font-weight:800;
+      cursor:pointer;
+      font-size:12px;
+    }
+    .btn-action:hover { background: #eef4ff; }
+    .btn-primary-action{
+      border-color:#1b4fbd;
+      background:#1b4fbd;
+      color:#fff;
+      padding:6px 12px;
+      border-radius:6px;
+      font-weight:800;
+      cursor:pointer;
+      font-size:12px;
+    }
+    .btn-primary-action:hover { background: #0f3484; }
+    .btn-success-action {
+      border: 1px solid #198754;
+      background: #198754;
+      color: #fff;
+      padding:6px 12px;
+      border-radius:6px;
+      font-weight:800;
+      cursor:pointer;
+      font-size:12px;
+    }
+    .btn-success-action:hover { background: #146c43; }
+    .tiny{ font-size:11px; color:#6b7280; font-weight:700; }
+
     .sheet{
       background:#fff;
       border:2px solid var(--blue);
@@ -297,6 +391,7 @@ $rows = [
       justify-content:center;
       font-size:10px;
       font-weight:800;
+      padding: 2px;
     }
     .subnote{
       width:100%;
@@ -409,7 +504,7 @@ $rows = [
     .footer-sign{
       width:100%;
       border-collapse:collapse;
-      margin-top:16px;
+      margin-top:24px;
       font-size:11px;
     }
     .footer-sign td{
@@ -422,165 +517,201 @@ $rows = [
     @media print{
       body{ background:#fff; }
       .toolbar, .top-scroll{ display:none !important; }
-      .sheet{ box-shadow:none; }
+      .sheet{ box-shadow:none; border:2px solid #000; }
       .tbl-scroll{ max-height:none; overflow:visible; border:none; }
+      table.diag { min-width: 100%; width: 100%; }
     }
   </style>
   <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 <div class="wrap">
-  <div class="toolbar">
-    <a href="../planear.php" class="btn btn-outline-secondary btn-sm">← Atrás</a>
-    <button class="btn btn-primary btn-sm" onclick="window.print()">Imprimir</button>
+  
+  <div class="toolbar print-hide">
+    <div style="display:flex; gap:8px;">
+      <button class="btn-action" type="button" onclick="history.back()">← Atrás</button>
+      <button class="btn-action" type="button" onclick="window.location.reload()">Recargar</button>
+      <button class="btn-success-action" type="button" id="btnGuardar">Guardar Cambios</button>
+      <button class="btn-primary-action" type="button" onclick="window.print()">Imprimir PDF</button>
+    </div>
+    <div class="tiny text-end">
+      <span style="font-size: 14px; font-weight: 900; color: #0f2f5c;">DIAGNÓSTICO INICIAL</span><br>
+      Usuario: <strong><?= e($_SESSION["usuario"] ?? "Usuario") ?></strong> · <span id="hoyTxt"></span>
+    </div>
   </div>
 
-  <div class="sheet">
-    <table class="top">
-      <colgroup>
-        <col style="width:80px">
-        <col>
-        <col style="width:120px">
-      </colgroup>
-      <tr>
-        <td rowspan="2"><div class="logo-box">TU LOGO<br>AQUÍ</div></td>
-        <td>SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
-        <td>0<br>AN-SST-02</td>
-      </tr>
-      <tr>
-        <td>DIAGNOSTICO INICIAL</td>
-        <td>XX/XX/2025</td>
-      </tr>
-    </table>
-
-    <table class="subnote">
-      <colgroup>
-        <col style="width:140px">
-        <col style="width:120px">
-        <col>
-        <col style="width:240px">
-        <col style="width:60px">
-        <col style="width:60px">
-        <col style="width:80px">
-      </colgroup>
-      <tr>
-        <td><strong>Año a Evaluar</strong></td>
-        <td class="center"><strong>2025</strong></td>
-        <td></td>
-        <td><strong>Fecha de Aplicación de la Autoevaluación:</strong></td>
-        <td class="center"><strong>1</strong></td>
-        <td class="center"><strong>2</strong></td>
-        <td class="center"><strong>2024</strong></td>
-      </tr>
-      <tr>
-        <td colspan="7" class="legal">
-          <strong>Artículo 27. Tabla de Valores de los Estándares Mínimos - Resolución No. 0312 del 13 de febrero de 2019 por el cual se definen los Estándares Mínimos del Sistema de Gestión de la Seguridad y Salud en el Trabajo.</strong>
-          <br><br>
-          – Cuando se cumple con el ítem del estándar la calificación será la máxima del respectivo ítem, de lo contrario su calificación será igual a cero (0).
-          <br>
-          – En los ítems de la Tabla de Valores que no aplican para las empresas de menos de cincuenta (50) trabajadores clasificadas con riesgo I, II o III, de conformidad con los Estándares Mínimos de SST vigentes, se deberá otorgar el porcentaje máximo de calificación en la columna “No Aplica” frente al ítem correspondiente.
-          <br>
-          – El presente formulario es documento público. La información aquí consignada debe ser veraz. La inclusión de manifestaciones falsas estará sujeta a las sanciones contempladas en la Ley 599 de 2000, Código Penal Colombiano.
-        </td>
-      </tr>
-    </table>
-
-    <div class="top-scroll" id="topScroll">
-      <div class="top-scroll-inner" id="topScrollInner"></div>
-    </div>
-
-    <div class="tbl-scroll" id="tableScroll">
-      <table class="diag" id="diagTable">
-        <thead>
+  <form id="form-sst-dinamico">
+      <div class="sheet">
+        <table class="top">
+          <colgroup>
+            <col style="width:80px">
+            <col>
+            <col style="width:120px">
+          </colgroup>
           <tr>
-            <th colspan="9" class="sec-title">ESTÁNDARES MÍNIMOS SG-SST</th>
+            <td rowspan="2">
+                <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? '' : 'border:none; background:transparent;' ?>">
+                    <?php if(!empty($logoEmpresaUrl)): ?>
+                        <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 40px; object-fit: contain;">
+                    <?php else: ?>
+                        TU LOGO<br>AQUÍ
+                    <?php endif; ?>
+                </div>
+            </td>
+            <td>SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
+            <td>0<br>AN-SST-02</td>
           </tr>
           <tr>
-            <th colspan="9" class="sec-sub">TABLA DE VALORES Y CALIFICACIÓN</th>
+            <td>DIAGNOSTICO INICIAL</td>
+            <td><input type="date" name="diag_fecha" id="metaFecha" style="border:none; background:transparent; font-size:11px; font-weight:900; outline:none; text-align:center; width:100%;"></td>
+          </tr>
+        </table>
+
+        <table class="subnote">
+          <colgroup>
+            <col style="width:140px">
+            <col style="width:120px">
+            <col>
+            <col style="width:240px">
+            <col style="width:60px">
+            <col style="width:60px">
+            <col style="width:80px">
+          </colgroup>
+          <tr>
+            <td><strong>Año a Evaluar</strong></td>
+            <td class="center"><input type="text" name="diag_ano_evaluar" value="2025" class="cell-input" style="font-weight:900;"></td>
+            <td></td>
+            <td><strong>Fecha de Aplicación de la Autoevaluación:</strong></td>
+            <td class="center"><strong>1</strong></td>
+            <td class="center"><strong>2</strong></td>
+            <td class="center"><strong>2024</strong></td>
           </tr>
           <tr>
-            <th class="w-ciclo">CICLO</th>
-            <th class="w-grupo"></th>
-            <th class="w-estandar">ESTÁNDAR</th>
-            <th class="w-item">ÍTEM DEL ESTÁNDAR</th>
-            <th class="w-valor">Valor del ítem del estándar</th>
-            <th class="w-peso">PESO PORCENTUAL</th>
-            <th colspan="3">Puntaje posible</th>
-            <th class="w-cal">Calificación de la empresa o contratante</th>
+            <td colspan="7" class="legal">
+              <strong>Artículo 27. Tabla de Valores de los Estándares Mínimos - Resolución No. 0312 del 13 de febrero de 2019 por el cual se definen los Estándares Mínimos del Sistema de Gestión de la Seguridad y Salud en el Trabajo.</strong>
+              <br><br>
+              – Cuando se cumple con el ítem del estándar la calificación será la máxima del respectivo ítem, de lo contrario su calificación será igual a cero (0).
+              <br>
+              – En los ítems de la Tabla de Valores que no aplican para las empresas de menos de cincuenta (50) trabajadores clasificadas con riesgo I, II o III, de conformidad con los Estándares Mínimos de SST vigentes, se deberá otorgar el porcentaje máximo de calificación en la columna “No Aplica” frente al ítem correspondiente.
+              <br>
+              – El presente formulario es documento público. La información aquí consignada debe ser veraz. La inclusión de manifestaciones falsas estará sujeta a las sanciones contempladas en la Ley 599 de 2000, Código Penal Colombiano.
+            </td>
           </tr>
-          <tr>
-            <th colspan="6"></th>
-            <th class="w-cal">Cumple totalmente</th>
-            <th class="w-cal">No cumple</th>
-            <th class="w-cal">No aplica</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-        <?php foreach($rows as $block): ?>
-          <?php
-            $itemCount = count($block['items']);
-            $first = true;
-          ?>
-          <?php foreach($block['items'] as $idx => $it): ?>
-            <tr>
-              <?php if($first && $block['ciclo'] !== ''): ?>
-                <td rowspan="<?php echo $itemCount; ?>" class="cycle w-ciclo"><?php echo htmlspecialchars($block['ciclo']); ?></td>
-              <?php elseif($first && $block['ciclo'] === ''): ?>
-                <td rowspan="<?php echo $itemCount; ?>" class="cycle w-ciclo"></td>
-              <?php endif; ?>
+        </table>
 
-              <?php if($first && $block['grupo'] !== ''): ?>
-                <td rowspan="<?php echo $itemCount; ?>" class="group w-grupo"><?php echo htmlspecialchars($block['grupo']); ?></td>
-              <?php elseif($first && $block['grupo'] === ''): ?>
-                <td rowspan="<?php echo $itemCount; ?>" class="group w-grupo"></td>
-              <?php endif; ?>
+        <div class="top-scroll" id="topScroll">
+          <div class="top-scroll-inner" id="topScrollInner"></div>
+        </div>
 
-              <?php if($first): ?>
-                <td rowspan="<?php echo $itemCount; ?>" class="estandar"><?php echo htmlspecialchars($block['estandar']); ?></td>
-              <?php endif; ?>
+        <div class="tbl-scroll" id="tableScroll">
+          <table class="diag" id="diagTable">
+            <thead>
+              <tr>
+                <th colspan="9" class="sec-title">ESTÁNDARES MÍNIMOS SG-SST</th>
+              </tr>
+              <tr>
+                <th colspan="9" class="sec-sub">TABLA DE VALORES Y CALIFICACIÓN</th>
+              </tr>
+              <tr>
+                <th class="w-ciclo">CICLO</th>
+                <th class="w-grupo"></th>
+                <th class="w-estandar">ESTÁNDAR</th>
+                <th class="w-item">ÍTEM DEL ESTÁNDAR</th>
+                <th class="w-valor">Valor del ítem del estándar</th>
+                <th class="w-peso">PESO PORCENTUAL</th>
+                <th colspan="3">Puntaje posible</th>
+                <th class="w-cal">Calificación de la empresa o contratante</th>
+              </tr>
+              <tr>
+                <th colspan="6"></th>
+                <th class="w-cal">Cumple totalmente</th>
+                <th class="w-cal">No cumple</th>
+                <th class="w-cal">No aplica</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+            <?php foreach($rows as $block): ?>
+              <?php
+                $itemCount = count($block['items']);
+                $first = true;
+              ?>
+              <?php foreach($block['items'] as $idx => $it): ?>
+                <tr>
+                  <?php if($first && $block['ciclo'] !== ''): ?>
+                    <td rowspan="<?php echo $itemCount; ?>" class="cycle w-ciclo"><?php echo htmlspecialchars($block['ciclo']); ?></td>
+                  <?php elseif($first && $block['ciclo'] === ''): ?>
+                    <td rowspan="<?php echo $itemCount; ?>" class="cycle w-ciclo"></td>
+                  <?php endif; ?>
 
-              <td class="itemtxt">
-                <?php echo htmlspecialchars($it['codigo'] . '. ' . $it['item']); ?>
-              </td>
-              <td class="center"><?php echo htmlspecialchars($it['valor']); ?></td>
+                  <?php if($first && $block['grupo'] !== ''): ?>
+                    <td rowspan="<?php echo $itemCount; ?>" class="group w-grupo"><?php echo htmlspecialchars($block['grupo']); ?></td>
+                  <?php elseif($first && $block['grupo'] === ''): ?>
+                    <td rowspan="<?php echo $itemCount; ?>" class="group w-grupo"></td>
+                  <?php endif; ?>
 
-              <?php if($first): ?>
-                <td rowspan="<?php echo $itemCount; ?>" class="center"><strong><?php echo htmlspecialchars($block['peso']); ?></strong></td>
-              <?php endif; ?>
+                  <?php if($first): ?>
+                    <td rowspan="<?php echo $itemCount; ?>" class="estandar"><?php echo htmlspecialchars($block['estandar']); ?></td>
+                  <?php endif; ?>
 
-              <td class="center"><?php echo htmlspecialchars($it['total']); ?></td>
-              <td class="center"><?php echo htmlspecialchars($it['nc']); ?></td>
-              <td class="center"><?php echo htmlspecialchars($it['na']); ?></td>
+                  <td class="itemtxt">
+                    <?php echo htmlspecialchars($it['codigo'] . '. ' . $it['item']); ?>
+                  </td>
+                  <td class="center"><?php echo htmlspecialchars($it['valor']); ?></td>
 
-              <?php if($first): ?>
-                <td rowspan="<?php echo $itemCount; ?>" class="center"><strong><?php echo htmlspecialchars($it['calif']); ?></strong></td>
-              <?php endif; ?>
+                  <?php if($first): ?>
+                    <td rowspan="<?php echo $itemCount; ?>" class="center"><strong><?php echo htmlspecialchars($block['peso']); ?></strong></td>
+                  <?php endif; ?>
+
+                  <td class="center"><?php echo htmlspecialchars($it['total']); ?></td>
+                  <td class="center"><?php echo htmlspecialchars($it['nc']); ?></td>
+                  <td class="center"><?php echo htmlspecialchars($it['na']); ?></td>
+
+                  <?php if($first): ?>
+                    <td rowspan="<?php echo $itemCount; ?>" class="center"><strong><?php echo htmlspecialchars($it['calif']); ?></strong></td>
+                  <?php endif; ?>
+                </tr>
+                <?php $first = false; ?>
+              <?php endforeach; ?>
+            <?php endforeach; ?>
+
+            <tr class="totales">
+              <td colspan="4" class="right"><strong>TOTALES</strong></td>
+              <td class="center"></td>
+              <td class="center"><strong>100</strong></td>
+              <td class="center"></td>
+              <td class="center"></td>
+              <td class="center"></td>
+              <td class="center"><strong>54</strong></td>
             </tr>
-            <?php $first = false; ?>
-          <?php endforeach; ?>
-        <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
 
-        <tr class="totales">
-          <td colspan="4" class="right"><strong>TOTALES</strong></td>
-          <td class="center"></td>
-          <td class="center"><strong>100</strong></td>
-          <td class="center"></td>
-          <td class="center"></td>
-          <td class="center"></td>
-          <td class="center"><strong>54</strong></td>
-        </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <table class="footer-sign">
-      <tr>
-        <td style="width:50%;">FIRMA DEL EMPLEADOR O CONTRATANTE</td>
-        <td style="width:50%;">RESPONSABLE DE LA EJECUCIÓN DEL SG-SST</td>
-      </tr>
-    </table>
-  </div>
+        <table class="footer-sign" style="border:none;">
+          <tr>
+            <td style="width:50%; border:none; padding-right: 20px;">
+                <div style="border-bottom: 1px solid #111; padding-bottom: 5px; margin-bottom: 5px; min-height: 55px; position:relative;">
+                    <?php if(!empty($firmaRL)): ?>
+                        <img src="<?= $firmaRL ?>" alt="Firma Empleador" style="max-height: 50px; position:absolute; bottom:5px; left:50%; transform:translateX(-50%);">
+                    <?php endif; ?>
+                </div>
+                FIRMA DEL EMPLEADOR O CONTRATANTE<br>
+                <span style="font-weight:normal; font-size:11px;"><?= htmlspecialchars($nombreRL) ?></span>
+            </td>
+            <td style="width:50%; border:none; padding-left: 20px;">
+                <div style="border-bottom: 1px solid #111; padding-bottom: 5px; margin-bottom: 5px; min-height: 55px; position:relative;">
+                    <?php if(!empty($firmaSST)): ?>
+                        <img src="<?= $firmaSST ?>" alt="Firma SST" style="max-height: 50px; position:absolute; bottom:5px; left:50%; transform:translateX(-50%);">
+                    <?php endif; ?>
+                </div>
+                RESPONSABLE DE LA EJECUCIÓN DEL SG-SST<br>
+                <span style="font-weight:normal; font-size:11px;"><?= htmlspecialchars($nombreSST) ?></span>
+            </td>
+          </tr>
+        </table>
+      </div>
+  </form>
 </div>
 
 <script>
@@ -603,6 +734,98 @@ $rows = [
 
   window.addEventListener('load', syncTopScrollWidth);
   window.addEventListener('resize', syncTopScrollWidth);
+
+  // Poner fecha de hoy por defecto
+  function setHoy(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    document.getElementById("hoyTxt").textContent = `${y}/${m}/${dd}`;
+    const fmeta = document.getElementById("metaFecha");
+    if (fmeta && !fmeta.value) fmeta.value = `${y}-${m}-${dd}`;
+  }
+  setHoy();
+
+  // --- LÓGICA DE CARGADO DE DATOS DESDE PHP ---
+  document.addEventListener('DOMContentLoaded', function () {
+    let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
+    if (typeof datosGuardados === 'string') {
+        try { datosGuardados = JSON.parse(datosGuardados); } catch(e) {}
+    }
+
+    if (datosGuardados && Object.keys(datosGuardados).length > 0) {
+        for (const [key, value] of Object.entries(datosGuardados)) {
+            const campo = document.querySelector(`[name="${key}"]`);
+            if (campo) {
+                campo.value = typeof value === 'string' ? value.replace(/\\n/g, '\n') : value;
+            }
+        }
+    }
+  });
+
+  // --- LÓGICA DE GUARDADO ---
+  document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('form-sst-dinamico');
+    const formData = new FormData(form);
+    const datosJSON = {};
+
+    for (const [key, value] of formData.entries()) {
+        datosJSON[key] = value;
+    }
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'Diagnóstico guardado correctamente',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+  });
 </script>
 
 <script src="../../../assets/js/soporte-toolbar-unificado.js"></script>

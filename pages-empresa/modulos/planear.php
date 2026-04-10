@@ -1,8 +1,24 @@
 <?php
 session_start();
+
+// 1. CONEXIÓN Y VALIDACIÓN (Ruta corregida según tu error previo)
+require_once '../../includes/ConexionAPI.php'; 
+
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
-  header("Location: ../../index.php");
-  exit;
+    header("Location: ../../index.php");
+    exit;
+}
+
+// 2. OBTENER LOGO DINÁMICO
+$api = new ConexionAPI();
+$token = $_SESSION["token"];
+$empresaId = $_SESSION["id_empresa"] ?? 0;
+$logoUrl = "";
+
+if ($empresaId > 0) {
+    $resEmpresa = $api->solicitar("empresas/$empresaId", "GET", null, $token);
+    // Ajustado a la estructura típica de tu API
+    $logoUrl = $resEmpresa['data']['logo_url'] ?? ""; 
 }
 ?>
 <!doctype html>
@@ -18,23 +34,12 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   <link rel="stylesheet" href="../../assets/css/planear.css">
 
   <style>
-  #soporteDrawer{
-    width:min(980px, 92vw);
-  }
-
-  #soporteDrawer .offcanvas-body{
-    height:calc(100vh - 64px);
-    background:#fff;
-  }
-
-  #soporteDrawer iframe{
-    width:100%;
-    height:100%;
-    border:0;
-    background:#fff;
-    display:block;
-  }
-</style>
+    #soporteDrawer{ width:min(980px, 92vw); }
+    #soporteDrawer .offcanvas-body{ height:calc(100vh - 64px); background:#fff; }
+    #soporteDrawer iframe{ width:100%; height:100%; border:0; background:#fff; display:block; }
+    /* Ajuste para que el logo no se deforme */
+    .logo-box img { max-width: 100%; max-height: 100px; object-fit: contain; }
+  </style>
 </head>
 
 <body>
@@ -42,7 +47,6 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 <div class="planear-page-scroll">
   <div class="page-wrap">
 
-    <!-- HEADER TOP -->
     <div class="row g-3 mb-2">
       <div class="col-12">
         <div class="planear-hero card-soft">
@@ -66,28 +70,21 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
                 <div id="scoreBar" class="progress-bar" role="progressbar" style="width:0%"></div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 50/50 -->
     <div class="row g-3 planear-split">
 
-      <!-- IZQUIERDA -->
       <div class="col-12 col-xl-6">
         <div class="card-soft p-3 bg-white">
-
           <div class="table-toolbar">
             <div class="toolbar-left">
-              Ítems (Planear)
-              <span class="badge text-bg-primary" id="countBadge">0</span>
+              Ítems (Planear) <span class="badge text-bg-primary" id="countBadge">0</span>
             </div>
-
             <div class="d-flex gap-2 flex-wrap">
-              <input id="searchInput" type="text" class="form-control form-control-sm searchbox"
-                     placeholder="Buscar ítem o actividad...">
+              <input id="searchInput" type="text" class="form-control form-control-sm searchbox" placeholder="Buscar ítem o actividad...">
               <button id="resetBtn" class="btn btn-sm btn-outline-secondary btn-reset" type="button">Reset</button>
             </div>
           </div>
@@ -107,19 +104,13 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
               </table>
             </div>
           </div>
-
-          <div class="note">
-            * Al dar clic en SOPORTE, el formato se abrirá en un panel lateral derecho.
-          </div>
-
+          <div class="note">* Al dar clic en SOPORTE, el formato se abrirá en un panel lateral derecho.</div>
         </div>
       </div>
 
-      <!-- DERECHA (se queda normal, SIN visor embebido) -->
       <div class="col-12 col-xl-6">
         <div class="card-soft p-3 bg-white h-100">
 
-          <!-- LEYENDA -->
           <div class="d-flex justify-content-end">
             <div class="mini-legend">
               <div class="mini-legend-row">
@@ -151,7 +142,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             <div class="col-12 col-lg-5">
               <div class="panel-block">
                 <h6 class="panel-title">% CUMPLIMIENTO</h6>
-                <div class="cumpl-wrap">A
+                <div class="cumpl-wrap">
                   <div class="cumpl-row">
                     <div class="cumpl-icon"><i class="fa-solid fa-table-cells-large"></i></div>
                     <div class="cumpl-eq">=</div>
@@ -174,8 +165,15 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
                     <i class="fa-solid fa-upload me-1"></i> Subir logo
                   </button>
                 </div>
-                <div class="logo-box mt-3">
-                  <div class="logo-text">TU LOGO<br>AQUÍ</div>
+                
+                <div class="logo-box mt-3 d-flex align-items-center justify-content-center" style="min-height: 120px; border: 2px dashed #eee;">
+                  <?php if (!empty($logoUrl)): ?>
+                      <img src="<?= $logoUrl ?>" alt="Logo Empresa">
+                  <?php else: ?>
+                      <div class="logo-text text-center text-muted">
+                        TU LOGO AQUÍ
+                      </div>
+                  <?php endif; ?>
                 </div>
               </div>
             </div>
@@ -184,41 +182,30 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
               <div class="panel-block">
                 <h6 class="panel-title">AVANCE POR CICLO</h6>
                 <div class="chart-placeholder">
-                  <div class="muted-small">
-                    Aquí irá el gráfico radar y los indicadores.
-                  </div>
+                  <div class="muted-small">Aquí irá el gráfico radar y los indicadores.</div>
                 </div>
               </div>
             </div>
 
           </div>
-
         </div>
       </div>
 
     </div>
-
   </div>
 </div>
 
-<div class="offcanvas offcanvas-end" tabindex="-1" id="soporteDrawer" aria-labelledby="soporteDrawerLabel">
+<div class="offcanvas offcanvas-end" tabindex="-1" id="soporteDrawer">
   <div class="offcanvas-body p-0 position-relative">
-    <button
-      type="button"
-      class="btn-close position-absolute top-0 end-0 m-3"
-      data-bs-dismiss="offcanvas"
-      aria-label="Close"
-      style="z-index: 20;">
-    </button>
-
-    <iframe id="soporteFrameDrawer" src="" title="Soporte" loading="lazy"></iframe>
+    <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="offcanvas"></button>
+    <iframe id="soporteFrameDrawer" src="" loading="lazy"></iframe>
   </div>
 </div>
-<!-- ===================== FIN OFFCANVAS SOPORTE ===================== -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+  // Tu lista de items y lógica de JavaScript original sigue exactamente igual abajo...
   const planearItems = [
     { item:"1.1.1", actividad:"Perfil del Responsable del SG SST", soporte:"1.1.1.php" },
     { item:"1.1.2", actividad:"Carta del Representante SST", soporte:"1.1.2.php" },
@@ -251,7 +238,6 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     { item:"2.10.1", actividad:"Lista de chequeo contratista persona jurídica", soporte:"2.10.1-2.php" },
     { item:"2.11.1", actividad:"Procedimiento de Gestión al Cambio", soporte:"2.11.1.php" },
     { item:"2.11.1", actividad:"Matriz de gestión del Cambio", soporte:"2.11.1-2.php" },
-
     { item:"—", actividad:"Manual del SG SST", soporte:"manual-sg-sst.php" },
     { item:"—", actividad:"Registro de Asistencia", soporte:"registro-asistencia.php" },
     { item:"—", actividad:"Acta de Reunión y seguimiento de actividades", soporte:"acta-reunion.php" },
@@ -261,150 +247,88 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   const $search = document.getElementById("searchInput");
   const $reset  = document.getElementById("resetBtn");
   const $count  = document.getElementById("countBadge");
-
   const $scorePts = document.getElementById("scorePts");
   const $maxPts   = document.getElementById("maxPts");
   const $scorePct = document.getElementById("scorePct");
   const $scoreBar = document.getElementById("scoreBar");
 
-  // Drawer soporte
   const drawerEl = document.getElementById("soporteDrawer");
   const soporteDrawer = new bootstrap.Offcanvas(drawerEl);
   const $drawerFrame = document.getElementById("soporteFrameDrawer");
-  const $drawerSub = null;
+
   function escapeHtml(str){
-    return String(str ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+    return String(str ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
   }
-
-  function openSoporteDrawer(file, row){
-  const url = `./soporte/${file}`;
-  $drawerFrame.src = url;
-  soporteDrawer.show();
-}
-
-
-  drawerEl.addEventListener("hidden.bs.offcanvas", () => {
-  $drawerFrame.src = "";
-});
 
   function renderTable(list) {
     $body.innerHTML = "";
     $count.textContent = list.length;
-
     list.forEach((row, idx) => {
       const id = `row_${idx}`;
       const file = row.soporte || "";
       const disabled = file ? "" : "disabled";
       const title = file ? "Abrir soporte" : "Pendiente por crear";
-
       $body.insertAdjacentHTML("beforeend", `
         <tr>
-          <td class="col-item">
-            <span class="item-chip"><span class="dot"></span>${escapeHtml(row.item)}</span>
-          </td>
+          <td class="col-item"><span class="item-chip"><span class="dot"></span>${escapeHtml(row.item)}</span></td>
           <td>${escapeHtml(row.actividad)}</td>
-
           <td class="col-soporte text-center">
-            <button
-              class="btn btn-sm btn-outline-primary btn-icon soporte-btn"
-              type="button"
-              title="${escapeHtml(title)}"
-              data-file="${escapeHtml(file)}"
-              data-item="${escapeHtml(row.item)}"
-              data-actividad="${escapeHtml(row.actividad)}"
-              ${disabled}
-            >
+            <button class="btn btn-sm btn-outline-primary btn-icon soporte-btn" type="button" title="${escapeHtml(title)}" data-file="${escapeHtml(file)}" ${disabled}>
               <i class="fa-regular fa-file-lines"></i>
             </button>
           </td>
-
           <td class="col-cal">
             <div class="cal-wrap">
-              <label class="cal-option cal-si">
-                <input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="2"><span>SI</span>
-              </label>
-              <label class="cal-option cal-proc">
-                <input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="1"><span>PROCESO</span>
-              </label>
-              <label class="cal-option cal-no">
-                <input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="0"><span>NO</span>
-              </label>
-              <label class="cal-option cal-na">
-                <input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="na"><span>N/A</span>
-              </label>
+              <label class="cal-option cal-si"><input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="2"><span>SI</span></label>
+              <label class="cal-option cal-proc"><input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="1"><span>PROCESO</span></label>
+              <label class="cal-option cal-no"><input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="0"><span>NO</span></label>
+              <label class="cal-option cal-na"><input class="form-check-input cal-radio" type="radio" name="cal_${id}" value="na"><span>N/A</span></label>
             </div>
           </td>
         </tr>
       `);
     });
-
     recalcScore();
   }
 
   document.addEventListener("change", (e) => {
-    if (e.target && e.target.classList && e.target.classList.contains("cal-radio")) {
-      recalcScore();
+    if (e.target.classList.contains("cal-radio")) recalcScore();
+  });
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-file]");
+    if (btn && btn.dataset.file) {
+        $drawerFrame.src = `./soporte/${btn.dataset.file}`;
+        soporteDrawer.show();
     }
   });
 
-  // click soporte -> abre drawer
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-file]");
-    if (!btn) return;
-    if (!btn.classList.contains("soporte-btn")) return;
-
-    const file = btn.dataset.file || "";
-    const item = btn.dataset.item || "";
-    const actividad = btn.dataset.actividad || "";
-
-    if (!file) return;
-
-    openSoporteDrawer(file, { item, actividad });
-  });
+  drawerEl.addEventListener("hidden.bs.offcanvas", () => { $drawerFrame.src = ""; });
 
   function recalcScore() {
     const rows = document.querySelectorAll("#planearBody tr");
-    let score = 0;
-    let max = 0;
-
+    let score = 0, max = 0;
     rows.forEach(tr => {
       const selected = tr.querySelector(".cal-radio:checked")?.value ?? null;
-      if (selected === null) return;
-
-      if (selected !== "na") max += 2;
-      if (selected === "2") score += 2;
-      else if (selected === "1") score += 1;
+      if (selected !== null) {
+        if (selected !== "na") max += 2;
+        if (selected === "2") score += 2;
+        else if (selected === "1") score += 1;
+      }
     });
-
     const pct = max === 0 ? 0 : Math.round((score / max) * 100);
-    $scorePts.textContent = score;
-    $maxPts.textContent = max;
-    $scorePct.textContent = pct + "%";
-    $scoreBar.style.width = pct + "%";
+    $scorePts.textContent = score; $maxPts.textContent = max;
+    $scorePct.textContent = pct + "%"; $scoreBar.style.width = pct + "%";
   }
 
-  function filterTable() {
-    const q = ($search.value || "").toLowerCase().trim();
-    const filtered = planearItems.filter(x =>
-      (x.item || "").toLowerCase().includes(q) ||
-      (x.actividad || "").toLowerCase().includes(q)
-    );
-    renderTable(filtered);
-  }
-
-  $search.addEventListener("input", filterTable);
-  $reset.addEventListener("click", () => {
-    $search.value = "";
-    renderTable(planearItems);
+  $search.addEventListener("input", () => {
+    const q = $search.value.toLowerCase().trim();
+    renderTable(planearItems.filter(x => (x.item+x.actividad).toLowerCase().includes(q)));
   });
+
+  $reset.addEventListener("click", () => { $search.value = ""; renderTable(planearItems); });
 
   renderTable(planearItems);
 </script>
-
 </body>
 </html>

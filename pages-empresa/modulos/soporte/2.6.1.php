@@ -1,8 +1,62 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     header("Location: ../../../index.php");
     exit;
+}
+
+function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos (Ej: 29 para "2.6.1")
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 29; 
+
+// --- Lógica de Empresa Optimizada (Logo, Nombres y Firmas) ---
+$nombreEmpresaLogeada = "NOMBRE DE LA EMPRESA";
+$logoEmpresaUrl = "";
+$nombreRL = "";
+$firmaRL = "";
+$nombreSST = "";
+$firmaSST = "";
+
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $nombreEmpresaLogeada = $empData['nombre_empresa'] ?? 'NOMBRE DE LA EMPRESA';
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+        
+        // Priorizando campos _rl y _sst
+        $nombreRL = $empData['nombre_rl'] ?? $empData['representante_legal'] ?? '';
+        $firmaRL = $empData['firma_rl'] ?? $empData['firma_representante'] ?? '';
+        $nombreSST = $empData['nombre_sst'] ?? $empData['responsable_sst'] ?? '';
+        $firmaSST = $empData['firma_sst'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE A LA API
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
 }
 ?>
 <!doctype html>
@@ -12,6 +66,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>2.6.1 - Procedimiento de Revisión por la Dirección y Rendición de Cuentas</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root{
             --blue:#1f5fa8;
@@ -44,7 +99,45 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             gap:10px;
             margin-bottom:12px;
             flex-wrap:wrap;
+            background: #d9dde2;
+            padding: 10px 16px;
+            border: 1px solid #c8cdd3;
+            border-radius: 6px;
         }
+        .btn-action{
+            border:1px solid #cfd6e4;
+            background:#fff;
+            color: #2f62b6;
+            padding:6px 12px;
+            border-radius:6px;
+            font-weight:800;
+            cursor:pointer;
+            font-size:12px;
+        }
+        .btn-action:hover { background: #eef4ff; }
+        .btn-primary-action{
+            border-color:#1b4fbd;
+            background:#1b4fbd;
+            color:#fff;
+            padding:6px 12px;
+            border-radius:6px;
+            font-weight:800;
+            cursor:pointer;
+            font-size:12px;
+        }
+        .btn-primary-action:hover { background: #0f3484; }
+        .btn-success-action {
+            border: 1px solid #198754;
+            background: #198754;
+            color: #fff;
+            padding:6px 12px;
+            border-radius:6px;
+            font-weight:800;
+            cursor:pointer;
+            font-size:12px;
+        }
+        .btn-success-action:hover { background: #146c43; }
+        .tiny{ font-size:11px; color:#6b7280; font-weight:700; }
 
         .sheet{
             background:#fff;
@@ -94,6 +187,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             color:rgba(0,0,0,.35);
             text-align:center;
             font-size:11px;
+            padding: 4px;
         }
 
         .sec-h{
@@ -138,12 +232,14 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             color:rgba(0,0,0,.35);
             font-weight:800;
             margin-bottom:24px;
+            padding: 5px;
         }
 
         .cover-text{
             font-size:16px;
             font-weight:700;
             margin-bottom:10px;
+            width: 100%;
         }
 
         .box{
@@ -197,6 +293,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             display:inline-block;
             width:auto;
             min-width:140px;
+            max-width: 100%;
         }
 
         textarea.edit{
@@ -204,6 +301,8 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             min-height:70px;
             line-height:1.55;
         }
+
+        .center{ text-align:center; }
 
         .list-box{
             margin:0;
@@ -219,7 +318,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             display:grid;
             grid-template-columns:1fr 1fr 1fr;
             gap:12px;
-            margin-top:18px;
+            margin-top:24px;
         }
 
         .sign{
@@ -229,6 +328,7 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             min-height:56px;
             font-size:12px;
             font-weight:700;
+            position: relative;
         }
 
         @media print{
@@ -240,181 +340,350 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
         @media (max-width: 768px){
             .sign-grid{
                 grid-template-columns:1fr;
+                gap: 40px;
             }
             .cover-title{
                 font-size:22px;
             }
         }
     </style>
-  <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
+    <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 <body>
 <div class="wrap">
 
-    <div class="toolbar">
-        <a href="../planear.php" class="btn btn-outline-secondary btn-sm">← Atrás</a>
-        <button class="btn btn-primary btn-sm" onclick="window.print()">Imprimir</button>
-    </div>
-
-    <!-- PORTADA -->
-    <div class="sheet page-break">
-        <table class="format">
-            <colgroup>
-                <col style="width:18%">
-                <col style="width:52%">
-                <col style="width:15%">
-                <col style="width:15%">
-            </colgroup>
-            <tr>
-                <td rowspan="3">
-                    <div class="logo-box">LOGO EMPRESA</div>
-                </td>
-                <td class="title">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
-                <td><strong>Versión:</strong> 1</td>
-                <td><strong>Fecha:</strong><br>XX/XX/20XX</td>
-            </tr>
-            <tr>
-                <td class="subtitle">PROCEDIMIENTO DE REVISIÓN POR LA DIRECCIÓN Y RENDICIÓN DE CUENTAS</td>
-                <td class="title" colspan="2">AN-XX-SST-24</td>
-            </tr>
-            <tr>
-                <td colspan="3"><strong>Proceso:</strong> Gestión de Seguridad y Salud en el Trabajo</td>
-            </tr>
-        </table>
-
-        <div class="cover">
-            <div class="cover-title">PROCEDIMIENTO DE REVISIÓN POR LA DIRECCIÓN</div>
-            <div class="cover-logo">LOGO</div>
-            <div class="cover-text">Versión 0</div>
-            <div class="cover-text"><input type="text" class="edit-inline" value="NOMBRE EMPRESA"></div>
-            <div class="cover-text"><input type="text" class="edit-inline" value="FECHA"></div>
+    <div class="toolbar print-hide">
+        <div style="display:flex; gap:8px;">
+            <button class="btn-action" type="button" onclick="history.back()">← Atrás</button>
+            <button class="btn-action" type="button" onclick="window.location.reload()">Recargar</button>
+            <button class="btn-success-action" type="button" id="btnGuardar">Guardar Cambios</button>
+            <button class="btn-primary-action" type="button" onclick="window.print()">Imprimir PDF</button>
+        </div>
+        <div class="tiny text-end">
+            <span style="font-size: 14px; font-weight: 900; color: #0f2f5c;">REVISIÓN POR DIRECCIÓN</span><br>
+            Usuario: <strong><?= e($_SESSION["usuario"] ?? "Usuario") ?></strong> · <span id="hoyTxt"></span>
         </div>
     </div>
 
-    <!-- DOCUMENTO -->
-    <div class="sheet">
-        <table class="format">
-            <colgroup>
-                <col style="width:18%">
-                <col style="width:52%">
-                <col style="width:15%">
-                <col style="width:15%">
-            </colgroup>
-            <tr>
-                <td rowspan="3">
-                    <div class="logo-box">LOGO EMPRESA</div>
-                </td>
-                <td class="title">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
-                <td><strong>Versión:</strong> 1</td>
-                <td><strong>Fecha:</strong><br>XX/XX/20XX</td>
-            </tr>
-            <tr>
-                <td class="subtitle">PROCEDIMIENTO DE REVISIÓN POR LA DIRECCIÓN Y RENDICIÓN DE CUENTAS</td>
-                <td class="title" colspan="2">AN-XX-SST-24</td>
-            </tr>
-            <tr>
-                <td colspan="3"><strong>Proceso:</strong> Gestión de Seguridad y Salud en el Trabajo</td>
-            </tr>
-        </table>
-
-        <div class="sec-h">Objetivo</div>
-        <div class="box text-just">
-            <textarea class="edit" rows="4">Proporcionar evidencia del compromiso con el desarrollo, implementación y mantenimiento del SG SST Sistema de Gestión de Seguridad y Salud en el Trabajo que se tiene establecido en la fundación para asegurar la efectiva aplicación y mejoramiento continuo del mismo.</textarea>
-        </div>
-
-        <div class="sec-h">Alcance</div>
-        <div class="box text-just">
-            <textarea class="edit" rows="3">Este procedimiento es aplicable a los requerimientos definidos del Decreto 1072 de 2015 y Resolución 0312 de 2019.</textarea>
-        </div>
-
-        <div class="sec-h">Responsables</div>
-        <table class="formtbl">
-            <tbody>
+    <form id="form-sst-dinamico">
+        <div class="sheet page-break">
+            <table class="format">
+                <colgroup>
+                    <col style="width:18%">
+                    <col style="width:52%">
+                    <col style="width:15%">
+                    <col style="width:15%">
+                </colgroup>
                 <tr>
-                    <th style="width:220px;">Responsable principal</th>
-                    <td><input class="edit" type="text" value="El Gerente General o su designado deben ejecutar lo dispuesto en este procedimiento."></td>
+                    <td rowspan="3">
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? '' : 'border:none; background:transparent;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 55px; object-fit: contain;">
+                            <?php else: ?>
+                                LOGO EMPRESA
+                            <?php endif; ?>
+                        </div>
+                    </td>
+                    <td class="title">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
+                    <td><strong>Versión:</strong> 1</td>
+                    <td><strong>Fecha:</strong><br><input type="date" name="meta_fecha_1" id="metaFecha1" style="border:none; font-size:10px; font-weight:900; outline:none; background:transparent; width:100%;"></td>
                 </tr>
-            </tbody>
-        </table>
+                <tr>
+                    <td class="subtitle">PROCEDIMIENTO DE REVISIÓN POR LA DIRECCIÓN Y RENDICIÓN DE CUENTAS</td>
+                    <td class="title" colspan="2">AN-XX-SST-24</td>
+                </tr>
+                <tr>
+                    <td colspan="3"><strong>Proceso:</strong> Gestión de Seguridad y Salud en el Trabajo</td>
+                </tr>
+            </table>
 
-        <div class="sec-h">Procedimiento</div>
-        <div class="box text-just">
-            <textarea class="edit" rows="7">Como mínimo anualmente debe realizarse una revisión gerencial para evaluar el funcionamiento en general del sistema de Gestión en Seguridad y Salud en el Trabajo, los elementos del SGSST que responden a los lineamientos del Decreto 1072 del 2015, auditorías internas, retroalimentaciones del COPASST, estado de las acciones correctivas y preventivas, análisis de accidentalidad, seguimiento a las Revisiones Gerenciales entre otras. SIEMPRE se debe dejar acta de esta reunión.
+            <div class="cover">
+                <div class="cover-title">PROCEDIMIENTO DE REVISIÓN POR LA DIRECCIÓN</div>
+                <div class="cover-logo" style="<?= empty($logoEmpresaUrl) ? '' : 'border:none; background:transparent;' ?>">
+                    <?php if(!empty($logoEmpresaUrl)): ?>
+                        <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 120px; object-fit: contain;">
+                    <?php else: ?>
+                        LOGO
+                    <?php endif; ?>
+                </div>
+                <div class="cover-text">Versión 0</div>
+                <div class="cover-text"><input type="text" name="cover_empresa" class="edit-inline center" value="<?= htmlspecialchars($nombreEmpresaLogeada) ?>" placeholder="NOMBRE EMPRESA"></div>
+                <div class="cover-text"><input type="text" name="cover_fecha" class="edit-inline center" placeholder="FECHA ACTUAL"></div>
+            </div>
+        </div>
+
+        <div class="sheet">
+            <table class="format">
+                <colgroup>
+                    <col style="width:18%">
+                    <col style="width:52%">
+                    <col style="width:15%">
+                    <col style="width:15%">
+                </colgroup>
+                <tr>
+                    <td rowspan="3">
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? '' : 'border:none; background:transparent;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 55px; object-fit: contain;">
+                            <?php else: ?>
+                                LOGO EMPRESA
+                            <?php endif; ?>
+                        </div>
+                    </td>
+                    <td class="title">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
+                    <td><strong>Versión:</strong> 1</td>
+                    <td><strong>Fecha:</strong><br><input type="date" name="meta_fecha_2" id="metaFecha2" style="border:none; font-size:10px; font-weight:900; outline:none; background:transparent; width:100%;"></td>
+                </tr>
+                <tr>
+                    <td class="subtitle">PROCEDIMIENTO DE REVISIÓN POR LA DIRECCIÓN Y RENDICIÓN DE CUENTAS</td>
+                    <td class="title" colspan="2">AN-XX-SST-24</td>
+                </tr>
+                <tr>
+                    <td colspan="3"><strong>Proceso:</strong> Gestión de Seguridad y Salud en el Trabajo</td>
+                </tr>
+            </table>
+
+            <div class="sec-h">Objetivo</div>
+            <div class="box text-just">
+                <textarea name="txt_objetivo" class="edit" rows="4">Proporcionar evidencia del compromiso con el desarrollo, implementación y mantenimiento del SG SST Sistema de Gestión de Seguridad y Salud en el Trabajo que se tiene establecido en la fundación para asegurar la efectiva aplicación y mejoramiento continuo del mismo.</textarea>
+            </div>
+
+            <div class="sec-h">Alcance</div>
+            <div class="box text-just">
+                <textarea name="txt_alcance" class="edit" rows="3">Este procedimiento es aplicable a los requerimientos definidos del Decreto 1072 de 2015 y Resolución 0312 de 2019.</textarea>
+            </div>
+
+            <div class="sec-h">Responsables</div>
+            <table class="formtbl">
+                <tbody>
+                    <tr>
+                        <th style="width:220px;">Responsable principal</th>
+                        <td><input name="txt_responsable" class="edit" type="text" value="El Gerente General o su designado deben ejecutar lo dispuesto en este procedimiento."></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="sec-h">Procedimiento</div>
+            <div class="box text-just">
+                <textarea name="txt_procedimiento" class="edit" rows="8">Como mínimo anualmente debe realizarse una revisión gerencial para evaluar el funcionamiento en general del sistema de Gestión en Seguridad y Salud en el Trabajo, los elementos del SGSST que responden a los lineamientos del Decreto 1072 del 2015, auditorías internas, retroalimentaciones del COPASST, estado de las acciones correctivas y preventivas, análisis de accidentalidad, seguimiento a las Revisiones Gerenciales entre otras. SIEMPRE se debe dejar acta de esta reunión.
 
 No obstante, se podrán realizar revisiones extemporáneas a petición del Gerente General.
 
 Las Revisiones Gerenciales son convocadas por el Gerente General de la Empresa o su designado, una vez al año o antes de encontrarse la necesidad.</textarea>
+            </div>
+
+            <div class="sec-h">Aspectos a tener en cuenta para el análisis de la revisión</div>
+            <table class="formtbl">
+                <thead>
+                    <tr>
+                        <th style="width:70px;">N°</th>
+                        <th>Aspecto a revisar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="center">1</td><td>La política, los objetivos y metas del SGSST.</td></tr>
+                    <tr><td class="center">2</td><td>Resultados de indicadores.</td></tr>
+                    <tr><td class="center">3</td><td>Estrategias implementadas para el cumplimiento de los objetivos y metas.</td></tr>
+                    <tr><td class="center">4</td><td>Cumplimiento del plan de trabajo.</td></tr>
+                    <tr><td class="center">5</td><td>Ejecución del presupuesto y suficiencia de los recursos.</td></tr>
+                    <tr><td class="center">6</td><td>El análisis estadístico del sistema (accidentalidad, incidentalidad, inspecciones, entre otras) y la notificación de accidentes.</td></tr>
+                    <tr><td class="center">7</td><td>Estado de acciones derivadas de hallazgos al sistema (no conformidades, iniciativas, recomendaciones, entre otras).</td></tr>
+                    <tr><td class="center">8</td><td>Resultados de implementaciones de acciones preventivas y correctivas.</td></tr>
+                    <tr><td class="center">9</td><td>El resultado de las auditorías internas y externas.</td></tr>
+                    <tr><td class="center">10</td><td>Los cambios que puedan afectar el SGSST.</td></tr>
+                    <tr><td class="center">11</td><td>Requerimientos del COPASST.</td></tr>
+                    <tr><td class="center">12</td><td>Participación de los trabajadores (mecanismos, evidencias).</td></tr>
+                    <tr><td class="center">13</td><td>Requisitos legales de SST.</td></tr>
+                    <tr><td class="center">14</td><td>Entre otros descritos en la norma.</td></tr>
+                </tbody>
+            </table>
+
+            <div class="sec-h">Resultado de la revisión gerencial</div>
+            <div class="box text-just">
+                <textarea name="txt_resultado" class="edit" rows="4">Como resultado de estas Revisiones Gerenciales, se establece planes de acciones que permitan corregir y hacer seguimiento a las no conformidades relacionadas con las mejoras de la eficiencia del SGSST.</textarea>
+            </div>
+
+            <div class="sec-h">Plan de acciones derivado de la revisión</div>
+            <table class="formtbl">
+                <thead>
+                    <tr>
+                        <th style="width:60px;">N°</th>
+                        <th>Hallazgo / oportunidad de mejora</th>
+                        <th style="width:180px;">Acción</th>
+                        <th style="width:180px;">Responsable</th>
+                        <th style="width:140px;">Fecha</th>
+                        <th style="width:140px;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php for($i=1; $i<=8; $i++): ?>
+                    <tr>
+                        <td class="center"><?php echo $i; ?></td>
+                        <td><textarea name="plan_hallazgo[]" class="edit" rows="2"></textarea></td>
+                        <td><textarea name="plan_accion[]" class="edit" rows="2"></textarea></td>
+                        <td><input name="plan_responsable[]" class="edit" type="text"></td>
+                        <td><input name="plan_fecha[]" class="edit" type="text" placeholder="DD/MM/AAAA"></td>
+                        <td><input name="plan_estado[]" class="edit" type="text"></td>
+                    </tr>
+                    <?php endfor; ?>
+                </tbody>
+            </table>
+
+            <div class="sec-h">Observaciones</div>
+            <div class="box">
+                <textarea name="txt_observaciones" class="edit" rows="4" placeholder="Añada aquí cualquier observación adicional..."></textarea>
+            </div>
+
+            <div class="sign-grid">
+                <div class="sign">
+                    <div style="min-height: 40px; position:relative; margin-bottom:5px;">
+                        <?php if(!empty($firmaSST)): ?>
+                            <img src="<?= $firmaSST ?>" alt="Firma Elaborador" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
+                        <?php endif; ?>
+                    </div>
+                    ELABORÓ<br>
+                    <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreSST) ?></span>
+                </div>
+                
+                <div class="sign">
+                    <div style="min-height: 40px; position:relative; margin-bottom:5px;">
+                        <?php if(!empty($firmaSST)): ?>
+                            <img src="<?= $firmaSST ?>" alt="Firma Revisor" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
+                        <?php endif; ?>
+                    </div>
+                    REVISÓ<br>
+                    <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreSST) ?></span>
+                </div>
+
+                <div class="sign">
+                    <div style="min-height: 40px; position:relative; margin-bottom:5px;">
+                        <?php if(!empty($firmaRL)): ?>
+                            <img src="<?= $firmaRL ?>" alt="Firma Aprobador" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
+                        <?php endif; ?>
+                    </div>
+                    APROBÓ<br>
+                    <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreRL) ?></span>
+                </div>
+            </div>
+
         </div>
-
-        <div class="sec-h">Aspectos a tener en cuenta para el análisis de la revisión</div>
-        <table class="formtbl">
-            <thead>
-                <tr>
-                    <th style="width:70px;">N°</th>
-                    <th>Aspecto a revisar</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td class="center">1</td><td>La política, los objetivos y metas del SGSST.</td></tr>
-                <tr><td class="center">2</td><td>Resultados de indicadores.</td></tr>
-                <tr><td class="center">3</td><td>Estrategias implementadas para el cumplimiento de los objetivos y metas.</td></tr>
-                <tr><td class="center">4</td><td>Cumplimiento del plan de trabajo.</td></tr>
-                <tr><td class="center">5</td><td>Ejecución del presupuesto y suficiencia de los recursos.</td></tr>
-                <tr><td class="center">6</td><td>El análisis estadístico del sistema (accidentalidad, incidentalidad, inspecciones, entre otras) y la notificación de accidentes.</td></tr>
-                <tr><td class="center">7</td><td>Estado de acciones derivadas de hallazgos al sistema (no conformidades, iniciativas, recomendaciones, entre otras).</td></tr>
-                <tr><td class="center">8</td><td>Resultados de implementaciones de acciones preventivas y correctivas.</td></tr>
-                <tr><td class="center">9</td><td>El resultado de las auditorías internas y externas.</td></tr>
-                <tr><td class="center">10</td><td>Los cambios que puedan afectar el SGSST.</td></tr>
-                <tr><td class="center">11</td><td>Requerimientos del COPASST.</td></tr>
-                <tr><td class="center">12</td><td>Participación de los trabajadores (mecanismos, evidencias).</td></tr>
-                <tr><td class="center">13</td><td>Requisitos legales de SST.</td></tr>
-                <tr><td class="center">14</td><td>Entre otros descritos en la norma.</td></tr>
-            </tbody>
-        </table>
-
-        <div class="sec-h">Resultado de la revisión gerencial</div>
-        <div class="box text-just">
-            <textarea class="edit" rows="5">Como resultado de estas Revisiones Gerenciales, se establece planes de acciones que permitan corregir y hacer seguimiento a las no conformidades relacionadas con las mejoras de la eficiencia del SGSST.</textarea>
-        </div>
-
-        <div class="sec-h">Plan de acciones derivado de la revisión</div>
-        <table class="formtbl">
-            <thead>
-                <tr>
-                    <th style="width:60px;">N°</th>
-                    <th>Hallazgo / oportunidad de mejora</th>
-                    <th style="width:180px;">Acción</th>
-                    <th style="width:180px;">Responsable</th>
-                    <th style="width:140px;">Fecha</th>
-                    <th style="width:140px;">Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php for($i=1; $i<=8; $i++): ?>
-                <tr>
-                    <td class="center"><?php echo $i; ?></td>
-                    <td><textarea class="edit" rows="2"></textarea></td>
-                    <td><textarea class="edit" rows="2"></textarea></td>
-                    <td><input class="edit" type="text"></td>
-                    <td><input class="edit" type="text"></td>
-                    <td><input class="edit" type="text"></td>
-                </tr>
-                <?php endfor; ?>
-            </tbody>
-        </table>
-
-        <div class="sec-h">Observaciones</div>
-        <div class="box">
-            <textarea class="edit" rows="4"></textarea>
-        </div>
-
-        <div class="sign-grid">
-            <div class="sign">ELABORÓ</div>
-            <div class="sign">REVISÓ</div>
-            <div class="sign">APROBÓ</div>
-        </div>
-    </div>
+    </form>
 </div>
+
+<script>
+    // Poner fecha de hoy por defecto si está vacía
+    function setHoy(){
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,"0");
+        const dd = String(d.getDate()).padStart(2,"0");
+        document.getElementById("hoyTxt").textContent = `${y}/${m}/${dd}`;
+        
+        const fmeta1 = document.getElementById("metaFecha1");
+        if (fmeta1 && !fmeta1.value) fmeta1.value = `${y}-${m}-${dd}`;
+
+        const fmeta2 = document.getElementById("metaFecha2");
+        if (fmeta2 && !fmeta2.value) fmeta2.value = `${y}-${m}-${dd}`;
+        
+        // Poner en portada también si aplica
+        const c_fecha = document.querySelector('input[name="cover_fecha"]');
+        if(c_fecha && !c_fecha.value) c_fecha.value = `${dd}/${m}/${y}`;
+    }
+    setHoy();
+
+    // --- LÓGICA DE CARGADO DE DATOS DESDE PHP ---
+    document.addEventListener('DOMContentLoaded', function () {
+        let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
+        if (typeof datosGuardados === 'string') {
+            try { datosGuardados = JSON.parse(datosGuardados); } catch(e) {}
+        }
+
+        if (datosGuardados && Object.keys(datosGuardados).length > 0) {
+            for (const [key, value] of Object.entries(datosGuardados)) {
+                if (Array.isArray(value)) {
+                    let campos = document.querySelectorAll(`[name="${key}[]"]`);
+                    value.forEach((val, i) => {
+                        if (campos[i]) campos[i].value = typeof val === 'string' ? val.replace(/\\n/g, '\n') : val;
+                    });
+                } else {
+                    const campo = document.querySelector(`[name="${key}"]`);
+                    if (campo) {
+                        campo.value = typeof value === 'string' ? value.replace(/\\n/g, '\n') : value;
+                    }
+                }
+            }
+        }
+    });
+
+    // --- LÓGICA DE GUARDADO ---
+    document.getElementById('btnGuardar').addEventListener('click', async function() {
+        const btn = this;
+        const form = document.getElementById('form-sst-dinamico');
+        const formData = new FormData(form);
+        const datosJSON = {};
+
+        for (const [key, value] of formData.entries()) {
+            if (key.endsWith('[]')) {
+                const cleanKey = key.replace('[]', '');
+                if (!datosJSON[cleanKey]) datosJSON[cleanKey] = [];
+                datosJSON[cleanKey].push(value);
+            } else {
+                datosJSON[key] = value;
+            }
+        }
+
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Guardando...';
+        btn.disabled = true;
+
+        try {
+            const token = "<?= $token ?>";
+            const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+            const response = await fetch(urlAPI, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({
+                    id_empresa: <?= $empresa ?>,
+                    id_item_sst: <?= $idItem ?>,
+                    datos: datosJSON
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.ok) {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'Procedimiento guardado correctamente',
+                    icon: 'success',
+                    confirmButtonColor: '#198754'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error al guardar',
+                    text: result.error || "No se pudo completar la operación.",
+                    icon: 'error',
+                    confirmButtonColor: '#1b4fbd'
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            Swal.fire({
+                title: 'Error de conexión',
+                text: 'No se pudo contactar al servidor para guardar.',
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
+</script>
 
 <script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
