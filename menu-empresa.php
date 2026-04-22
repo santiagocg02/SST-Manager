@@ -137,6 +137,21 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       </div>
     </div>
     <?php endif; ?>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed admin-accordion-btn" data-bs-toggle="collapse" data-bs-target="#collapsegh">
+          <i class="fa-solid fa-helmet-safety me-2"></i> Gestión Humana
+        </button>
+      </h2>
+      <div id="collapsegh" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
+        <div class="accordion-body py-2">
+          <a href="pages-empresa/modulos/gestionhumana/Vinculacion.php" target="contentFrame" class="admin-subitem">Ingreso</a>
+        </div>
+        <div class="accordion-body py-2">
+          <a href="pages-empresa/modulos/gestionhumana/Capacitaciones.php" target="contentFrame" class="admin-subitem">Capacitación</a>
+        </div>
+      </div>
+    </div>
 
     <?php if (puedeVer(19, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
     <div class="accordion-item">
