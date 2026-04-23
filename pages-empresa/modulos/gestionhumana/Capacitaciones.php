@@ -11,6 +11,9 @@ $api = new ConexionAPI();
 $token = $_SESSION["token"];
 $empresaId = $_SESSION["id_empresa"] ?? 0;
 $nombreE = $_SESSION["nombre_empresa"] ?? "Empresa Demostración";
+
+// Fecha actual para el campo no editable
+$fechaHoy = date('d/m/Y');
 ?>
 <!doctype html>
 <html lang="es">
@@ -56,6 +59,28 @@ $nombreE = $_SESSION["nombre_empresa"] ?? "Empresa Demostración";
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
 
+    /* Estilos del Modal */
+    .modal-header-azul {
+        background-color: var(--color-corporativo-azul);
+        color: white;
+    }
+    .form-label-custom {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #495057;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .input-group-custom .form-select {
+        max-width: 150px;
+        background-color: #f8f9fa;
+        border-right: none;
+        font-weight: 600;
+        color: var(--color-corporativo-azul);
+    }
+
+    /* Buscador */
     .search-wrapper {
         background: white;
         border: 1px solid #dee2e6;
@@ -78,36 +103,11 @@ $nombreE = $_SESSION["nombre_empresa"] ?? "Empresa Demostración";
         font-weight: 700;
         text-transform: uppercase;
         font-size: 0.8rem;
-        letter-spacing: 0.5px;
         border-bottom: 2px solid var(--color-corporativo-verde);
     }
 
-    .btn-pdf {
-        color: #dc3545;
-        border: 1px solid #dc3545;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: lowercase;
-        border-radius: 4px;
-        background: transparent;
-    }
-    .btn-pdf:hover {
-        background-color: #dc3545;
-        color: white;
-    }
-
-    .btn-actualizar {
-        color: var(--color-corporativo-azul);
-        border: 1px solid var(--color-corporativo-azul);
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: lowercase;
-        border-radius: 4px;
-    }
-    .btn-actualizar:hover {
-        background-color: var(--color-corporativo-azul);
-        color: white;
-    }
+    .btn-pdf { color: #dc3545; border: 1px solid #dc3545; font-size: 0.75rem; font-weight: 600; border-radius: 4px; }
+    .btn-actualizar { color: var(--color-corporativo-azul); border: 1px solid var(--color-corporativo-azul); font-size: 0.75rem; font-weight: 600; border-radius: 4px; }
   </style>
 </head>
 
@@ -137,7 +137,7 @@ $nombreE = $_SESSION["nombre_empresa"] ?? "Empresa Demostración";
 
     <div class="row g-3 align-items-center mb-4">
         <div class="col-auto">
-            <button type="button" class="btn btn-crear-corporativo shadow-sm" onclick="window.location.href='CrearCapacitacion.php'">
+            <button type="button" class="btn btn-crear-corporativo shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCrearCap">
                 <i class="fa-solid fa-plus me-2"></i> + crear Capacitación
             </button>
         </div>
@@ -169,59 +169,128 @@ $nombreE = $_SESSION["nombre_empresa"] ?? "Empresa Demostración";
             <tr>
                 <td class="ps-4 fw-bold text-muted">21/04/2026</td>
                 <td>
-                    <div class="fw-bold text-dark">MANEJO DE EXTINTORES Y FUEGO</div>
+                    <div class="fw-bold text-dark text-uppercase">Manejo de Extintores y Fuego</div>
                     <div class="small text-muted">Referencia: Uso de equipos tipo ABC en planta principal.</div>
                 </td>
                 <td>
-                    <span class="badge bg-light text-dark border"><i class="fa-regular fa-clock me-1"></i> 08:00 - 10:00</span>
+                    <span class="badge bg-light text-dark border fw-normal"><i class="fa-regular fa-clock me-1"></i> 08:00 - 10:00</span>
                 </td>
                 <td class="text-center">
-                    <a href="#" class="btn btn-sm btn-pdf px-3"><i class="fa-solid fa-file-pdf"></i> pdf</a>
+                    <button class="btn btn-sm btn-pdf px-3"><i class="fa-solid fa-file-pdf"></i> pdf</button>
                 </td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-actualizar px-3">actualizar</button>
                 </td>
             </tr>
-
             <?php for($i=0; $i<3; $i++): ?>
-            <tr style="height: 60px;">
-                <td colspan="5"></td>
-            </tr>
+            <tr style="height: 60px;"><td colspan="5"></td></tr>
             <?php endfor; ?>
           </tbody>
         </table>
       </div>
     </div>
 
-    <div class="mt-4 d-flex justify-content-between align-items-center">
-        <div class="text-muted small">Mostrando registros de capacitaciones realizadas</div>
-        <div class="btn-group shadow-sm">
-            <button class="btn btn-white border bg-white px-3"><i class="fa-solid fa-chevron-left"></i></button>
-            <button class="btn btn-white border bg-white px-3"><i class="fa-solid fa-chevron-right"></i></button>
-        </div>
-    </div>
+  </div>
+</div>
 
+<div class="modal fade" id="modalCrearCap" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header modal-header-azul">
+        <h5 class="modal-title"><i class="fa-solid fa-circle-plus me-2"></i> Nueva Capacitación</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="formNuevaCapacitacion" enctype="multipart/form-data">
+        <div class="modal-body p-4">
+          <div class="row g-3">
+            
+            <div class="col-md-6">
+                <label class="form-label form-label-custom">Fecha Registro (Sistema)</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-laptop-code text-muted"></i></span>
+                    <input type="text" class="form-control bg-light border-start-0" value="<?= $fechaHoy ?>" readonly>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label form-label-custom text-primary">Fecha de Capacitación</label>
+                <input type="date" class="form-control border-primary" name="fecha_capacitacion" required>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label form-label-custom">Título de la Capacitación</label>
+                <input type="text" class="form-control" name="titulo" placeholder="Ej: Brigada de Emergencia - Primeros Auxilios" required>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label form-label-custom">Intención o Motivo</label>
+                <textarea class="form-control" name="motivo" rows="2" placeholder="Describa brevemente el objetivo de esta formación..."></textarea>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label form-label-custom">Procedencia y Facilitador</label>
+                <div class="input-group input-group-custom">
+                    <select class="form-select" name="procedencia">
+                        <option value="Interna">🏠 Interna</option>
+                        <option value="ARL">🛡️ ARL</option>
+                        <option value="Externo">🚛 Externo</option>
+                        <option value="Otro">🔗 Otro</option>
+                    </select>
+                    <input type="text" class="form-control" name="facilitador" placeholder="Nombre completo del instructor o entidad" required>
+                </div>
+                <div class="form-text small">Seleccione el origen y escriba el nombre de quien dicta la charla.</div>
+            </div>
+
+            <div class="col-12">
+                <div class="p-3 border rounded-3 bg-light">
+                    <label class="form-label form-label-custom mb-2"><i class="fa-solid fa-users-rectangle me-1"></i> Cargar Listado de Asistentes</label>
+                    <input type="file" class="form-control" name="asistentes" accept=".pdf,.xlsx,.xls,.csv">
+                    <div class="form-text">Adjunte el archivo con las firmas o el listado digital (PDF o Excel).</div>
+                </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="modal-footer bg-light p-3">
+          <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-crear-corporativo px-4 shadow-sm">
+             <i class="fa-solid fa-floppy-disk me-2"></i> Guardar Capacitación
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+    // Filtro de búsqueda en tiempo real
     const input = document.getElementById('searchInput');
     input.addEventListener('keyup', function() {
         const filter = input.value.toLowerCase();
         const rows = document.querySelectorAll('#capacitacionBody tr');
         rows.forEach(row => {
             const text = row.innerText.toLowerCase();
-            if(row.children[1]) { 
+            if(row.children.length > 1) { 
                 row.style.display = text.includes(filter) ? '' : 'none';
             }
         });
     });
 
+    // Botón Reset
     document.getElementById('resetBtn').addEventListener('click', () => {
         input.value = '';
         location.reload();
+    });
+
+    // Manejo del formulario vía AJAX (Ejemplo base)
+    document.getElementById('formNuevaCapacitacion').addEventListener('submit', function(e) {
+        e.preventDefault();
+        // Aquí puedes usar FormData para enviar los datos incluyendo el archivo a tu API
+        console.log("Procesando registro...");
+        // alert("Registro guardado con éxito (Simulación)");
+        // this.reset();
+        // bootstrap.Modal.getInstance(document.getElementById('modalCrearCap')).hide();
     });
 </script>
 
