@@ -33,7 +33,15 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             margin-top: 20px;
         }
-
+.doc-group-title {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--admin-blue);
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 10px;
+    margin-top: 15px;
+    font-weight: bold;
+}
         /* Estilo de las Pestañas (Tabs) */
         .nav-tabs .nav-link {
             color: #666;
@@ -76,8 +84,37 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             border-radius: 4px;
         }
 
-        .btn-cancelar { background-color: #ff3333; color: white; font-weight: bold; border: none; padding: 10px 30px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;}
-        .btn-aceptar { background-color: var(--admin-green); color: white; font-weight: bold; border: none; padding: 10px 30px; }
+   .btn-cancelar { 
+    background-color: #6c757d; 
+    color: white; 
+    font-weight: bold; 
+    border: none; 
+    padding: 10px 30px; 
+    text-decoration: none; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center;
+    transition: background-color 0.3s ease;
+}
+.btn-cancelar:hover {
+    background-color: var(--admin-blue);
+    color: white;
+}
+       .btn-aceptar { 
+    background: linear-gradient(145deg, #198754, #146c43); /* Degradado sutil */
+    color: white; 
+    font-weight: bold; 
+    border: none; 
+    padding: 10px 30px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15); /* Sombra para dar relieve */
+    transition: all 0.3s ease;
+}
+
+.btn-aceptar:hover {
+    background: #146c43;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: translateY(-1px); /* Efecto de levante */
+}
     </style>
 </head>
 <body>
@@ -297,31 +334,74 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
                 </div>
 
                 <div class="tab-pane fade" id="dependientes">
-                    <div class="row g-3 mt-2">
-                        <div class="col-md-12 mb-2">
-                            <div class="section-header">Carga de Documentos del Empleado</div>
-                        </div>
-                        <div class="col-md-6">
-                            <label>Cédula de Ciudadanía</label>
-                            <input type="file" class="form-control" name="doc_cedula" accept=".pdf,image/*">
-                        </div>
-                        <div class="col-md-6">
-                            <label>Libreta Militar</label>
-                            <input type="file" class="form-control" name="doc_libreta" accept=".pdf,image/*">
-                        </div>
-                        <div class="col-md-6 mt-3">
-                            <label>Exámenes Médicos</label>
-                            <input type="file" class="form-control" name="doc_examen" accept=".pdf,image/*">
-                        </div>
-                        <div class="col-md-6 mt-3">
-                            <label>Contrato Firmado</label>
-                            <input type="file" class="form-control" name="doc_contrato" accept=".pdf,image/*">
-                        </div>
-                        <div class="col-md-12 mt-3">
-                            <small class="text-muted"><i class="fa-solid fa-circle-info"></i> Formatos permitidos: PDF o Imágenes (JPG, PNG).</small>
-                        </div>
-                    </div>
-                </div>
+    <div class="row g-3 mt-2">
+        <div class="col-md-12 mb-2">
+            <div class="section-header">Expediente Digital: Carga de Documentos</div>
+        </div>
+
+        <div class="col-md-12 doc-group-title">Identidad y Hoja de Vida</div>
+        <div class="col-md-4">
+            <label>Cédula de Ciudadanía (CC)</label>
+            <input type="file" class="form-control" name="doc_cedula" accept=".pdf,image/*">
+        </div>
+        <div class="col-md-4">
+            <label>Hoja de Vida (HV)</label>
+            <input type="file" class="form-control" name="doc_hv" accept=".pdf">
+        </div>
+        <div class="col-md-4">
+            <label>Ficha Técnica Aspirante (FOR-GH-01)</label>
+            <input type="file" class="form-control" name="doc_ficha_aspirante" accept=".pdf,.docx">
+        </div>
+
+        <div class="col-md-12 doc-group-title">Autorizaciones y Contratos</div>
+        <div class="col-md-3">
+            <label>Tratamiento Datos (GDPR)</label>
+            <input type="file" class="form-control" name="doc_gdpr" accept=".pdf,.docx">
+        </div>
+        <div class="col-md-3">
+            <label>Explotación de Imagen</label>
+            <input type="file" class="form-control" name="doc_imagen" accept=".pdf,.docx">
+        </div>
+        <div class="col-md-3">
+            <label>Cláusula Confidencialidad</label>
+            <input type="file" class="form-control" name="doc_confidencialidad" accept=".pdf,.docx">
+        </div>
+        <div class="col-md-3">
+            <label>Contrato / Otro Sí</label>
+            <input type="file" class="form-control" name="doc_contrato" accept=".pdf,.docx">
+        </div>
+
+        <div class="col-md-12 doc-group-title">Seguridad Social y Salud</div>
+        <div class="col-md-3">
+            <label>Certificado EPS</label>
+            <input type="file" class="form-control" name="doc_eps" accept=".pdf">
+        </div>
+        <div class="col-md-3">
+            <label>Certificado Fondo Pensión</label>
+            <input type="file" class="form-control" name="doc_pension" accept=".pdf">
+        </div>
+        <div class="col-md-3">
+            <label>Certificado ARL / Caja</label>
+            <input type="file" class="form-control" name="doc_arl_caja" accept=".pdf">
+        </div>
+        <div class="col-md-3">
+            <label>Declaración Salud (FOR-GH-02)</label>
+            <input type="file" class="form-control" name="doc_estado_salud" accept=".pdf,.docx">
+        </div>
+
+        <div class="col-md-12 doc-group-title">Consultas y Antecedentes</div>
+        <div class="col-md-6">
+            <label>Antecedentes (Policía/Procuraduría/Contraloría)</label>
+            <input type="file" class="form-control" name="doc_antecedentes" accept=".pdf" multiple>
+            <small class="text-muted">Puedes subir varios archivos PDF a la vez.</small>
+        </div>
+        <div class="col-md-6">
+            <label>Inhabilidades</label>
+            <input type="file" class="form-control" name="doc_inhabilidades" accept=".pdf">
+        </div>
+
+    </div>
+</div>
 
                 <div class="tab-pane fade" id="afiliaciones">
                     <div class="row g-3">
