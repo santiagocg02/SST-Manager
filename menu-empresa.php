@@ -133,6 +133,9 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
           <?php if (puedeVer(16, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
           <a href="pages-empresa/modulos/verificar.php" target="contentFrame" class="admin-subitem">Verificar</a>
         <?php endif; ?>
+          <?php if (puedeVer(16, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+          <a href="pages-empresa/modulos/actuar.php" target="contentFrame" class="admin-subitem">Actuar</a>
+        <?php endif; ?>
         </div>
       </div>
     </div>

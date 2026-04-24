@@ -24,12 +24,11 @@ if ($empresaId > 0) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>SST Manager - Verificar</title>
+<title>SST Manager - Actuar</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<!-- 🔥 CLAVE: mismos estilos -->
 <link rel="stylesheet" href="../../assets/css/main-style.css">
 <link rel="stylesheet" href="../../assets/css/planear.css">
 
@@ -46,7 +45,6 @@ if ($empresaId > 0) {
 <div class="planear-page-scroll">
 <div class="page-wrap">
 
-<!-- HEADER -->
 <div class="row g-3 mb-2">
   <div class="col-12">
     <div class="planear-hero card-soft">
@@ -54,9 +52,9 @@ if ($empresaId > 0) {
 
         <div>
           <h4 class="sheet-title">
-            <i class="fa-solid fa-check-double me-2"></i> VERIFICAR
+            <i class="fa-solid fa-arrows-rotate me-2"></i> ACTUAR
           </h4>
-          <div class="sheet-subtitle">Seguimiento por parte de la organización al SG-SST</div>
+          <div class="sheet-subtitle">Mejora continua del PESV</div>
         </div>
 
         <div class="score-box">
@@ -79,13 +77,12 @@ if ($empresaId > 0) {
 
 <div class="row g-3 planear-split">
 
-<!-- TABLA -->
 <div class="col-12 col-xl-6">
   <div class="card-soft p-3 bg-white">
 
     <div class="table-toolbar">
       <div class="toolbar-left">
-        Ítems (Verificar) <span class="badge text-bg-primary" id="countBadge">0</span>
+        Ítems (Actuar) <span class="badge text-bg-primary" id="countBadge">0</span>
       </div>
 
       <div class="d-flex gap-2">
@@ -111,7 +108,6 @@ if ($empresaId > 0) {
   </div>
 </div>
 
-<!-- PANEL DERECHO -->
 <div class="col-12 col-xl-6">
   <div class="card-soft p-3 bg-white h-100">
 
@@ -136,7 +132,6 @@ if ($empresaId > 0) {
 </div>
 </div>
 
-<!-- OFFCANVAS -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="soporteDrawer">
   <div class="offcanvas-body p-0 position-relative">
     <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="offcanvas"></button>
@@ -148,14 +143,11 @@ if ($empresaId > 0) {
 
 <script>
 
-// 🔥 ITEMS VERIFICAR
+// 🔥 ITEMS ACTUAR (image_69d735.png)
 const items = [
-  {item:"6.1.2", actividad:"Procedimiento de auditorías internas", soporte:"6.1.2.php"},
-  {item:"6.1.2", actividad:"Cronograma de auditoría", soporte:"6.1.2-2.php"},
-  {item:"6.1.2", actividad:"Plan de auditoría", soporte:"6.1.2-3.php"},
-  {item:"6.1.2", actividad:"Lista de chequeo", soporte:"6.1.2-4.php"},
-  {item:"6.1.2", actividad:"Informe de auditoría", soporte:"6.1.3.php"},
-  {item:"6.1.3", actividad:"Revisión por alta dirección", soporte:"revision.php"}
+  {item:"7.1.1 →", actividad:"Procedimiento de Mejora continua, acciones preventivas y correctivas", soporte:"7.1.1.php"},
+  {item:"7.1.1 →", actividad:"Acciones correctivas - oportunidades de mejora", soporte:"7.1.1-2.php"},
+  {item:"7.1.3 → 7.1.4", actividad:"Matriz de seguimiento y cierre de hallazgos", soporte:"7.1.3-4.php"}
 ];
 
 const body = document.getElementById("body");
@@ -210,11 +202,11 @@ function render(data){
   calcular();
 }
 
-// ABRIR SOPORTE (IGUAL HACER)
+// ABRIR SOPORTE
 document.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-file]");
   if (btn && btn.dataset.file) {
-    frame.src = `./soporte-verificar/${btn.dataset.file}`;
+    frame.src = `./soporte-actuar/${btn.dataset.file}`;
     drawer.show();
   }
 });
@@ -254,7 +246,10 @@ document.getElementById("searchInput").addEventListener("input", e=>{
   render(items.filter(x=>(x.item+x.actividad).toLowerCase().includes(q)));
 });
 
-document.getElementById("resetBtn").onclick=()=>render(items);
+document.getElementById("resetBtn").onclick=()=> {
+    document.getElementById("searchInput").value = "";
+    render(items);
+};
 
 // INIT
 render(items);

@@ -40,7 +40,7 @@ $listaEmpresas = (isset($resEmpresas['status']) && $resEmpresas['status'] == 200
     <div class="validacion-content">
       <h2>SSTManager</h2>
 
-      <?php if (in_array(strtolower($rol), ['master', 'administrador'])): ?>
+      <?php if (in_array(strtolower($rol), ['Master', 'administrador'])): ?>
       
           <p>Bienvenido <strong><?= htmlspecialchars($user) ?></strong>. Seleccione el panel a gestionar:</p>
           
