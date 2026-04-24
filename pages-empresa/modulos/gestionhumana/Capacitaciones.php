@@ -125,11 +125,7 @@ $fechaHoy = date('d/m/Y');
                 <i class="fa-solid fa-chalkboard-user me-2"></i> Capacitaciones
               </h4>
               <div class="sheet-subtitle">Hacer · Registro de Formación y Listas de Asistencia</div>
-            </div>
-            <div class="text-end d-none d-md-block">
-                <small class="d-block opacity-75">Empresa en sesión:</small>
-                <span class="fw-bold"><?= htmlspecialchars($nombreE) ?></span>
-            </div>
+            </div>           
           </div>
         </div>
       </div>
@@ -232,7 +228,7 @@ $fechaHoy = date('d/m/Y');
                     <select class="form-select" name="procedencia">
                         <option value="Interna">🏠 Interna</option>
                         <option value="ARL">🛡️ ARL</option>
-                        <option value="Externo">🚛 Externo</option>
+                        <option value="Proveedor">🚛 Proveedor</option>
                         <option value="Otro">🔗 Otro</option>
                     </select>
                     <input type="text" class="form-control" name="facilitador" placeholder="Nombre completo del instructor o entidad" required>

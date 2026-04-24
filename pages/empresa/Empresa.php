@@ -208,13 +208,37 @@ $listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
                             </select>
                         </div>
                     </div>
-                </form>
+                    
+                    <div class="section-header">Documentos Legales</div>
+                    <div class="row g-2">
+                        <div class="col-12 py-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="abrirModalContrato()">
+                                <i class="fa-solid fa-file-word me-1"></i> Generar Contrato
+                            </button>
+                            <small class="text-muted ms-2">Abre el editor del contrato mercantil asociado a esta empresa.</small>
+                        </div>
+                    </div>
+                    </form>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 <button type="button" class="btn btn-success px-4" onclick="guardarEmpresa()">
                     <i class="fa-solid fa-save me-2"></i>Guardar Empresa
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalContrato" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header text-white" style="background-color: #0b4f7a;">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-contract me-2"></i> Editor de Contrato</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" style="height: 80vh;">
+                <iframe id="iframeContrato" src="" style="width: 100%; height: 100%; border: none;"></iframe>
             </div>
         </div>
     </div>
@@ -275,6 +299,7 @@ $listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
 <script>
   const modalEmpresa = new bootstrap.Modal(document.getElementById('modalFormEmpresa'));
   const modalSST = new bootstrap.Modal(document.getElementById('modalSST'));
+  const modalContrato = new bootstrap.Modal(document.getElementById('modalContrato')); // Instancia del nuevo modal
   const API_URL = "http://localhost/sstmanager-backend/public/index.php";
 
   const listaSSTMacro = <?= json_encode($listaSST) ?>;
@@ -377,6 +402,33 @@ $listaSST = ($resSST['status'] == 200) ? ($resSST['data'] ?? []) : [];
         Swal.fire('Error', res.error || 'No se pudo guardar', 'error');
       }
     } catch (e) { Swal.fire('Error', 'No se pudo conectar', 'error'); }
+  }
+
+  // ==========================================
+  // FUNCION ABRIR CONTRATO
+  // ==========================================
+  function abrirModalContrato() {
+      const idEmpresa = document.getElementById('id_empresa').value;
+      
+      // Validación: La empresa debe estar creada/guardada para generar su contrato
+      if (!idEmpresa) {
+          Swal.fire({
+              title: 'Atención',
+              text: 'Primero debes guardar la empresa para poder generar y asociarle un contrato.',
+              icon: 'info',
+              confirmButtonColor: '#0b4f7a'
+          });
+          return;
+      }
+
+      // Se asigna la ruta pasándole el ID de la empresa por GET (Ajusta el parámetro si tu script usa otro nombre)
+      document.getElementById('iframeContrato').src = `Contrato.php?id_empresa=${idEmpresa}`;
+      
+      // Ocultar el modal de empresa (Opcional, si quieres que quede detrás puedes borrar esta línea)
+      modalEmpresa.hide();
+      
+      // Mostrar el modal del contrato
+      modalContrato.show();
   }
 
   // ==========================================
