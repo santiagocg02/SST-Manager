@@ -63,6 +63,14 @@ $nombreE = $_SESSION["nombre_empresa"] ?? "Empresa Demostración";
             font-weight: 700;
             text-transform: uppercase;
         }
+        .gestion-salida-banner {
+        background-color: #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        border-left: 5px solid #6c757d;
+    }
+    .text-xs { font-size: 0.7rem; }
 
         /* Buscador */
         .search-wrapper {
@@ -189,7 +197,7 @@ $nombreE = $_SESSION["nombre_empresa"] ?? "Empresa Demostración";
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body bg-light p-4">
-                <div class="row g-4">
+                <div class="row g-3">
                     
                     <div class="col-md-6 col-lg-3">
                         <div class="card doc-card h-100 p-3 shadow-sm">
@@ -203,10 +211,6 @@ $nombreE = $_SESSION["nombre_empresa"] ?? "Empresa Demostración";
                                     <span><i class="fa-solid fa-file-pdf text-danger me-1"></i> Hoja de Vida (HV)</span>
                                     <button class="btn btn-sm btn-light border"><i class="fa-solid fa-eye"></i></button>
                                 </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span><i class="fa-solid fa-file-word text-primary me-1"></i> Ficha Técnica</span>
-                                    <button class="btn btn-sm btn-light border"><i class="fa-solid fa-eye"></i></button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -216,56 +220,85 @@ $nombreE = $_SESSION["nombre_empresa"] ?? "Empresa Demostración";
                             <div class="doc-title-sec">AUTORIZACIONES Y CONTRATOS</div>
                             <div class="list-group list-group-flush small">
                                 <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span>GDPR Datos</span>
-                                    <span class="badge bg-success-subtle text-success">Cargado</span>
-                                </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span>Explotación Imagen</span>
-                                    <span class="badge bg-success-subtle text-success">Cargado</span>
-                                </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <span>Cláusula Confidencial</span>
-                                    <span class="badge bg-success-subtle text-success">Cargado</span>
-                                </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                                     <span>Contrato / Otro Sí</span>
                                     <button class="btn btn-sm btn-link p-0 text-primary">Ver doc.</button>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 col-lg-3">
-                        <div class="card doc-card h-100 p-3 shadow-sm">
-                            <div class="doc-title-sec">SEGURIDAD SOCIAL Y SALUD</div>
-                            <div class="small">
-                                <p class="mb-1"><i class="fa-solid fa-circle-check text-success me-1"></i> Certificado EPS</p>
-                                <p class="mb-1"><i class="fa-solid fa-circle-check text-success me-1"></i> Certificado Pensión</p>
-                                <p class="mb-1"><i class="fa-solid fa-circle-check text-success me-1"></i> Certificado ARL/Caja</p>
-                                <p class="mb-1 text-muted"><i class="fa-solid fa-circle-minus me-1"></i> Declaración Salud</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 col-lg-3">
-                        <div class="card doc-card h-100 p-3 shadow-sm">
-                            <div class="doc-title-sec">CONSULTAS Y ANTECEDENTES</div>
-                            <div class="small">
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-sm btn-outline-dark text-start"><i class="fa-solid fa-shield-halved me-2"></i> Policía Nacional</button>
-                                    <button class="btn btn-sm btn-outline-dark text-start"><i class="fa-solid fa-building-columns me-2"></i> Contraloría</button>
-                                    <button class="btn btn-sm btn-outline-dark text-start"><i class="fa-solid fa-scale-balanced me-2"></i> Procuraduría</button>
-                                    <button class="btn btn-sm btn-outline-warning text-start"><i class="fa-solid fa-ban me-2"></i> Inhabilidades</button>
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <span>Actas Entrega Equipos</span>
+                                    <button class="btn btn-sm btn-link p-0 text-primary">Ver doc.</button>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <span class="text-muted">Cambio de Cargos</span>
+                                    <span class="badge bg-light text-dark border">Pendiente</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <div class="col-md-6 col-lg-2">
+                        <div class="card doc-card h-100 p-3 shadow-sm">
+                            <div class="doc-title-sec">SEGURIDAD SOCIAL Y SALUD</div>
+                            <div class="small mb-2">
+                                <p class="mb-1 text-xs"><i class="fa-solid fa-circle-check text-success me-1"></i> EPS / Pensión / ARL</p>
+                            </div>
+                            <div class="list-group list-group-flush small">
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                                    <span>Incapacidades</span>
+                                    <span class="badge bg-success-subtle text-success">3 Cargadas</span>
+                                </div>
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                                    <span class="text-muted">Manual EPS</span>
+                                    <button class="btn btn-sm p-0"><i class="fa-solid fa-download"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-2">
+                        <div class="card doc-card h-100 p-3 shadow-sm">
+                            <div class="doc-title-sec">OPERACIONES Y DESARROLLO</div>
+                            <div class="list-group list-group-flush small">
+                                <div class="list-group-item px-0 py-1 border-0">
+                                    <div class="fw-bold text-xs">Dotación e Inventario</div>
+                                    <button class="btn btn-sm btn-link p-0 text-xs">Ver registros</button>
+                                </div>
+                                <div class="list-group-item px-0 py-1 border-0">
+                                    <div class="fw-bold text-xs">Certificaciones Lab.</div>
+                                    <button class="btn btn-sm btn-link p-0 text-xs">Generar</button>
+                                </div>
+                                <div class="list-group-item px-0 py-1 border-0">
+                                    <div class="fw-bold text-xs text-danger">Llamados Atención</div>
+                                    <button class="btn btn-sm btn-link p-0 text-danger text-xs">Ver (0)</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 col-lg-2">
+                        <div class="card doc-card h-100 p-3 shadow-sm">
+                            <div class="doc-title-sec">CONSULTAS</div>
+                            <div class="d-grid gap-1">
+                                <button class="btn btn-xs btn-outline-dark text-start p-1" style="font-size: 0.65rem;"><i class="fa-solid fa-shield-halved me-1"></i> Policía</button>
+                                <button class="btn btn-xs btn-outline-dark text-start p-1" style="font-size: 0.65rem;"><i class="fa-solid fa-scale-balanced me-1"></i> Procuraduría</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div> <div class="gestion-salida-banner d-flex justify-content-between align-items-center shadow-sm">
+                    <div>
+                        <h6 class="mb-0 text-secondary"><i class="fa-solid fa-door-open me-2"></i> Gestión de Salida</h6>
+                        <small class="text-muted">Documentación para cierre de ciclo (Solo para Retirados)</small>
+                    </div>
+                    <div class="d-flex gap-3">
+                        <button class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-file-signature me-1"></i> Renuncia</button>
+                        <button class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-file-contract me-1"></i> Liq. Contrato</button>
+                    </div>
                 </div>
+
             </div>
-            <div class="modal-footer bg-white">
+            <div class="modal-footer bg-white border-0">
                 <button type="button" class="btn btn-light px-4 rounded-pill" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-crear-corporativo px-4 rounded-pill"><i class="fa-solid fa-file-arrow-down me-1"></i> Descargar Todo (.zip)</button>
+                <button type="button" class="btn btn-crear-corporativo px-4 rounded-pill shadow-sm"><i class="fa-solid fa-file-arrow-down me-1"></i> Descargar Todo (.zip)</button>
             </div>
         </div>
     </div>

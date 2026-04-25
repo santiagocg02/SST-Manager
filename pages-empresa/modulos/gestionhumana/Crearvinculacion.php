@@ -33,15 +33,17 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             margin-top: 20px;
         }
-.doc-group-title {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    color: var(--admin-blue);
-    border-bottom: 1px solid #dee2e6;
-    margin-bottom: 10px;
-    margin-top: 15px;
-    font-weight: bold;
-}
+        
+        .doc-group-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--admin-blue);
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 10px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        
         /* Estilo de las Pestañas (Tabs) */
         .nav-tabs .nav-link {
             color: #666;
@@ -84,37 +86,37 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
             border-radius: 4px;
         }
 
-   .btn-cancelar { 
-    background-color: #6c757d; 
-    color: white; 
-    font-weight: bold; 
-    border: none; 
-    padding: 10px 30px; 
-    text-decoration: none; 
-    display: inline-flex; 
-    align-items: center; 
-    justify-content: center;
-    transition: background-color 0.3s ease;
-}
-.btn-cancelar:hover {
-    background-color: var(--admin-blue);
-    color: white;
-}
-       .btn-aceptar { 
-    background: linear-gradient(145deg, #198754, #146c43); /* Degradado sutil */
-    color: white; 
-    font-weight: bold; 
-    border: none; 
-    padding: 10px 30px; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15); /* Sombra para dar relieve */
-    transition: all 0.3s ease;
-}
-
-.btn-aceptar:hover {
-    background: #146c43;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    transform: translateY(-1px); /* Efecto de levante */
-}
+        .btn-cancelar { 
+            background-color: #6c757d; 
+            color: white; 
+            font-weight: bold; 
+            border: none; 
+            padding: 10px 30px; 
+            text-decoration: none; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: background-color 0.3s ease;
+        }
+        .btn-cancelar:hover {
+            background-color: var(--admin-blue);
+            color: white;
+        }
+        
+        .btn-aceptar { 
+            background: linear-gradient(145deg, #198754, #146c43); 
+            color: white; 
+            font-weight: bold; 
+            border: none; 
+            padding: 10px 30px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15); 
+            transition: all 0.3s ease;
+        }
+        .btn-aceptar:hover {
+            background: #146c43;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: translateY(-1px); 
+        }
     </style>
 </head>
 <body>
@@ -296,20 +298,13 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
                             <label>Fecha inicial Vacación</label>
                             <input type="date" class="form-control">
                         </div>
-                        
-                        <div class="col-md-12 mt-2">
-                            <button type="button" class="btn btn-link p-0 text-decoration-none small italic" onclick="abrirContrato()">
-                                <i class="fa-solid fa-file-pdf"></i> Ver y editar contrato digitalizado
-                            </button>
-                        </div>
-                        
                     </div>
                 </div>
 
                 <div class="tab-pane fade" id="adicional">
                     <div class="row g-3">
                         <div class="col-md-12">
-                            <label>Subtipo Aportante (seleccione numerla)</label>
+                            <label>Subtipo Aportante (seleccione numeral)</label>
                             <select class="form-select"><option>00 - No aplica</option></select>
                         </div>
                         <div class="col-md-12">
@@ -329,79 +324,89 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
                                 </div>
                             </div>
                         </div>
-                       
                     </div>
                 </div>
 
                 <div class="tab-pane fade" id="dependientes">
-    <div class="row g-3 mt-2">
-        <div class="col-md-12 mb-2">
-            <div class="section-header">Expediente Digital: Carga de Documentos</div>
-        </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-12 mb-2">
+                            <div class="section-header">Expediente Digital: Carga y Generación de Documentos</div>
+                        </div>
 
-        <div class="col-md-12 doc-group-title">Identidad y Hoja de Vida</div>
-        <div class="col-md-4">
-            <label>Cédula de Ciudadanía (CC)</label>
-            <input type="file" class="form-control" name="doc_cedula" accept=".pdf,image/*">
-        </div>
-        <div class="col-md-4">
-            <label>Hoja de Vida (HV)</label>
-            <input type="file" class="form-control" name="doc_hv" accept=".pdf">
-        </div>
-        <div class="col-md-4">
-            <label>Ficha Técnica Aspirante (FOR-GH-01)</label>
-            <input type="file" class="form-control" name="doc_ficha_aspirante" accept=".pdf,.docx">
-        </div>
+                        <div class="col-md-12 doc-group-title">Identidad y Hoja de Vida</div>
+                        <div class="col-md-4">
+                            <label>Cédula de Ciudadanía (CC)</label>
+                            <input type="file" class="form-control" name="doc_cedula" accept=".pdf,image/*">
+                        </div>
+                        <div class="col-md-4">
+                            <label>Hoja de Vida (HV)</label>
+                            <input type="file" class="form-control" name="doc_hv" accept=".pdf">
+                        </div>
+                        <div class="col-md-4">
+                            <label>Ficha Técnica Aspirante (FOR-GH-01)</label>
+                            <input type="file" class="form-control" name="doc_ficha_aspirante" accept=".pdf,.docx">
+                        </div>
 
-        <div class="col-md-12 doc-group-title">Autorizaciones y Contratos</div>
-        <div class="col-md-3">
-            <label>Tratamiento Datos (GDPR)</label>
-            <input type="file" class="form-control" name="doc_gdpr" accept=".pdf,.docx">
-        </div>
-        <div class="col-md-3">
-            <label>Explotación de Imagen</label>
-            <input type="file" class="form-control" name="doc_imagen" accept=".pdf,.docx">
-        </div>
-        <div class="col-md-3">
-            <label>Cláusula Confidencialidad</label>
-            <input type="file" class="form-control" name="doc_confidencialidad" accept=".pdf,.docx">
-        </div>
-        <div class="col-md-3">
-            <label>Contrato / Otro Sí</label>
-            <input type="file" class="form-control" name="doc_contrato" accept=".pdf,.docx">
-        </div>
+                        <div class="col-md-12 doc-group-title">Autorizaciones y Contratos</div>
+                        <div class="col-md-3">
+                            <label>Tratamiento Datos (GDPR)</label>
+                            <input type="file" class="form-control" name="doc_gdpr" accept=".pdf,.docx">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Explotación de Imagen</label>
+                            <input type="file" class="form-control" name="doc_imagen" accept=".pdf,.docx">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Cláusula Confidencialidad</label>
+                            <input type="file" class="form-control" name="doc_confidencialidad" accept=".pdf,.docx">
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label>Contrato / Otro Sí</label>
+                            <input type="file" class="form-control mb-2" name="doc_contrato" accept=".pdf,.docx">
+                            <button type="button" class="btn btn-sm btn-outline-primary w-100 fw-bold" onclick="abrirModalDocumento('contrato')">
+                                <i class="fa-solid fa-file-signature me-1"></i> Generar / Editar Contrato
+                            </button>
+                        </div>
 
-        <div class="col-md-12 doc-group-title">Seguridad Social y Salud</div>
-        <div class="col-md-3">
-            <label>Certificado EPS</label>
-            <input type="file" class="form-control" name="doc_eps" accept=".pdf">
-        </div>
-        <div class="col-md-3">
-            <label>Certificado Fondo Pensión</label>
-            <input type="file" class="form-control" name="doc_pension" accept=".pdf">
-        </div>
-        <div class="col-md-3">
-            <label>Certificado ARL / Caja</label>
-            <input type="file" class="form-control" name="doc_arl_caja" accept=".pdf">
-        </div>
-        <div class="col-md-3">
-            <label>Declaración Salud (FOR-GH-02)</label>
-            <input type="file" class="form-control" name="doc_estado_salud" accept=".pdf,.docx">
-        </div>
+                        <div class="col-md-3">
+                            <label>Certificación Laboral</label>
+                            <button type="button" class="btn btn-sm btn-outline-success w-100 fw-bold mt-1" onclick="abrirModalDocumento('certificado')">
+                                <i class="fa-solid fa-certificate me-1"></i> Generar Certificado
+                            </button>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Generación automática (No requiere archivo)</small>
+                        </div>
 
-        <div class="col-md-12 doc-group-title">Consultas y Antecedentes</div>
-        <div class="col-md-6">
-            <label>Antecedentes (Policía/Procuraduría/Contraloría)</label>
-            <input type="file" class="form-control" name="doc_antecedentes" accept=".pdf" multiple>
-            <small class="text-muted">Puedes subir varios archivos PDF a la vez.</small>
-        </div>
-        <div class="col-md-6">
-            <label>Inhabilidades</label>
-            <input type="file" class="form-control" name="doc_inhabilidades" accept=".pdf">
-        </div>
+                        <div class="col-md-12 doc-group-title mt-4">Seguridad Social y Salud</div>
+                        <div class="col-md-3">
+                            <label>Certificado EPS</label>
+                            <input type="file" class="form-control" name="doc_eps" accept=".pdf">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Certificado Fondo Pensión</label>
+                            <input type="file" class="form-control" name="doc_pension" accept=".pdf">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Certificado ARL / Caja</label>
+                            <input type="file" class="form-control" name="doc_arl_caja" accept=".pdf">
+                        </div>
+                        <div class="col-md-3">
+                            <label>Declaración Salud (FOR-GH-02)</label>
+                            <input type="file" class="form-control" name="doc_estado_salud" accept=".pdf,.docx">
+                        </div>
 
-    </div>
-</div>
+                        <div class="col-md-12 doc-group-title">Consultas y Antecedentes</div>
+                        <div class="col-md-6">
+                            <label>Antecedentes (Policía/Procuraduría/Contraloría)</label>
+                            <input type="file" class="form-control" name="doc_antecedentes" accept=".pdf" multiple>
+                            <small class="text-muted">Puedes subir varios archivos PDF a la vez.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Inhabilidades</label>
+                            <input type="file" class="form-control" name="doc_inhabilidades" accept=".pdf">
+                        </div>
+                    </div>
+                </div>
 
                 <div class="tab-pane fade" id="afiliaciones">
                     <div class="row g-3">
@@ -468,17 +473,16 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     </div>
 </div>
 
-<div class="modal fade" id="modalContrato" tabindex="-1" aria-labelledby="modalContratoLabel" aria-hidden="true">
+<div class="modal fade" id="modalDocumento" tabindex="-1" aria-labelledby="modalDocumentoLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header text-white" style="background-color: var(--admin-blue);">
-                <h5 class="modal-title" id="modalContratoLabel">
-                    <i class="fa-solid fa-file-signature me-2"></i>Editor de Contrato Digital
-                </h5>
+                <h5 class="modal-title" id="modalDocumentoLabel">
+                    </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0">
-                <iframe src="about:blank" id="iframeContrato" style="width: 100%; height: 80vh; border: none;"></iframe>
+                <iframe src="about:blank" id="iframeDocumento" style="width: 100%; height: 80vh; border: none;"></iframe>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
@@ -505,22 +509,26 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
         document.getElementById('edad_empleado').value = edad + (edad === 1 ? " año" : " años");
     }
 
-    // Nueva función para abrir el modal del contrato
-    function abrirContrato() {
-        // Definimos la URL de tu editor
-        const url = "editor_contrato.php";
+    // Función unificada para abrir el modal con el documento correspondiente
+    function abrirModalDocumento(tipoDoc) {
+        const modalLabel = document.getElementById('modalDocumentoLabel');
+        const iframe = document.getElementById('iframeDocumento');
         
-        // Asignamos la URL al iframe
-        document.getElementById('iframeContrato').src = url;
+        if (tipoDoc === 'contrato') {
+            modalLabel.innerHTML = '<i class="fa-solid fa-file-signature me-2"></i> Editor de Contrato Digital';
+            iframe.src = "editor_contrato.php";
+        } else if (tipoDoc === 'certificado') {
+            modalLabel.innerHTML = '<i class="fa-solid fa-certificate me-2"></i> Generador de Certificación Laboral';
+            iframe.src = "certificaionlaboral.php";
+        }
         
-        // Inicializamos y mostramos el modal
-        var myModal = new bootstrap.Modal(document.getElementById('modalContrato'));
+        var myModal = new bootstrap.Modal(document.getElementById('modalDocumento'));
         myModal.show();
     }
 
-    // Limpiar el iframe al cerrar el modal para no consumir memoria innecesaria
-    document.getElementById('modalContrato').addEventListener('hidden.bs.modal', function () {
-        document.getElementById('iframeContrato').src = 'about:blank';
+    // Limpiar el iframe al cerrar el modal para no consumir memoria
+    document.getElementById('modalDocumento').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('iframeDocumento').src = 'about:blank';
     });
 </script>
 
