@@ -10,29 +10,45 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
 }
 
 $api = new ConexionAPI();
-$token = $_SESSION["token"] ?? "";
-$empresa = (int)($_SESSION["id_empresa"] ?? 0);
-$idItem = isset($_GET['item']) ? (int)$GET['item'] : 2; // ID sugerido para Certificaciones
+$token = isset($_SESSION["token"]) ? $_SESSION["token"] : "";
+$empresa = isset($_SESSION["id_empresa"]) ? (int)$_SESSION["id_empresa"] : 0;
+
+// Asignación segura del ID
+$idItem = 2;
+if (isset($_GET['item'])) {
+    $idItem = (int)$_GET['item'];
+}
 
 // 2. SOLICITAMOS LOS DATOS A LA API
 $resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
 
 // DATOS DE LA EMPRESA (LOGO E INFORMACIÓN)
 $resEmpresaInfo = $api->solicitar("empresas/$empresa", "GET", null, $token);
-$dataEmp = $resEmpresaInfo['data'] ?? [];
+$dataEmp = isset($resEmpresaInfo['data']) ? $resEmpresaInfo['data'] : [];
 
-// Extraemos los datos para inyectarlos en el documento
-$logoEmpresaUrl = $dataEmp['logo_url'] ?? '';
-$nombreEmpresa  = $dataEmp['nombre'] ?? $dataEmp['razon_social'] ?? 'NOMBRE DE LA EMPRESA';
-$nitEmpresa     = $dataEmp['nit'] ?? '000.000.000';
-$dirEmpresa     = $dataEmp['direccion'] ?? 'Dirección no registrada';
-$telEmpresa     = $dataEmp['telefono'] ?? 'Teléfono no registrado';
-$emailEmpresa   = $dataEmp['correo'] ?? $dataEmp['email'] ?? 'correo@empresa.com';
-$ciudadEmpresa  = $dataEmp['ciudad'] ?? 'Ciudad, Colombia';
+// Extracción de datos ultra-segura
+$logoEmpresaUrl = isset($dataEmp['logo_url']) ? $dataEmp['logo_url'] : '';
+$nombreEmpresa  = isset($dataEmp['nombre']) ? $dataEmp['nombre'] : (isset($dataEmp['razon_social']) ? $dataEmp['razon_social'] : 'NOMBRE DE LA EMPRESA');
+$nitEmpresa     = isset($dataEmp['nit']) ? $dataEmp['nit'] : '000.000.000';
+$dirEmpresa     = isset($dataEmp['direccion']) ? $dataEmp['direccion'] : 'Dirección no registrada';
+$telEmpresa     = isset($dataEmp['telefono']) ? $dataEmp['telefono'] : 'Teléfono no registrado';
+$emailEmpresa   = isset($dataEmp['correo']) ? $dataEmp['correo'] : (isset($dataEmp['email']) ? $dataEmp['email'] : 'correo@empresa.com');
+$ciudadEmpresa  = isset($dataEmp['ciudad']) ? $dataEmp['ciudad'] : 'Cali, Colombia';
 
 // Armamos el pie de página dinámico
 $piePaginaDefault = "$dirEmpresa - Teléfono $telEmpresa\ne-mail: $emailEmpresa\n$ciudadEmpresa";
 
+// CORRECCIÓN DE LA FECHA EN ESPAÑOL
+$meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+$mesActual = $meses[date('n') - 1]; 
+$fechaTexto = date('d') . " de " . $mesActual . " de " . date('Y');
+
+// Extracción segura de la ciudad
+$partesCiudad = explode(',', $ciudadEmpresa);
+$ciudadBase = isset($partesCiudad[0]) ? $partesCiudad[0] : 'Cali';
+$ciudadYFecha = trim($ciudadBase) . ", " . $fechaTexto;
+
+// PROCESAMIENTO DE CAMPOS GUARDADOS
 $datosCampos = [];
 $camposCrudos = null;
 
@@ -40,8 +56,6 @@ if (isset($resFormulario['data']['data']['campos'])) {
     $camposCrudos = $resFormulario['data']['data']['campos'];
 } elseif (isset($resFormulario['data']['campos'])) {
     $camposCrudos = $resFormulario['data']['campos'];
-} elseif (isset($resFormulario['campos'])) {
-    $camposCrudos = $resFormulario['campos'];
 }
 
 if (is_string($camposCrudos)) {
@@ -72,14 +86,14 @@ if (is_string($camposCrudos)) {
     html, body{ margin:0; padding:0; font-family: 'Arial', sans-serif; background:var(--sst-bg); color:var(--sst-text); }
     .sst-toolbar{ position:sticky; top:0; z-index:100; background:var(--sst-toolbar); border-bottom:1px solid var(--sst-toolbar-border); padding:12px 18px; display:flex; justify-content:space-between; align-items:center; }
     .sst-page{ padding:20px; }
+    
+    /* Documento normal en pantalla */
     .sst-paper{ width:216mm; min-height:279mm; margin:0 auto; background:var(--sst-paper); padding:20mm; box-shadow:0 10px 25px rgba(0,0,0,.08); }
     
     /* Encabezado Limpio sin bordes */
     .clean-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 50px; padding-bottom: 15px; border-bottom: 2px solid #003366; }
     .header-logo-container { flex: 0 0 25%; text-align: left; }
     .header-text-container { flex: 1; text-align: center; }
-    .logo-placeholder { border: 2px dashed #999; color: #666; padding: 20px 10px; font-weight: bold; font-size: 14px; text-transform: uppercase; text-align: center; width: 140px; }
-    
     .header-company-name { width: 100%; border: none; outline: none; font-weight: 900; font-size: 22px; text-align: center; text-transform: uppercase; color: #000; background: transparent; font-family: inherit; }
     .header-nit { font-weight: bold; font-size: 14px; color: #333; margin-top: 5px;}
 
@@ -93,11 +107,32 @@ if (is_string($camposCrudos)) {
     
     input.inline-edit { border: none; border-bottom: 1px dashed #ccc; outline: none; font-weight: bold; width: auto; font-family: inherit; font-size: inherit; background: transparent;}
     
+    /* ====== AJUSTES DE IMPRESIÓN ====== */
     @media print {
+      @page { 
+          margin: 0; /* Quita los textos automáticos de URL y fecha del navegador */
+      } 
+      
+      html, body {
+          background: white !important;
+          margin: 0 !important;
+          padding: 0 !important;
+      }
+
       .sst-toolbar { display: none !important; }
       .sst-page { padding: 0 !important; }
-      .sst-paper { box-shadow: none !important; border: none !important; width: 100% !important; margin: 0 !important; padding: 15mm !important; }
-      body { background: white !important; }
+      
+      /* Quitamos el min-height para que no fuerce una página extra en blanco */
+      .sst-paper { 
+          box-shadow: none !important; 
+          border: none !important; 
+          width: 100% !important; 
+          min-height: auto !important; /* CLAVE PARA EVITAR SALTO DE PÁGINA */
+          margin: 0 !important; 
+          padding: 15mm !important; /* Margen interno para que no pegue al borde del papel */
+          page-break-after: avoid;
+      }
+      
       .editable-content:hover, .inline-edit:hover, .header-company-name:hover { background-color: transparent; }
       input.inline-edit { border-bottom: none; }
     }
@@ -121,8 +156,6 @@ if (is_string($camposCrudos)) {
                 <div class="header-logo-container">
                     <?php if(!empty($logoEmpresaUrl)): ?>
                         <img src="<?= $logoEmpresaUrl ?>" style="max-width: 100%; max-height: 80px;">
-                    <?php else: ?>
-                        <div class="logo-placeholder">TU LOGO<br>AQUÍ</div>
                     <?php endif; ?>
                 </div>
                 <div class="header-text-container">
@@ -135,9 +168,8 @@ if (is_string($camposCrudos)) {
             </div>
 
             <div class="cert-body">
-                
                 <div style="text-align: right; margin-bottom: 40px;">
-                    <input name="ciudad_fecha" class="inline-edit" style="width: 300px; text-align: right;" value="<?= htmlspecialchars(explode(',', $ciudadEmpresa)[0] ?? 'Cali') ?>, <?= date('d de F de Y') ?>">
+                    <input name="ciudad_fecha" class="inline-edit" style="width: 350px; text-align: right;" value="<?= htmlspecialchars($ciudadYFecha) ?>">
                 </div>
 
                 <div style="text-align: center; margin-bottom: 40px;">
@@ -171,7 +203,6 @@ if (is_string($camposCrudos)) {
 </form>
 
 <script>
-    // Ajusta la altura del textarea dinámicamente
     function autoResize(el) {
         el.style.height = 'auto';
         el.style.height = el.scrollHeight + 'px';
@@ -184,8 +215,9 @@ if (is_string($camposCrudos)) {
             el.addEventListener('input', () => autoResize(el));
         });
 
-        // Inyección de datos guardados previamente en este documento (si existen)
-        let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
+        // Forma 100% segura de procesar el JSON en PHP hacia JS
+        let datosGuardados = <?= json_encode(empty($datosCampos) ? new stdClass() : $datosCampos) ?>;
+        
         if (datosGuardados && Object.keys(datosGuardados).length > 0) {
             for (const [key, value] of Object.entries(datosGuardados)) {
                 const campo = document.querySelector(`[name="${key}"]`);
@@ -197,7 +229,6 @@ if (is_string($camposCrudos)) {
         }
     });
 
-    // Botón de guardar
     document.getElementById('btnGuardar').addEventListener('click', async function() {
         const btn = this;
         const formData = new FormData(document.getElementById('form-sst-dinamico'));
@@ -207,7 +238,6 @@ if (is_string($camposCrudos)) {
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
 
         try {
-            // Asegúrate de que esta URL sea la correcta en tu entorno de producción
             const response = await fetch("http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar", {
                 method: 'POST',
                 headers: {

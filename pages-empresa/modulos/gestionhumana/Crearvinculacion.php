@@ -348,33 +348,42 @@ if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
                         </div>
 
                         <div class="col-md-12 doc-group-title">Autorizaciones y Contratos</div>
-                        <div class="col-md-3">
+                        
+                        <div class="col-md-4">
                             <label>Tratamiento Datos (GDPR)</label>
                             <input type="file" class="form-control" name="doc_gdpr" accept=".pdf,.docx">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label>Explotación de Imagen</label>
                             <input type="file" class="form-control" name="doc_imagen" accept=".pdf,.docx">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label>Cláusula Confidencialidad</label>
                             <input type="file" class="form-control" name="doc_confidencialidad" accept=".pdf,.docx">
                         </div>
                         
-                        <div class="col-md-3">
-                            <label>Contrato / Otro Sí</label>
-                            <input type="file" class="form-control mb-2" name="doc_contrato" accept=".pdf,.docx">
-                            <button type="button" class="btn btn-sm btn-outline-primary w-100 fw-bold" onclick="abrirModalDocumento('contrato')">
-                                <i class="fa-solid fa-file-signature me-1"></i> Generar / Editar Contrato
-                            </button>
+                        <div class="col-md-6 mt-3">
+                            <div class="p-3 border rounded bg-white shadow-sm h-100">
+                                <label class="text-primary mb-2"><i class="fa-solid fa-file-signature me-1"></i> Contrato / Otro Sí</label>
+                                <div class="d-flex gap-2">
+                                    <input type="file" class="form-control form-control-sm w-50" name="doc_contrato" accept=".pdf,.docx">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-50 fw-bold" onclick="abrirModalDocumento('contrato')">
+                                        Generar / Editar
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="col-md-3">
-                            <label>Certificación Laboral</label>
-                            <button type="button" class="btn btn-sm btn-outline-success w-100 fw-bold mt-1" onclick="abrirModalDocumento('certificado')">
-                                <i class="fa-solid fa-certificate me-1"></i> Generar Certificado
-                            </button>
-                            <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Generación automática (No requiere archivo)</small>
+                        <div class="col-md-6 mt-3">
+                            <div class="p-3 border rounded bg-white shadow-sm h-100 d-flex flex-column justify-content-center">
+                                <label class="text-success mb-2"><i class="fa-solid fa-certificate me-1"></i> Certificación Laboral</label>
+                                <div class="d-flex align-items-center gap-3">
+                                    <button type="button" class="btn btn-sm btn-outline-success fw-bold px-4" onclick="abrirModalDocumento('certificado')">
+                                        Generar Certificado
+                                    </button>
+                                    <span class="text-muted" style="font-size: 0.75rem;">Generación automática (No requiere archivo)</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="col-md-12 doc-group-title mt-4">Seguridad Social y Salud</div>
