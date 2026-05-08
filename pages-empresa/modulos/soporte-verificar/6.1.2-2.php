@@ -62,6 +62,7 @@ function oldv($key, $default = '') {
 <head>
     <meta charset="UTF-8">
     <title>PR-SST-14 - Programa Anual de Auditorías</title>
+    <link rel="stylesheet" href="../../../assets/css/toolbar.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
     *{ box-sizing:border-box; margin:0; padding:0; font-family:Arial, sans-serif; }
@@ -124,14 +125,21 @@ function oldv($key, $default = '') {
 <body>
 
 <div class="contenedor">
-    <div class="toolbar print-hide">
-        <h1>Programa Anual de Auditorías (PR-SST-14)</h1>
-        <div class="acciones">
-            <button class="btn btn-atras" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" id="btnGuardar">Guardar Programa</button>
-            <button class="btn btn-imprimir" onclick="window.print()">Imprimir</button>
-        </div>
-    </div>
+    <div class="sst-toolbar">
+  <h1 class="sst-toolbar-title">Programa Anual de Auditorías (PR-SST-14)</h1>
+
+  <div class="sst-toolbar-actions">
+    <a href="#" class="btn btn-secondary btn-sm">Volver</a>
+
+    <button type="button" class="btn btn-success btn-sm">
+      <i class="fa-solid fa-save"></i> Guardar
+    </button>
+
+    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+      <i class="fa-solid fa-print"></i> Imprimir
+    </button>
+  </div>
+</div>
 
     <div class="formulario">
         <form id="formAuditoria">

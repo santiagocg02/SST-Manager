@@ -1,0 +1,44 @@
+/* VARIABLES (puedes dejarlas globales en tu sistema) */
+:root{
+  --sst-toolbar:#dde7f5;
+  --sst-toolbar-border:#c8d3e2;
+}
+
+/* CONTENEDOR PRINCIPAL */
+.sst-toolbar{
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--sst-toolbar);
+  border-bottom: 1px solid var(--sst-toolbar-border);
+  padding: 12px 18px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* TÍTULO */
+.sst-toolbar-title{
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #213b67;
+}
+
+/* CONTENEDOR DE BOTONES */
+.sst-toolbar-actions{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* OCULTAR EN IMPRESIÓN */
+@media print{
+  .sst-toolbar{
+    display: none !important;
+  }
+}

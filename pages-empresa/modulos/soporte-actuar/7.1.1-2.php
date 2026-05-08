@@ -42,6 +42,59 @@ function oldv($key, $default = '') {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+
+    /* ===== TOP BAR ===== */
+        .top-bar{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            background:#dbe3ef;
+            padding:12px 20px;
+            border-bottom:1px solid #b8c7dc;
+        }
+
+        /* TÍTULO */
+        .title-left{
+            font-size:18px;
+            font-weight:600;
+            color:#1a4175;
+        }
+
+        /* BOTONES DERECHA */
+        .actions-right{
+            display:flex;
+            gap:10px;
+        }
+
+        /* BOTONES */
+        .btn-top{
+            border:none;
+            padding:8px 16px;
+            border-radius:8px;
+            font-size:13px;
+            font-weight:600;
+            color:#fff;
+            cursor:pointer;
+        }
+
+        /* COLORES EXACTOS */
+        .btn-back{
+            background:#6c757d;
+        }
+
+        .btn-save{
+            background:#198754;
+        }
+
+        .btn-print{
+            background:#0d6efd;
+        }
+
+        /* HOVER */
+        .btn-top:hover{
+            opacity:0.9;
+        }
+
         :root { --primary-blue: #1a4175; --section-bg: #f2f2f2; }
         body { background-color: #f4f7f9; font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; }
         .format-container { background: #fff; max-width: 900px; margin: auto; border: 1px solid #000; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
@@ -66,14 +119,27 @@ function oldv($key, $default = '') {
 <body>
 
 <div class="format-container">
-    <div class="toolbar no-print">
-        <span class="fw-bold">Formato 7.1.2 - Registro de ACP</span>
-        <div>
-            <button class="btn btn-sm btn-secondary" onclick="history.back()">Volver</button>
-            <button class="btn btn-sm btn-success" id="btnGuardar">Guardar Registro</button>
-            <button class="btn btn-sm btn-primary" onclick="window.print()">Imprimir</button>
-        </div>
+    <div class="top-bar no-print">
+
+    <div class="title-left">
+       Matriz de Condiciones Inseguras y Actos Inseguros
     </div>
+
+    <div class="actions-right">
+        <button onclick="history.back()" class="btn-top btn-back">
+            Atrás
+        </button>
+
+        <button class="btn-top btn-save" id="btnGuardar">
+            Guardar Programa
+        </button>
+
+        <button onclick="window.print()" class="btn-top btn-print">
+            Imprimir
+        </button>
+    </div>
+
+</div>
 
     <form id="formACP">
         <table>

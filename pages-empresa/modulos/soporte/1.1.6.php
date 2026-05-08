@@ -293,21 +293,25 @@ if (is_string($camposCrudos)) {
       }
     }
   </style>
+  <link rel="stylesheet" href="../../../assets/css/toolbar.css">
   <link rel="stylesheet" href="../../../assets/css/soporte-unificado.css">
 </head>
 
 <body>
 <div class="wrap">
+  <div class="sst-toolbar">
+  <h1 class="sst-toolbar-title">Conformación del COPASST</h1>
 
-  <div class="format-toolbar">
-  <div class="format-toolbar-title">Conformación del COPASST</div>
+  <div class="sst-toolbar-actions">
+    <a href="#" class="btn btn-secondary btn-sm">Volver</a>
 
-  <div class="format-toolbar-actions">
-    <button type="button" class="btn-ui secondary" onclick="volverPlanear()">← Atrás</button>
-    <button type="button" class="btn-ui secondary" onclick="abrirOtraPestana()">Abrir pestaña</button>
-    <button type="button" class="btn-ui secondary" onclick="recargarFormato()">Recargar</button>
-    <button type="button" class="btn-ui btn-success" id="btnGuardar">Guardar</button>
-    <button type="button" class="btn-ui" onclick="window.print()">Imprimir</button>
+    <button type="button" class="btn btn-success btn-sm">
+      <i class="fa-solid fa-save"></i> Guardar
+    </button>
+
+    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+      <i class="fa-solid fa-print"></i> Imprimir
+    </button>
   </div>
 </div>
 

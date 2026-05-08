@@ -66,6 +66,7 @@ if (is_string($camposCrudos)) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RE-SST-18 | Especificaciones de las compras en SST</title>
 
+    <link rel="stylesheet" href="../../../assets/css/toolbar.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -363,25 +364,24 @@ if (is_string($camposCrudos)) {
 <body>
 
 <div class="page-wrap">
-    <div class="topbar print-hide">
-        <div class="topbar-left">
-            <button class="btn-ui secondary" type="button" onclick="history.back()">← Atrás</button>
-            <button class="btn-ui secondary" type="button" onclick="window.location.reload()">Recargar</button>
-            <button class="btn-ui success" type="button" id="btnGuardar">Guardar Cambios</button>
-            <button class="btn-ui" type="button" onclick="window.print()">Imprimir PDF</button>
-        </div>
-        <div class="topbar-right">
-            <span class="badge-format">COMPRAS SST · RE-SST-18</span><br>
-            <span style="font-size:11px; color:#6b7280; font-weight:700;">Usuario: <?= e($_SESSION["usuario"] ?? "Usuario") ?></span>
-        </div>
-    </div>
+    <div class="sst-toolbar">
+  <h1 class="sst-toolbar-title">COMPRAS SST · RE-SST-18</h1>
+
+  <div class="sst-toolbar-actions">
+    <a href="#" class="btn btn-secondary btn-sm">Volver</a>
+
+    <button type="button" class="btn btn-success btn-sm">
+      <i class="fa-solid fa-save"></i> Guardar
+    </button>
+
+    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+      <i class="fa-solid fa-print"></i> Imprimir
+    </button>
+  </div>
+</div>
 
     <form id="form-sst-dinamico">
-        <div class="sheet-card">
-            <div class="sheet-header print-hide">
-                <h1 class="sheet-header-title">Especificaciones de las compras en SST</h1>
-                <p class="sheet-header-subtitle">Formato editable con presentación profesional</p>
-            </div>
+        
 
             <div class="sheet-scroll">
                 <div class="sheet">

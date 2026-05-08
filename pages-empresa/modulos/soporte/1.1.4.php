@@ -37,6 +37,7 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AN-SST-26 | Seguimiento mensual pago de aportes y parafiscales</title>
 
+  <link rel="stylesheet" href="../../../assets/css/toolbar.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
@@ -478,10 +479,17 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
   <h1 class="sst-toolbar-title">Seguimiento mensual pago de aportes y parafiscales</h1>
 
   <div class="sst-toolbar-actions">
-      <a href="../planear.php" class="btn btn-secondary btn-sm">Volver</a>
-      <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">Imprimir</button>
-    </div>
+    <a href="#" class="btn btn-secondary btn-sm">Volver</a>
+
+    <button type="button" class="btn btn-success btn-sm">
+      <i class="fa-solid fa-save"></i> Guardar
+    </button>
+
+    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+      <i class="fa-solid fa-print"></i> Imprimir
+    </button>
   </div>
+</div>
 
 <div class="sst-page">
   <div class="sst-paper">

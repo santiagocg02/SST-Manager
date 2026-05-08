@@ -123,6 +123,7 @@ $actividades = [
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>2.4.1 - Plan de Trabajo Anual SG-SST</title>
+    <link rel="stylesheet" href="../../../assets/css/toolbar.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -496,18 +497,21 @@ $actividades = [
 </head>
 <body>
 <div class="wrap">
-    <div class="toolbar print-hide">
-        <div style="display:flex; gap:8px;">
-            <button class="btn-action" type="button" onclick="history.back()">← Atrás</button>
-            <button class="btn-action" type="button" onclick="window.location.reload()">Recargar</button>
-            <button class="btn-success-action" type="button" id="btnGuardar">Guardar Cambios</button>
-            <button class="btn-primary-action" type="button" onclick="window.print()">Imprimir PDF</button>
-        </div>
-        <div class="tiny text-end">
-            <span style="font-size: 14px; font-weight: 900; color: #0f2f5c;">PLAN DE TRABAJO ANUAL</span><br>
-            Usuario: <strong><?= e($_SESSION["usuario"] ?? "Usuario") ?></strong> · <span id="hoyTxt"></span>
-        </div>
-    </div>
+    <div class="sst-toolbar">
+  <h1 class="sst-toolbar-title">PLAN DE TRABAJO ANUAL</h1>
+
+  <div class="sst-toolbar-actions">
+    <a href="#" class="btn btn-secondary btn-sm">Volver</a>
+
+    <button type="button" class="btn btn-success btn-sm">
+      <i class="fa-solid fa-save"></i> Guardar
+    </button>
+
+    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+      <i class="fa-solid fa-print"></i> Imprimir
+    </button>
+  </div>
+</div>
 
     <form id="form-sst-dinamico">
         <div class="sheet">

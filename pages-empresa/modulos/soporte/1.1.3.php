@@ -5,6 +5,7 @@ session_start();
 // Ajusta esta ruta dependiendo de la ubicación de este archivo
 require_once '../../../includes/ConexionAPI.php';
 
+
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
   header("Location: ../../../../index.php");
   exit;
@@ -57,9 +58,11 @@ if (is_string($camposCrudos)) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AN-SST-03 | Consolidado General Presupuesto</title>
 
+  <link rel="stylesheet" href="../../../assets/css/toolbar.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 
   <style>
     :root{
@@ -479,14 +482,22 @@ if (is_string($camposCrudos)) {
 </head>
 <body>
     
-    <div class="sst-toolbar">
-      <h1 class="sst-toolbar-title" style="margin:0; font-size:15px; font-weight:800; color:#213b67; flex:1;">Consolidado General Presupuesto</h1>
-        <button type="button" class="btn-ui secondary" onclick="volverPlanear()">← Atrás</button>
-        <button type="button" class="btn-ui secondary" onclick="abrirOtraPestana()">Abrir pestaña</button>
-        <button type="button" class="btn-ui secondary" onclick="recargarFormato()">Recargar</button>
-        <button type="button" class="btn-ui btn-success" id="btnGuardar">Guardar</button>
-        <button type="button" class="btn-ui" onclick="window.print()">Imprimir</button>
-    </div>
+
+<div class="sst-toolbar">
+  <h1 class="sst-toolbar-title">Consolidado General Presupuesto</h1>
+
+  <div class="sst-toolbar-actions">
+    <a href="#" class="btn btn-secondary btn-sm">Volver</a>
+
+    <button type="button" class="btn btn-success btn-sm">
+      <i class="fa-solid fa-save"></i> Guardar
+    </button>
+
+    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+      <i class="fa-solid fa-print"></i> Imprimir
+    </button>
+  </div>
+</div>
 
   <form id="form-sst-dinamico">
     <div class="sst-page">
