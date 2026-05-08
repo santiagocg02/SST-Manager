@@ -32,7 +32,7 @@ if ($rolSesion !== "Master") {
 
 // 2. FUNCIONES DE VALIDACIÓN
 function puede($mod, $accion, $rol, $permisos) {
-    if ($rol === "Master") return true;
+    if ($rol === "master") return true;
     return isset($permisos[$mod]) && (int)($permisos[$mod][$accion] ?? 0) === 1;
 }
 
