@@ -154,8 +154,8 @@ const items = [
   {item:"6.1.2", actividad:"Cronograma de auditoría", soporte:"6.1.2-2.php"},
   {item:"6.1.2", actividad:"Plan de auditoría", soporte:"6.1.2-3.php"},
   {item:"6.1.2", actividad:"Lista de chequeo", soporte:"6.1.2-4.php"},
-  {item:"6.1.2", actividad:"Informe de auditoría", soporte:"6.1.3.php"},
-  {item:"6.1.3", actividad:"Revisión por alta dirección", soporte:"revision.php"}
+  {item:"6.1.2", actividad:"Informe de auditoría", soporte:"6.1.2-5.php"},
+  {item:"6.1.3", actividad:"Revisión por alta dirección", soporte:"6.1.3.php"},
 ];
 
 const body = document.getElementById("body");

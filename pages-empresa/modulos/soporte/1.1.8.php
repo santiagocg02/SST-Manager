@@ -293,7 +293,7 @@ if (is_string($camposCrudos)) {
 <div class="sheet">
 
   <div class="sst-toolbar">
-  <h1 class="sst-toolbar-title">TÍTULO DEL DOCUMENTO</h1>
+  <h1 class="sst-toolbar-title">CONFORMACIÓN COCOLAB</h1>
 
   <div class="sst-toolbar-actions">
     <a href="#" class="btn btn-secondary btn-sm">Volver</a>
