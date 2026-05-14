@@ -1,414 +1,370 @@
 <?php
 session_start();
-if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+require_once '../../../includes/ConexionAPI.php';
+
+if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
+    header("Location: ../../index.php");
     exit;
 }
 
-function post($key, $default = '')
-{
-    return isset($_POST[$key]) ? htmlspecialchars($_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
+$api = new ConexionAPI();
+$token = $_SESSION["token"];
+
+$empresaId = $_SESSION["id_empresa"] ?? 0;
+
+
+
+if ($empresaId > 0) {
+    $resEmpresa = $api->solicitar("empresas/$empresaId", "GET", null, $token);
+}
+?>
+
+<!doctype html>
+<html lang="es">
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Programas de Gestión</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<link rel="stylesheet" href="../../assets/css/main-style.css">
+<link rel="stylesheet" href="../../assets/css/planear.css">
+
+<style>
+
+#soporteDrawer{
+    width:min(980px, 92vw);
 }
 
-$items = isset($_POST['items']) && is_array($_POST['items']) ? $_POST['items'] : [
-    ['actividad' => 'Programa de emergencias', 'soporte' => 'emergencia.php', 'calificacion' => ''],
-    ['actividad' => 'Formato inscripción de brigadas', 'soporte' => '', 'calificacion' => ''],
-    ['actividad' => 'Estructura brigadas SST', 'soporte' => '', 'calificacion' => ''],
-    ['actividad' => 'MEDEVAC', 'soporte' => '', 'calificacion' => ''],
-    ['actividad' => 'Registro MEDEVAC', 'soporte' => '', 'calificacion' => ''],
-    ['actividad' => 'Inventario de equipos y elementos de primeros auxilios', 'soporte' => '', 'calificacion' => ''],
-    ['actividad' => 'Entrenamientos realizados', 'soporte' => '', 'calificacion' => ''],
-    ['actividad' => 'Lista de chequeo simulacro', 'soporte' => '', 'calificacion' => ''],
-];
-?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>5.1.1-2</title>
-    <style>
-        *{box-sizing:border-box;margin:0;padding:0;font-family:Arial, Helvetica, sans-serif}
-        body{background:#f2f4f7;padding:20px;color:#111}
-        .contenedor{
-            max-width:1100px;
-            margin:0 auto;
-            background:#fff;
-            border:1px solid #bfc7d1;
-            box-shadow:0 4px 18px rgba(0,0,0,.08)
-        }
-        .toolbar{
-            position:sticky;
-            top:0;
-            z-index:100;
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            flex-wrap:wrap;
-            gap:12px;
-            padding:14px 18px;
-            background:#dde7f5;
-            border-bottom:1px solid #c8d3e2
-        }
-        .toolbar h1{font-size:20px;color:#213b67;font-weight:700}
-        .acciones{display:flex;gap:10px;flex-wrap:wrap}
-        .btn{
-            border:none;
-            padding:10px 18px;
-            border-radius:8px;
-            font-size:14px;
-            font-weight:700;
-            cursor:pointer;
-            transition:.2s ease
-        }
-        .btn:hover{transform:translateY(-1px);opacity:.95}
-        .btn-atras{background:#6c757d;color:#fff}
+#soporteDrawer iframe{
+    width:100%;
+    height:100%;
+    border:0;
+}
 
-        .contenido{padding:22px}
-        .save-msg{
-            margin:0 0 15px 0;
-            padding:10px 14px;
-            border-radius:8px;
-            background:#e9f7ef;
-            color:#166534;
-            border:1px solid #b7e4c7;
-            font-size:14px;
-            font-weight:700;
-        }
 
-        .tabla-card{
-            width:100%;
-            border:1px solid #d7dbe3;
-            border-radius:16px;
-            overflow:hidden;
-            background:#fff;
-        }
+.table-toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:15px;
+}
 
-        .tabla-head,
-        .fila{
-            display:grid;
-            grid-template-columns:110px 1.5fr 140px 1.8fr;
-            align-items:center;
-        }
+.toolbar-left{
+    font-weight:700;
+    color:#1a4175;
+    font-size:18px;
+}
 
-        .tabla-head{
-            background:#eef3fb;
-            border-bottom:1px solid #d8dfeb;
-            min-height:56px;
-            font-weight:700;
-            color:#143d86;
-            letter-spacing:.5px;
-        }
+.excel-table{
+    border:1px solid #dce3ea;
+    border-radius:12px;
+    overflow:hidden;
+}
 
-        .tabla-head div{
-            padding:0 18px;
-            font-size:15px;
-        }
+.table thead{
+    background:#eef3fb;
+}
 
-        .fila{
-            min-height:128px;
-            border-bottom:1px solid #e5e7eb;
-            background:#fff;
-        }
+.table thead th{
+    font-size:12px;
+    color:#1a4175;
+    font-weight:700;
+    letter-spacing:.5px;
+}
 
-        .fila:last-child{
-            border-bottom:none;
-        }
+.table tbody td{
+    vertical-align:middle;
+    font-size:14px;
+    padding:18px 14px;
+}
 
-        .celda{
-            padding:18px;
-        }
+.item-chip{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-weight:700;
+    color:#0b2f75;
+}
 
-        .item-dot{
-            display:flex;
-            align-items:center;
-            gap:12px;
-            color:#1d4ed8;
-            font-weight:700;
-            font-size:18px;
-        }
+.dot{
+    width:7px;
+    height:7px;
+    background:#2f6df6;
+    border-radius:50%;
+}
 
-        .dot{
-            width:10px;
-            height:10px;
-            border-radius:50%;
-            background:#3b82f6;
-            flex:0 0 auto;
-        }
+.col-item{
+    width:140px;
+}
 
-        .actividad-input{
-            width:100%;
-            border:none;
-            outline:none;
-            background:transparent;
-            font-size:20px;
-            line-height:1.45;
-            color:#1f2937;
-            resize:none;
-            min-height:76px;
-            white-space:pre-wrap;
-            overflow-wrap:anywhere;
-        }
+.col-soporte{
+    width:120px;
+}
 
-        .soporte-wrap{
-            display:flex;
-            justify-content:center;
-        }
+.btn-icon{
+    width:42px;
+    height:42px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+}
 
-        .soporte-btn{
-            width:40px;
-            height:40px;
-            border:2px solid #2563ff;
-            border-radius:14px;
-            background:#f8fbff;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            color:#2563ff;
-            cursor:pointer;
-            transition:.2s ease;
-        }
+.planear-hero{
+    background:#004176;
+    color:#fff;
+}
 
-        .soporte-btn:hover{
-            background:#edf4ff;
-            transform:translateY(-1px);
-        }
+.sheet-title{
+    font-weight:700;
+    font-size:24px;
+}
 
-        .soporte-btn svg{
-            width:18px;
-            height:18px;
-            display:block;
-        }
+.sheet-subtitle{
+    opacity:.9;
+    font-size:14px;
+}
 
-        .soporte-hidden{
-            display:none;
-        }
+</style>
 
-        .calificaciones{
-            display:flex;
-            flex-wrap:wrap;
-            gap:12px 14px;
-            align-items:center;
-        }
-
-        .pill{
-            position:relative;
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            min-width:112px;
-            height:44px;
-            border-radius:999px;
-            background:#fff;
-            border:1.8px solid #d1d5db;
-            cursor:pointer;
-            padding:0 18px 0 42px;
-            font-size:15px;
-            font-weight:700;
-            color:#111827;
-            user-select:none;
-            transition:.2s ease;
-        }
-
-        .pill::before{
-            content:"";
-            position:absolute;
-            left:16px;
-            top:50%;
-            transform:translateY(-50%);
-            width:16px;
-            height:16px;
-            border-radius:50%;
-            border:1.8px solid #d1d5db;
-            background:#fff;
-        }
-
-        .pill input{
-            position:absolute;
-            opacity:0;
-            pointer-events:none;
-        }
-
-        .pill.si{
-            border-color:#b7dbc9;
-        }
-        .pill.proceso{
-            border-color:#f0cf74;
-        }
-        .pill.no{
-            border-color:#efb1b1;
-        }
-        .pill.na{
-            border-color:#d1d5db;
-        }
-
-        .pill.activa.si{
-            background:#f1fbf5;
-            border-color:#9ed0b3;
-        }
-        .pill.activa.proceso{
-            background:#fff9ea;
-            border-color:#ebc85c;
-        }
-        .pill.activa.no{
-            background:#fff4f4;
-            border-color:#e59a9a;
-        }
-        .pill.activa.na{
-            background:#f8fafc;
-            border-color:#c8ced8;
-        }
-
-        .pill.activa::before{
-            background:#fff;
-            box-shadow:inset 0 0 0 5px #cfd8e3;
-        }
-
-        .pill.activa.si::before{
-            box-shadow:inset 0 0 0 5px #8cc0a7;
-        }
-        .pill.activa.proceso::before{
-            box-shadow:inset 0 0 0 5px #e7c155;
-        }
-        .pill.activa.no::before{
-            box-shadow:inset 0 0 0 5px #de8f8f;
-        }
-
-        .nota-soporte{
-            margin-top:6px;
-            text-align:center;
-            font-size:11px;
-            color:#6b7280;
-            word-break:break-word;
-        }
-
-        @media (max-width: 950px){
-            .tabla-head{
-                display:none;
-            }
-
-            .fila{
-                grid-template-columns:1fr;
-                min-height:auto;
-                padding:10px 0;
-            }
-
-            .celda{
-                padding:12px 16px;
-            }
-
-            .actividad-input{
-                font-size:18px;
-                min-height:60px;
-            }
-
-            .calificaciones{
-                justify-content:flex-start;
-            }
-        }
-
-        @media print{
-            body{background:#fff;padding:0}
-            .toolbar{display:none}
-            .contenedor{box-shadow:none;border:none}
-            .contenido{padding:10px}
-        }
-    </style>
 </head>
+
 <body>
-<div class="contenedor">
-    <div class="toolbar">
-        <h1>5.1.1-2</h1>
-        <div class="acciones">
-            <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-        </div>
-    </div>
 
-    <div class="contenido">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
+<div class="planear-page-scroll">
+<div class="page-wrap">
 
-        <form id="form51112" method="POST" action="" enctype="multipart/form-data">
-            <div class="tabla-card">
-                <div class="tabla-head">
-                    <div>ÍTEM</div>
-                    <div>ACTIVIDAD</div>
-                    <div>SOPORTE</div>
-                    <div>CALIFICACIÓN</div>
-                </div>
+<div class="row g-3 mb-3">
 
-                <?php foreach ($items as $i => $item): ?>
-                    <?php $cal = $item['calificacion'] ?? ''; ?>
-                    <div class="fila">
-                        <div class="celda">
-                            <div class="item-dot">
-                                <span class="dot"></span>
-                            </div>
-                        </div>
+<div class="col-12">
 
-                        <div class="celda">
-                            <textarea class="actividad-input" name="items[<?php echo $i; ?>][actividad]"><?php echo htmlspecialchars($item['actividad'], ENT_QUOTES, 'UTF-8'); ?></textarea>
-                        </div>
+<div class="planear-hero card-soft p-4">
 
-                        <div class="celda">
-                            <div class="soporte-wrap">
-                                <label class="soporte-btn" title="Cargar soporte">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/>
-                                        <path d="M14 2v5h5"/>
-                                        <path d="M9 13h6"/>
-                                        <path d="M9 17h6"/>
-                                        <path d="M9 9h2"/>
-                                    </svg>
-                                    <input class="soporte-hidden" type="text" name="items[<?php echo $i; ?>][soporte]" value="<?php echo htmlspecialchars($item['soporte'], ENT_QUOTES, 'UTF-8'); ?>">
-                                </label>
-                            </div>
-                            <div class="nota-soporte"><?php echo htmlspecialchars($item['soporte'], ENT_QUOTES, 'UTF-8'); ?></div>
-                        </div>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
-                        <div class="celda">
-                            <div class="calificaciones">
-                                <label class="pill si <?php echo $cal === 'si' ? 'activa' : ''; ?>">
-                                    <input type="radio" name="items[<?php echo $i; ?>][calificacion]" value="si" <?php echo $cal === 'si' ? 'checked' : ''; ?>>
-                                    SI
-                                </label>
+<div>
+    <h4 class="sheet-title">
+        <i class="fa-solid fa-layer-group me-2"></i>
+       PLAN DE EMERGENCIAS
+    </h4>
 
-                                <label class="pill proceso <?php echo $cal === 'proceso' ? 'activa' : ''; ?>">
-                                    <input type="radio" name="items[<?php echo $i; ?>][calificacion]" value="proceso" <?php echo $cal === 'proceso' ? 'checked' : ''; ?>>
-                                    PROCESO
-                                </label>
-
-                                <label class="pill no <?php echo $cal === 'no' ? 'activa' : ''; ?>">
-                                    <input type="radio" name="items[<?php echo $i; ?>][calificacion]" value="no" <?php echo $cal === 'no' ? 'checked' : ''; ?>>
-                                    NO
-                                </label>
-
-                                <label class="pill na <?php echo $cal === 'na' ? 'activa' : ''; ?>">
-                                    <input type="radio" name="items[<?php echo $i; ?>][calificacion]" value="na" <?php echo $cal === 'na' ? 'checked' : ''; ?>>
-                                    N/A
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </form>
+    <div class="sheet-subtitle">
+        Soportes documentales SG-SST
     </div>
 </div>
 
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="row">
+
+<div class="col-12">
+
+<div class="card-soft p-3 bg-white">
+
+<div class="table-toolbar">
+
+<div class="toolbar-left">
+    Programas Disponibles
+</div>
+
+<div>
+    <span class="badge text-bg-primary fs-6" id="countBadge">0</span>
+</div>
+
+</div>
+
+<div class="excel-table">
+
+<table class="table table-hover mb-0">
+
+<thead>
+<tr>
+    <th class="col-item">NÚMERO</th>
+    <th>NOMBRE</th>
+    <th class="col-soporte text-center">SOPORTE</th>
+</tr>
+</thead>
+
+<tbody id="body"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- DRAWER -->
+
+<div class="offcanvas offcanvas-end"
+tabindex="-1"
+id="soporteDrawer">
+
+<div class="offcanvas-body p-0 position-relative">
+
+<button type="button"
+class="btn-close position-absolute top-0 end-0 m-3 z-3"
+data-bs-dismiss="offcanvas">
+</button>
+
+<iframe id="frame"></iframe>
+
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
-document.addEventListener('change', function(e){
-    if(e.target.matches('.pill input[type="radio"]')){
-        const name = e.target.name;
-        document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
-            const pill = radio.closest('.pill');
-            if(pill){
-                pill.classList.toggle('activa', radio.checked);
-            }
-        });
+
+// ITEMS
+const items = [
+
+{
+numero:"1",
+nombre:"Programa de emergencias",
+soporte:"7.1.1.php"
+},
+
+{
+numero:"2",
+nombre:"Formato inscripción de brigadas",
+soporte:"formbrigada.php"
+},
+
+{
+numero:"3",
+nombre:"Estructura brigadas",
+soporte:"estbrigada.php"
+},
+
+{
+numero:"4",
+nombre:"MEDEVAC",
+soporte:"medevac.php"
+},
+
+{
+numero:"5",
+nombre:"Registro MEDEVAC",
+soporte:"regmedevac.php"
+},
+
+{
+numero:"6",
+nombre:"Inventario de equipos y elementos de primeros auxilios",
+soporte:"invequipos.php"
+},
+
+{
+numero:"7",
+nombre:"Entrenamientos realizados",
+soporte:"entrealizados.php"
+},
+
+{
+numero:"8",
+nombre:"Lista de chequeo simulacro",
+soporte:"cheqsimulacro.php"
+},
+
+];
+
+const body = document.getElementById("body");
+
+const drawer = new bootstrap.Offcanvas(
+document.getElementById("soporteDrawer")
+);
+
+const frame = document.getElementById("frame");
+
+// RENDER
+function render(data){
+
+    body.innerHTML = "";
+
+    document.getElementById("countBadge").innerText = data.length;
+
+    data.forEach((r)=>{
+
+        body.innerHTML += `
+        <tr>
+
+            <td class="col-item">
+
+                <span class="item-chip">
+                    <span class="dot"></span>
+                    ${r.numero}
+                </span>
+
+            </td>
+
+            <td>
+                ${r.nombre}
+            </td>
+
+            <td class="text-center">
+
+                <button
+                    class="btn btn-outline-primary btn-icon"
+                    data-file="${r.soporte}"
+                >
+                    <i class="fa-regular fa-file-lines"></i>
+                </button>
+
+            </td>
+
+        </tr>
+        `;
+    });
+}
+
+// ABRIR SOPORTE
+document.addEventListener("click", (e)=>{
+
+    const btn = e.target.closest("button[data-file]");
+
+    if(btn){
+
+      frame.src = `./${btn.dataset.file}`;
+
+        drawer.show();
     }
 });
+
+// LIMPIAR
+document.getElementById("soporteDrawer")
+.addEventListener("hidden.bs.offcanvas", ()=>{
+
+    frame.src = "";
+
+});
+
+// INIT
+render(items);
+
 </script>
+
 </body>
 </html>

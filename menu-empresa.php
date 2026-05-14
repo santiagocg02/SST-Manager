@@ -10,7 +10,7 @@ $rolSesion = sessionString('rol');
 $perfilIdSesion = sessionInt('id_perfil');
 $empresa = sessionInt('id_empresa');
 
-// --- Lógica de Permisos y Plan (Manteniendo tu estructura original) ---
+// --- Lógica de Permisos y Plan ---
 $nombreEmpresaLogeada = "Sin Empresa";
 $idPlanEmpresa = 0;
 
@@ -62,6 +62,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/menu-admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     .admin-subitem.active { 
         color: #198754 !important; font-weight: 700; border-left: 4px solid #198754; 
@@ -140,6 +141,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       </div>
     </div>
     <?php endif; ?>
+    
     <div class="accordion-item">
       <h2 class="accordion-header">
         <button class="accordion-button collapsed admin-accordion-btn" data-bs-toggle="collapse" data-bs-target="#collapsegh">
@@ -155,6 +157,37 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
         </div>
       </div>
     </div>
+
+    <!-- =============== NUEVAS OPCIONES: PESV Y ALTURAS =============== -->
+    
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed admin-accordion-btn" data-bs-toggle="collapse" data-bs-target="#collapsePESV">
+          <i class="fa-solid fa-car me-2"></i> PESV
+        </button>
+      </h2>
+      <div id="collapsePESV" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
+        <div class="accordion-body py-2">
+          <a href="pages-empresa/modulos/pesv/perfilpesv.php" target="contentFrame" class="admin-subitem">Perfil Lider PESV</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed admin-accordion-btn" data-bs-toggle="collapse" data-bs-target="#collapseAlturas">
+          <i class="fa-solid fa-person-arrow-up-from-line me-2"></i> Programa de Alturas
+        </button>
+      </h2>
+      <div id="collapseAlturas" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
+        <div class="accordion-body py-2">
+          <a href="pages-empresa/modulos/pda/invalturas.php" target="contentFrame" class="admin-subitem">Inventario de Alturas</a>
+          <a href="pages-empresa/modulos/pda/proalturas.php" target="contentFrame" class="admin-subitem">Programa de Alturas</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
 
     <?php if (puedeVer(19, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
     <div class="accordion-item">

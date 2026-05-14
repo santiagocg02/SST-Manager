@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require_once '../../includes/ConexionAPI.php';
+require_once '../../../includes/ConexionAPI.php';
 
 if (!isset($_SESSION["usuario"]) || !isset($_SESSION["token"])) {
     header("Location: ../../index.php");
@@ -27,7 +27,7 @@ if ($empresaId > 0) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>SSTMANAGER - VERIFICAR</title>
+<title>SSTMANAGER - PESV PLANEAR</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -280,7 +280,7 @@ body{
 }
 
 .item-activity{
-    font-size:20px;
+    font-size:18px;
     line-height:1.3;
     color:#222;
 }
@@ -407,9 +407,6 @@ body{
     .item-number{
         font-size:22px;
     }
-    .item-activity{
-        font-size:18px;
-    }
 }
 
 </style>
@@ -424,10 +421,10 @@ body{
     <!-- LEFT -->
     <div class="soft-card left-panel">
         <div class="left-title">
-            VERIFICAR
+            PLANEAR PESV
         </div>
         <div class="left-sub">
-            Seguimiento por parte de la organización al SG-SST
+            Diseño y Planificación del PESV
         </div>
 
         <div class="circle-wrap">
@@ -451,7 +448,7 @@ body{
         </div>
 
         <button class="plan-btn">
-            Guardar Verificación
+            Guardar Planificación
         </button>
     </div>
 
@@ -460,21 +457,21 @@ body{
 
         <div class="topbar">
             <div class="topbar-left">
-                <h2>PLAN DE TRABAJO - ÍTEMS</h2>
+                <h2>PASOS DEL PESV</h2>
                 <div class="badge-count" id="countBadge">0</div>
             </div>
 
             <div class="search-area">
-                <input type="text" id="searchInput" placeholder="Buscar ítem o actividad...">
+                <input type="text" id="searchInput" placeholder="Buscar paso o ítem...">
                 <button id="resetBtn">RESET</button>
             </div>
         </div>
 
         <div class="table-head">
-            <div>ÍTEM</div>
-            <div>ACTIVIDAD</div>
-            <div class="text-center">SOPORTE DOCUMENTAL</div>
-            <div class="text-center">ESTADO</div>
+            <div>PASO</div>
+            <div>ÍTEM (ACTIVIDAD)</div>
+            <div class="text-center">ADJUNTO</div>
+            <div class="text-center">CALIFICACIÓN</div>
         </div>
 
         <div class="items" id="body"></div>
@@ -485,16 +482,15 @@ body{
     <div class="soft-card right-panel">
 
         <div class="right-title">
-            RESUMEN DE PROCESOS
+            RESUMEN PESV
         </div>
 
-        <!-- Adapté los títulos a la temática de Verificar -->
         <div class="resume-item">
             <div class="resume-left">
                 <div class="resume-icon">
-                    <i class="fa-solid fa-clipboard-check"></i>
+                    <i class="fa-solid fa-road"></i>
                 </div>
-                <div>Auditorías Internas</div>
+                <div>Diagnóstico Vial</div>
             </div>
             <div class="resume-check"></div>
         </div>
@@ -502,9 +498,9 @@ body{
         <div class="resume-item">
             <div class="resume-left">
                 <div class="resume-icon">
-                    <i class="fa-solid fa-users-gear"></i>
+                    <i class="fa-solid fa-car-burst"></i>
                 </div>
-                <div>Revisión Alta Dirección</div>
+                <div>Gestión Riesgos Viales</div>
             </div>
             <div class="resume-check"></div>
         </div>
@@ -512,9 +508,9 @@ body{
         <div class="resume-item">
             <div class="resume-left">
                 <div class="resume-icon">
-                    <i class="fa-solid fa-list-check"></i>
+                    <i class="fa-solid fa-bullseye"></i>
                 </div>
-                <div>Evaluación Cumplimiento</div>
+                <div>Objetivos y Metas</div>
             </div>
             <div class="resume-check"></div>
         </div>
@@ -547,14 +543,27 @@ body{
 
 <script>
 
-// ITEMS DE VERIFICAR
-const verificarItems = [
-    {item:"6.1.2", actividad:"Procedimiento de auditorías internas", soporte:"6.1.2.php"},
-    {item:"6.1.2", actividad:"Cronograma de auditoría", soporte:"6.1.2-2.php"},
-    {item:"6.1.2", actividad:"Plan de auditoría", soporte:"6.1.2-3.php"},
-    {item:"6.1.2", actividad:"Lista de chequeo", soporte:"6.1.2-4.php"},
-    {item:"6.1.2", actividad:"Informe de auditoría", soporte:"6.1.2-5.php"},
-    {item:"6.1.3", actividad:"Revisión por alta dirección", soporte:"6.1.3.php"},
+// ITEMS DE PESV - PLANEAR EXTRAÍDOS DE LA IMAGEN
+const pesvItems = [
+    { paso:"1", actividad:"Líder del diseño e implementación del PESV", soporte:"pesv-1.php" },
+    { paso:"", actividad:"Perfil del Líder del PESV", soporte:"pesv-1-2.php" },
+    { paso:"2", actividad:"Comité de Seguridad Vial", soporte:"pesv-2.php" },
+    { paso:"", actividad:"Visión y alcance del PESV", soporte:"pesv-2-2.php" },
+    { paso:"3", actividad:"Política de Seguridad Vial de la organización", soporte:"pesv-3.php" },
+    { paso:"4", actividad:"Liderazgo, compromiso y corresponsabilidad del nivel directivo", soporte:"pesv-4.php" },
+    { paso:"", actividad:"Presupuesto", soporte:"pesv-4-2.php" },
+    { paso:"5", actividad:"Diagnostico PESV", soporte:"pesv-5.php" },
+    { paso:"", actividad:"Caracterización para la identificación de los riesgos viales", soporte:"pesv-5-2.php" },
+    { paso:"", actividad:"Tabulación y análisis de la Caracterización", soporte:"pesv-5-3.php" },
+    { paso:"", actividad:"Lista de propios, terceros y contratistas", soporte:"pesv-5-4.php" },
+    { paso:"", actividad:"Lista de rutas frecuentes", soporte:"pesv-5-5.php" },
+    { paso:"", actividad:"Lista de personal de la organización", soporte:"pesv-5-6.php" },
+    { paso:"6", actividad:"Caracterización, evaluación y control de riesgos", soporte:"pesv-6.php" },
+    { paso:"", actividad:"Procedimiento para la identificación de los riesgos viales", soporte:"pesv-6-2.php" },
+    { paso:"", actividad:"Identificación de los riesgos viales", soporte:"pesv-6-3.php" },
+    { paso:"", actividad:"Caracterización de la accidentalidad y análisis", soporte:"pesv-6-4.php" },
+    { paso:"7", actividad:"Objetivos y metas del PESV", soporte:"pesv-7.php" },
+    { paso:"8", actividad:"Programas de Gestión de riesgos críticos y factores de desempeño", soporte:"pesv-8.php" }
 ];
 
 // RENDER
@@ -570,7 +579,7 @@ function render(data){
         body.innerHTML += `
         <div class="item-card">
             <div class="item-number">
-                ${r.item}
+                ${r.paso} <i class="fa-solid fa-arrow-right-long" style="color: #0d4d8b; font-size:18px;"></i>
             </div>
             <div class="item-activity">
                 ${r.actividad}
@@ -634,15 +643,15 @@ function calcular(){
 // BUSCADOR
 document.getElementById("searchInput").addEventListener("input", e=>{
     let q = e.target.value.toLowerCase();
-    render(verificarItems.filter(x =>
-        (x.item + x.actividad).toLowerCase().includes(q)
+    render(pesvItems.filter(x =>
+        (x.paso + x.actividad).toLowerCase().includes(q)
     ));
 });
 
 // RESET
 document.getElementById("resetBtn").onclick = ()=>{
     document.getElementById("searchInput").value = "";
-    render(verificarItems);
+    render(pesvItems);
 };
 
 // OFFCANVAS
@@ -655,8 +664,8 @@ document.addEventListener("click",(e)=>{
     const btn = e.target.closest("button[data-file]");
 
     if(btn && btn.dataset.file){
-        // Ruta para la carpeta de soportes de Verificar
-        frame.src = `./soporte-verificar/${btn.dataset.file}`;
+        // Puedes cambiar 'soporte-pesv' por la carpeta donde vayas a guardar los archivos del PESV
+        frame.src = `./soporte-pesv/${btn.dataset.file}`;
         drawer.show();
     }
 });
@@ -667,7 +676,7 @@ document.getElementById("soporteDrawer").addEventListener("hidden.bs.offcanvas",
 });
 
 // INIT
-render(verificarItems);
+render(pesvItems);
 
 </script>
 
