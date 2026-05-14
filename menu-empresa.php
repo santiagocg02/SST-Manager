@@ -145,8 +145,8 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
     <div class="accordion-item">
       <h2 class="accordion-header">
         <button class="accordion-button collapsed admin-accordion-btn" data-bs-toggle="collapse" data-bs-target="#collapsegh">
-          <i class="fa-solid fa-helmet-safety me-2"></i> Gestión Humana
-        </button>
+    <i class="fa-solid fa-users-gear me-2"></i> Gestión Humana
+</button>
       </h2>
       <div id="collapsegh" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
         <div class="accordion-body py-2">
