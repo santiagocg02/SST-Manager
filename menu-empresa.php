@@ -168,7 +168,10 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       </h2>
       <div id="collapsePESV" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
         <div class="accordion-body py-2">
-          <a href="pages-empresa/modulos/pesv/perfilpesv.php" target="contentFrame" class="admin-subitem">Perfil Lider PESV</a>
+          <a href="pages-empresa/modulos/pesv/planear.php" target="contentFrame" class="admin-subitem">Planear</a>
+          <a href="pages-empresa/modulos/pesv/hacer.php" target="contentFrame" class="admin-subitem">Hacer</a>
+          <a href="pages-empresa/modulos/pesv/verificar.php" target="contentFrame" class="admin-subitem">Verificar</a>
+          <a href="pages-empresa/modulos/pesv/actuar.php" target="contentFrame" class="admin-subitem">Actuar</a>
         </div>
       </div>
     </div>

@@ -27,7 +27,7 @@ if ($empresaId > 0) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>SSTMANAGER - PESV PLANEAR</title>
+<title>SSTMANAGER - PESV VERIFICAR</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -273,6 +273,11 @@ body{
     box-shadow:0 8px 20px rgba(0,0,0,.08);
 }
 
+.item-card.is-header {
+    background: #f8fbff;
+    border-color: #cce0ff;
+}
+
 .item-number{
     font-size:28px;
     font-weight:900;
@@ -283,6 +288,10 @@ body{
     font-size:18px;
     line-height:1.3;
     color:#222;
+}
+.item-card.is-sub .item-activity {
+    color: #555;
+    font-size: 16px;
 }
 
 .support-btn{
@@ -309,31 +318,24 @@ body{
     cursor:pointer;
     font-size:13px;
     user-select:none;
+    background: #fff;
 }
 
 .status-option input{
     display:none;
 }
 
-.status-si{
-    border-color:var(--success);
-    color:var(--success);
-}
+/* ESTILOS ACTIVOS (JS) */
+.status-si.active { background: var(--success); color: #fff; }
+.status-proceso.active { background: var(--warning); color: #fff; border-color: var(--warning); }
+.status-no.active { background: var(--danger); color: #fff; }
+.status-na.active { background: #adb5bd; color: #fff; border-color: #adb5bd; }
 
-.status-proceso{
-    border-color:var(--warning);
-    color:#7d6100;
-}
-
-.status-no{
-    border-color:var(--danger);
-    color:var(--danger);
-}
-
-.status-na{
-    border-color:#adb5bd;
-    color:#6c757d;
-}
+/* ESTILOS INACTIVOS */
+.status-si{ border-color:var(--success); color:var(--success); }
+.status-proceso{ border-color:var(--warning); color:#7d6100; }
+.status-no{ border-color:var(--danger); color:var(--danger); }
+.status-na{ border-color:#adb5bd; color:#6c757d; }
 
 /* RIGHT */
 
@@ -421,10 +423,10 @@ body{
     <!-- LEFT -->
     <div class="soft-card left-panel">
         <div class="left-title">
-            PLANEAR PESV
+            VERIFICAR
         </div>
         <div class="left-sub">
-            Diseño y Planificación del PESV
+            Seguimiento, Medición y Auditorías
         </div>
 
         <div class="circle-wrap">
@@ -448,7 +450,7 @@ body{
         </div>
 
         <button class="plan-btn">
-            Guardar Planificación
+            Guardar Verificación
         </button>
     </div>
 
@@ -457,7 +459,7 @@ body{
 
         <div class="topbar">
             <div class="topbar-left">
-                <h2>PASOS DEL PESV</h2>
+                <h2>PLAN DE TRABAJO - ÍTEMS</h2>
                 <div class="badge-count" id="countBadge">0</div>
             </div>
 
@@ -488,9 +490,9 @@ body{
         <div class="resume-item">
             <div class="resume-left">
                 <div class="resume-icon">
-                    <i class="fa-solid fa-road"></i>
+                    <i class="fa-solid fa-chart-pie"></i>
                 </div>
-                <div>Diagnóstico Vial</div>
+                <div>Indicadores PESV</div>
             </div>
             <div class="resume-check"></div>
         </div>
@@ -500,7 +502,7 @@ body{
                 <div class="resume-icon">
                     <i class="fa-solid fa-car-burst"></i>
                 </div>
-                <div>Gestión Riesgos Viales</div>
+                <div>Registro de Siniestros</div>
             </div>
             <div class="resume-check"></div>
         </div>
@@ -508,9 +510,9 @@ body{
         <div class="resume-item">
             <div class="resume-left">
                 <div class="resume-icon">
-                    <i class="fa-solid fa-bullseye"></i>
+                    <i class="fa-solid fa-clipboard-check"></i>
                 </div>
-                <div>Objetivos y Metas</div>
+                <div>Auditorías</div>
             </div>
             <div class="resume-check"></div>
         </div>
@@ -543,27 +545,18 @@ body{
 
 <script>
 
-// ITEMS DE PESV - PLANEAR EXTRAÍDOS DE LA IMAGEN
+// ITEMS DE PESV - VERIFICAR EXTRAÍDOS DE LA IMAGEN
 const pesvItems = [
-    { paso:"1", actividad:"Líder del diseño e implementación del PESV", soporte:"pesv-1.php" },
-    { paso:"", actividad:"Perfil del Líder del PESV", soporte:"pesv-1-2.php" },
-    { paso:"2", actividad:"Comité de Seguridad Vial", soporte:"pesv-2.php" },
-    { paso:"", actividad:"Visión y alcance del PESV", soporte:"pesv-2-2.php" },
-    { paso:"3", actividad:"Política de Seguridad Vial de la organización", soporte:"pesv-3.php" },
-    { paso:"4", actividad:"Liderazgo, compromiso y corresponsabilidad del nivel directivo", soporte:"pesv-4.php" },
-    { paso:"", actividad:"Presupuesto", soporte:"pesv-4-2.php" },
-    { paso:"5", actividad:"Diagnostico PESV", soporte:"pesv-5.php" },
-    { paso:"", actividad:"Caracterización para la identificación de los riesgos viales", soporte:"pesv-5-2.php" },
-    { paso:"", actividad:"Tabulación y análisis de la Caracterización", soporte:"pesv-5-3.php" },
-    { paso:"", actividad:"Lista de propios, terceros y contratistas", soporte:"pesv-5-4.php" },
-    { paso:"", actividad:"Lista de rutas frecuentes", soporte:"pesv-5-5.php" },
-    { paso:"", actividad:"Lista de personal de la organización", soporte:"pesv-5-6.php" },
-    { paso:"6", actividad:"Caracterización, evaluación y control de riesgos", soporte:"pesv-6.php" },
-    { paso:"", actividad:"Procedimiento para la identificación de los riesgos viales", soporte:"pesv-6-2.php" },
-    { paso:"", actividad:"Identificación de los riesgos viales", soporte:"pesv-6-3.php" },
-    { paso:"", actividad:"Caracterización de la accidentalidad y análisis", soporte:"pesv-6-4.php" },
-    { paso:"7", actividad:"Objetivos y metas del PESV", soporte:"pesv-7.php" },
-    { paso:"8", actividad:"Programas de Gestión de riesgos críticos y factores de desempeño", soporte:"pesv-8.php" }
+    { paso:"20", actividad:"Indicadores PESV", soporte:"verificar-20.php", isHeader:false },
+    { paso:"", actividad:"Reporte de auto gestión", soporte:"verificar-20-1.php", isHeader:false },
+    { paso:"21", actividad:"Registro y análisis estadístico de siniestros viales", soporte:"verificar-21.php", isHeader:false },
+    { paso:"22", actividad:"Procedimiento de Auditoria, Plan de auditoria, informe de auditoria", soporte:"verificar-22.php", isHeader:false },
+    { paso:"", actividad:"Lista de chequeo", soporte:"verificar-22-1.php", isHeader:false },
+    { paso:"", actividad:"Plan de auditoria", soporte:"verificar-22-2.php", isHeader:false },
+    { paso:"", actividad:"Informe de auditoria", soporte:"verificar-22-3.php", isHeader:false },
+    { paso:"", actividad:"Acta de apertura de auditoria", soporte:"verificar-22-4.php", isHeader:false },
+    { paso:"", actividad:"Acta de cierre de auditoria", soporte:"verificar-22-5.php", isHeader:false },
+    { paso:"", actividad:"Programa de auditorias", soporte:"verificar-22-6.php", isHeader:false }
 ];
 
 // RENDER
@@ -571,44 +564,56 @@ const body = document.getElementById("body");
 
 function render(data){
     body.innerHTML = "";
-    document.getElementById("countBadge").innerText = data.length;
+    // Solo contamos los que no son encabezados puros
+    const countReal = data.filter(x => !x.isHeader).length;
+    document.getElementById("countBadge").innerText = countReal;
 
     data.forEach((r,i)=>{
         const disabled = r.soporte ? "" : "disabled";
+        
+        // Logica para numeración y sangría
+        let numHtml = '';
+        let classExtra = '';
+        if(r.paso !== ""){
+            numHtml = `${r.paso} <i class="fa-solid fa-arrow-right-long" style="color: #0d4d8b; font-size:18px;"></i>`;
+            if(r.isHeader) classExtra = 'is-header';
+        } else {
+            numHtml = `<i class="fa-solid fa-arrow-right-long" style="color: #adb5bd; font-size:14px; margin-left: 25px;"></i>`;
+            classExtra = 'is-sub';
+        }
+
+        // Ocultar acciones si es un encabezado puro
+        const actionsHtml = r.isHeader ? `<div></div><div></div>` : `
+            <div class="text-center">
+                <button class="support-btn" data-file="${r.soporte}" ${disabled} title="Ver Adjunto">
+                    <i class="fa-regular fa-file-lines"></i>
+                </button>
+            </div>
+            <div class="status-wrap justify-content-center">
+                <label class="status-option status-si">
+                    <input type="radio" name="cal_${i}" value="2" onchange="updateRadioUI(this)"> SI
+                </label>
+                <label class="status-option status-proceso">
+                    <input type="radio" name="cal_${i}" value="1" onchange="updateRadioUI(this)"> PROCESO
+                </label>
+                <label class="status-option status-no">
+                    <input type="radio" name="cal_${i}" value="0" onchange="updateRadioUI(this)"> NO
+                </label>
+                <label class="status-option status-na">
+                    <input type="radio" name="cal_${i}" value="na" onchange="updateRadioUI(this)"> N/A
+                </label>
+            </div>
+        `;
 
         body.innerHTML += `
-        <div class="item-card">
+        <div class="item-card ${classExtra}">
             <div class="item-number">
-                ${r.paso} <i class="fa-solid fa-arrow-right-long" style="color: #0d4d8b; font-size:18px;"></i>
+                ${numHtml}
             </div>
             <div class="item-activity">
                 ${r.actividad}
             </div>
-            <div>
-                <button class="support-btn"
-                        data-file="${r.soporte}"
-                        ${disabled}>
-                    <i class="fa-regular fa-file-lines"></i>
-                </button>
-            </div>
-            <div class="status-wrap">
-                <label class="status-option status-si">
-                    <input type="radio" name="cal_${i}" value="2">
-                    SI
-                </label>
-                <label class="status-option status-proceso">
-                    <input type="radio" name="cal_${i}" value="1">
-                    PROCESO
-                </label>
-                <label class="status-option status-no">
-                    <input type="radio" name="cal_${i}" value="0">
-                    NO
-                </label>
-                <label class="status-option status-na">
-                    <input type="radio" name="cal_${i}" value="na">
-                    N/A
-                </label>
-            </div>
+            ${actionsHtml}
         </div>
         `;
     });
@@ -616,14 +621,20 @@ function render(data){
     calcular();
 }
 
-// CALCULO
-document.addEventListener("change", calcular);
+// ACTUALIZAR CLASES VISUALES DE LOS RADIOS
+function updateRadioUI(input) {
+    const wrap = input.closest('.status-wrap');
+    wrap.querySelectorAll('.status-option').forEach(lbl => lbl.classList.remove('active'));
+    input.closest('.status-option').classList.add('active');
+    calcular();
+}
 
+// CALCULO
 function calcular(){
     let score = 0;
     let max = 0;
 
-    document.querySelectorAll(".item-card").forEach(card=>{
+    document.querySelectorAll(".item-card:not(.is-header)").forEach(card=>{
         const val = card.querySelector("input:checked")?.value;
 
         if(val !== undefined){
@@ -664,7 +675,6 @@ document.addEventListener("click",(e)=>{
     const btn = e.target.closest("button[data-file]");
 
     if(btn && btn.dataset.file){
-        // Puedes cambiar 'soporte-pesv' por la carpeta donde vayas a guardar los archivos del PESV
         frame.src = `./soporte-pesv/${btn.dataset.file}`;
         drawer.show();
     }
