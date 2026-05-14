@@ -149,24 +149,17 @@ body{ background:var(--bg); }
 <body>
 
 <div class="main-page">
-    
-    <div class="controls-bar no-print">
+
+    <div class="doc-container">
+        <div class="controls-bar no-print">
         <div class="d-flex align-items-center gap-3">
             <h4 class="m-0 fw-bold" style="color:var(--primary);">SSTManager</h4>
-            <select id="selectAnio" class="form-select form-select-sm" style="width:100px; font-weight:bold;">
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026" selected>2026</option>
-            </select>
         </div>
         <div class="d-flex gap-2">
             <button class="btn-sys btn-save" onclick="alert('Guardado en base de datos')"><i class="fa-solid fa-save me-2"></i>Guardar PGTSA</button>
             <button class="btn-sys btn-print" onclick="window.print()"><i class="fa-solid fa-print me-2"></i>Imprimir / PDF</button>
         </div>
     </div>
-
-    <div class="doc-container">
-        
         <div class="doc-header">
             <div class="doc-header-logo">
                 <?php if ($logoUrl): ?>
