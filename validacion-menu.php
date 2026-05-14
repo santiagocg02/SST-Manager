@@ -3,10 +3,11 @@ require_once __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/ConexionAPI.php';
 
 requireAuthenticatedSession();
-// NUEVO: Atrapa el formulario y guarda la empresa en la sesión
+
+// NUEVO: Atrapa el formulario (por POST), guarda la empresa en la sesión y redirige
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_empresa'])) {
     $_SESSION['id_empresa'] = trim($_POST['id_empresa']);
-    header("Location: menu-empresa.php"); // Redirige al menú después de guardar
+    header("Location: menu-empresa.php"); // Redirige al menú de la empresa después de guardar
     exit;
 }
 
@@ -58,7 +59,8 @@ $listaEmpresas = (isset($resEmpresas['status']) && $resEmpresas['status'] == 200
 
             <!-- Empresa (botón azul + select debajo, bien integrado) -->
             <div class="col-12 col-md-6">
-              <form action="menu-empresa.php" method="GET" class="d-flex flex-column gap-2 mb-0">
+              <!-- CORRECCIÓN: action vacío para que procese aquí mismo y method="POST" -->
+              <form action="" method="POST" class="d-flex flex-column gap-2 mb-0">
 
                 <button type="submit"
                         class="btn text-white w-100 py-3 fs-5 shadow-sm"
