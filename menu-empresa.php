@@ -82,6 +82,33 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       </div>
       <div class="d-flex align-items-center gap-3">
         <span class="text-white small d-none d-md-block">Hola, <strong><?= htmlspecialchars($_SESSION["usuario"]) ?></strong></span>
+        
+        <!-- BOTÓN ADICIONADO CONDICIONALMENTE: Solo si es MASTER -->
+           <style>
+  .btn-volver-custom {
+    border: 1.5px solid #28a745; /* Un verde un poco más brillante para que destaque sutilmente */
+    color: #28a745;
+    background: transparent;
+    font-size: 0.75rem; /* Tamaño compacto y profesional */
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    padding: 4px 12px;
+}
+
+.btn-volver-custom:hover {
+    background: #28a745;
+    color: #ffffff !important;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.4);
+    transform: translateY(-1px);
+}
+</style>
+        <?php if (normalizedRole($rolSesion) === APP_ROLE_MASTER): ?>
+         <a href="validacion-menu.php" class="btn btn-sm btn-volver-custom text-uppercase fw-bold me-2">
+    <i class="fa-solid fa-table-cells me-1"></i> Inicio
+  </a>
+        <?php endif; ?>
+
         <a href="logout.php" class="btn btn-sm btn-outline-light">CERRAR SESIÓN</a>
       </div>
     </div>
@@ -131,10 +158,10 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
            <?php if (puedeVer(18, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
           <a href="pages-empresa/modulos/hacer.php" target="contentFrame" class="admin-subitem">Hacer</a>
           <?php endif; ?>
-          <?php if (puedeVer(16, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+          <?php if (puedeVer(20, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
           <a href="pages-empresa/modulos/verificar.php" target="contentFrame" class="admin-subitem">Verificar</a>
         <?php endif; ?>
-          <?php if (puedeVer(16, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+          <?php if (puedeVer(21, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
           <a href="pages-empresa/modulos/actuar.php" target="contentFrame" class="admin-subitem">Actuar</a>
         <?php endif; ?>
         </div>
@@ -142,24 +169,43 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
     </div>
     <?php endif; ?>
     
+    <?php if (puedeVer(22, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
     <div class="accordion-item">
       <h2 class="accordion-header">
         <button class="accordion-button collapsed admin-accordion-btn" data-bs-toggle="collapse" data-bs-target="#collapsegh">
-    <i class="fa-solid fa-users-gear me-2"></i> Gestión Humana
-</button>
+          <i class="fa-solid fa-users-gear me-2"></i> Gestión Humana
+        </button>
       </h2>
       <div id="collapsegh" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
         <div class="accordion-body py-2">
+          <?php if (puedeVer(23, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
           <a href="pages-empresa/modulos/gestionhumana/Vinculacion.php" target="contentFrame" class="admin-subitem">Ingreso</a>
-        </div>
-        <div class="accordion-body py-2">
-          <a href="pages-empresa/modulos/gestionhumana/Capacitaciones.php" target="contentFrame" class="admin-subitem">Capacitación</a>
+        <?php endif; ?>
         </div>
       </div>
     </div>
+    <?php endif; ?>
 
-    <!-- =============== NUEVAS OPCIONES: PESV Y ALTURAS =============== -->
-    
+    <?php if (puedeVer(24, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <!-- CORREGIDO: Se cambió el ID de colapso para evitar conflicto con #collapsegh -->
+        <button class="accordion-button collapsed admin-accordion-btn" data-bs-toggle="collapse" data-bs-target="#collapseCapacitaciones">
+          <i class="fa-solid fa-graduation-cap me-2"></i> Capacitaciones
+        </button>
+      </h2>
+      <div id="collapseCapacitaciones" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
+        <div class="accordion-body py-2">
+          <?php if (puedeVer(25, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
+          <a href="pages-empresa/modulos/gestionhumana/Capacitaciones.php" target="contentFrame" class="admin-subitem">Capacitación</a>
+        <?php endif; ?>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- =============== OPCIONES: PESV Y ALTURAS =============== -->
+    <?php if (puedeVer(26, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>   
     <div class="accordion-item">
       <h2 class="accordion-header">
         <button class="accordion-button collapsed admin-accordion-btn" data-bs-toggle="collapse" data-bs-target="#collapsePESV">
@@ -168,14 +214,24 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       </h2>
       <div id="collapsePESV" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
         <div class="accordion-body py-2">
+          <?php if (puedeVer(27, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?> 
           <a href="pages-empresa/modulos/pesv/planear.php" target="contentFrame" class="admin-subitem">Planear</a>
+          <?php endif; ?>
+          <?php if (puedeVer(28, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?> 
           <a href="pages-empresa/modulos/pesv/hacer.php" target="contentFrame" class="admin-subitem">Hacer</a>
+          <?php endif; ?>
+          <?php if (puedeVer(29, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?> 
           <a href="pages-empresa/modulos/pesv/verificar.php" target="contentFrame" class="admin-subitem">Verificar</a>
+          <?php endif; ?>
+          <?php if (puedeVer(30, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?> 
           <a href="pages-empresa/modulos/pesv/actuar.php" target="contentFrame" class="admin-subitem">Actuar</a>
+          <?php endif; ?>
         </div>
       </div>
     </div>
+    <?php endif; ?>
 
+    <?php if (puedeVer(31, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?> 
     <div class="accordion-item">
       <h2 class="accordion-header">
         <button class="accordion-button collapsed admin-accordion-btn" data-bs-toggle="collapse" data-bs-target="#collapseAlturas">
@@ -184,12 +240,16 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       </h2>
       <div id="collapseAlturas" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
         <div class="accordion-body py-2">
+          <?php if (puedeVer(32, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?> 
           <a href="pages-empresa/modulos/pda/invalturas.php" target="contentFrame" class="admin-subitem">Inventario de Alturas</a>
+          <?php endif; ?>
+          <?php if (puedeVer(33, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?> 
           <a href="pages-empresa/modulos/pda/proalturas.php" target="contentFrame" class="admin-subitem">Programa de Alturas</a>
+          <?php endif; ?>
         </div>
       </div>
     </div>
-
+    <?php endif; ?>
     <!-- =============================================================== -->
 
     <?php if (puedeVer(19, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>
@@ -216,8 +276,12 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       </h2>
       <div id="collapseSeguridad" class="accordion-collapse collapse" data-bs-parent="#adminMenu">
         <div class="accordion-body py-2">
+          <?php if (puedeVer(5, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?> 
           <a href="pages-empresa/seguridad/perfil.php" target="contentFrame" class="admin-subitem">Perfiles</a>
+          <?php endif; ?>
+          <?php if (puedeVer(3, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?> 
           <a href="pages-empresa/seguridad/Usuarios.php" target="contentFrame" class="admin-subitem">Usuarios</a>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -226,7 +290,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
   </div>
 </aside>
       <main class="admin-content">
-        <iframe id="contentFrame" name="contentFrame" src="pages-empresa/bienvenidaes.php?nombre=${nombreE}" class="admin-iframe"></iframe>
+        <iframe id="contentFrame" name="contentFrame" src="pages-empresa/bienvenidaes.php" class="admin-iframe"></iframe>
       </main>
     </div>
 
@@ -256,20 +320,19 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
     menuLinks.forEach(link => {
       link.addEventListener("click", function() {
         if(this.getAttribute("href")) {
-            activarLink(this);
+            activLink(this);
             sessionStorage.setItem("lastPageSST", this.getAttribute("href"));
         }
       });
     });
 
-    // EVITAR AVERÍAS: Al cargar el menú, siempre ir al Bienvenida
+    // Al cargar el menú, siempre ir al Bienvenida por consistencia
     document.addEventListener("DOMContentLoaded", () => {
-    // Pasamos el nombre de la empresa como parámetro para que Bienvenida lo capture
-    const nombreE = encodeURIComponent("<?= $nombreEmpresaLogeada ?>");
-    frame.src = `pages-empresa/bienvenidaes.php?nombre=${nombreE}`;
-    
-    menuLinks.forEach(l => l.classList.remove("active"));
-    sessionStorage.removeItem("lastPageSST");
+      const nombreE = encodeURIComponent("<?= $nombreEmpresaLogeada ?>");
+      frame.src = `pages-empresa/bienvenidaes.php?nombre=${nombreE}`;
+      
+      menuLinks.forEach(l => l.classList.remove("active"));
+      sessionStorage.removeItem("lastPageSST");
     });
   </script>
 </body>
