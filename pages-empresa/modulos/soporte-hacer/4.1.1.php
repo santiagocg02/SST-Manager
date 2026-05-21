@@ -1,71 +1,105 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
 }
 
-function post($key, $default = '')
-{
-    return isset($_POST[$key]) ? htmlspecialchars($_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos para la Matriz de Peligros
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 49; 
+
+// --- Lógica de Empresa (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
 }
 
-$empresa = [
-    'razon_social'   => post('razon_social'),
-    'nit'            => post('nit'),
-    'actividad'      => post('actividad'),
-    'departamento'   => post('departamento'),
-    'ciudad'         => post('ciudad'),
-    'direccion'      => post('direccion'),
-    'telefonos'      => post('telefonos'),
-    'correo'         => post('correo'),
-    'arl'            => post('arl'),
-    'trabajadores'   => post('trabajadores'),
-    'horario_lv'     => post('horario_lv', 'Lunes a viernes: 8:00 Am a 12:00 M. y de 2:00 pm a 6:00 pm'),
-    'horario_sab'    => post('horario_sab', 'Sábados: 8:00 Am a 12:00 M.'),
-    'fecha_documento'=> post('fecha_documento', date('Y-m-d')),
-    'version'        => post('version', '0'),
-    'codigo'         => post('codigo', 'AN-XX-SST-13'),
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// Función para leer datos desde la API
+function oldv($key, $default = '')
+{
+    global $datosCampos;
+    return (isset($datosCampos[$key]) && $datosCampos[$key] !== '') ? htmlspecialchars((string)$datosCampos[$key], ENT_QUOTES, 'UTF-8') : $default;
+}
+
+$empresa_data = [
+    'razon_social'   => oldv('razon_social'),
+    'nit'            => oldv('nit'),
+    'actividad'      => oldv('actividad'),
+    'departamento'   => oldv('departamento'),
+    'ciudad'         => oldv('ciudad'),
+    'direccion'      => oldv('direccion'),
+    'telefonos'      => oldv('telefonos'),
+    'correo'         => oldv('correo'),
+    'arl'            => oldv('arl'),
+    'trabajadores'   => oldv('trabajadores'),
+    'horario_lv'     => oldv('horario_lv', 'Lunes a viernes: 8:00 Am a 12:00 M. y de 2:00 pm a 6:00 pm'),
+    'horario_sab'    => oldv('horario_sab', 'Sábados: 8:00 Am a 12:00 M.'),
+    'fecha_documento'=> oldv('fecha_documento', date('Y-m-d')),
+    'version'        => oldv('version', '0'),
+    'codigo'         => oldv('codigo', 'AN-XX-SST-13'),
 ];
 
-$introduccion = post('introduccion', 'El trabajo es una actividad que el individuo desarrolla para satisfacer sus necesidades básicas y obtener unas condiciones de vida acordes con su dignidad humana y poder realizarse como persona, tanto física como intelectual y socialmente.
+$introduccion = oldv('introduccion', 'El trabajo es una actividad que el individuo desarrolla para satisfacer sus necesidades básicas y obtener unas condiciones de vida acordes con su dignidad humana y poder realizarse como persona, tanto física como intelectual y socialmente.
 
 Para trabajar con eficiencia, es necesario estar en buenas condiciones de salud; sin embargo, en muchas ocasiones, el trabajo contribuye a deteriorar la salud del individuo, debido a las condiciones inadecuadas en que se realiza.
 
 Por esta razón, la empresa ha elaborado la Matriz de Identificación de Peligros, Valoración y Priorización del Riesgo, teniendo en cuenta que la efectividad de un control depende de un diagnóstico integral completo de la problemática existente.');
 
-$obj_general = post('obj_general', 'Identificar los riesgos presentes en los ambientes de trabajo y en las operaciones desarrolladas por la empresa, que puedan ocasionar accidentes de trabajo y enfermedades laborales.');
-$obj_esp_1 = post('obj_esp_1', 'Analizar y evaluar los peligros y sus riesgos mediante la aplicación de la Guía Técnica Colombiana GTC 45 versión 2010.');
-$obj_esp_2 = post('obj_esp_2', 'Formular recomendaciones de carácter general, con el fin de orientar la estructuración del Sistema de Gestión de Seguridad y Salud en el Trabajo (SG-SST), en concordancia con las normas legales vigentes.');
+$obj_general = oldv('obj_general', 'Identificar los riesgos presentes en los ambientes de trabajo y en las operaciones desarrolladas por la empresa, que puedan ocasionar accidentes de trabajo y enfermedades laborales.');
+$obj_esp_1 = oldv('obj_esp_1', 'Analizar y evaluar los peligros y sus riesgos mediante la aplicación de la Guía Técnica Colombiana GTC 45 versión 2010.');
+$obj_esp_2 = oldv('obj_esp_2', 'Formular recomendaciones de carácter general, con el fin de orientar la estructuración del Sistema de Gestión de Seguridad y Salud en el Trabajo (SG-SST), en concordancia con las normas legales vigentes.');
 
-$conclusion_1 = post('conclusion_1', 'La valoración de los factores de riesgo de la empresa permite especificar las acciones de prevención frente a las posibilidades de pérdidas humanas y materiales que los procesos exhiben en su flujo de trabajo.');
-$conclusion_2 = post('conclusion_2', 'La gestión en seguridad y salud en el trabajo constituye una herramienta gerencial que se fortalece a través de la identificación, valoración, priorización e intervención de los riesgos existentes.');
-$conclusion_3 = post('conclusion_3', 'Los riesgos prioritarios a intervenir para preservar la salud y seguridad deben definirse con base en la matriz de peligros, la valoración del riesgo y el plan de acción.');
+$conclusion_1 = oldv('conclusion_1', 'La valoración de los factores de riesgo de la empresa permite especificar las acciones de prevención frente a las posibilidades de pérdidas humanas y materiales que los procesos exhiben en su flujo de trabajo.');
+$conclusion_2 = oldv('conclusion_2', 'La gestión en seguridad y salud en el trabajo constituye una herramienta gerencial que se fortalece a través de la identificación, valoración, priorización e intervención de los riesgos existentes.');
+$conclusion_3 = oldv('conclusion_3', 'Los riesgos prioritarios a intervenir para preservar la salud y seguridad deben definirse con base en la matriz de peligros, la valoración del riesgo y el plan de acción.');
 
-$riesgos_prioritarios = post('riesgos_prioritarios', "RIESGO BIOMECÁNICO\nRIESGO FÍSICO\nRIESGO PSICOSOCIAL\nRIESGO CONDICIONES DE SEGURIDAD");
+$riesgos_prioritarios = oldv('riesgos_prioritarios', "RIESGO BIOMECÁNICO\nRIESGO FÍSICO\nRIESGO PSICOSOCIAL\nRIESGO CONDICIONES DE SEGURIDAD");
 
-$tabla_peligros = isset($_POST['tabla_peligros']) && is_array($_POST['tabla_peligros']) ? $_POST['tabla_peligros'] : [];
-if (empty($tabla_peligros)) {
-    $tabla_peligros = [
-        [
-            'proceso' => '',
-            'zona' => '',
-            'actividad' => '',
-            'tarea' => '',
-            'rutinaria' => '',
-            'peligro' => '',
-            'clasificacion' => '',
-            'efectos' => '',
-            'controles' => '',
-            'nd' => '',
-            'ne' => '',
-            'np' => '',
-            'nc' => '',
-            'nr' => '',
-            'aceptabilidad' => '',
-            'intervencion' => ''
-        ]
-    ];
+// Calcular el número de filas dinámicas de la tabla de peligros basado en los datos de la API
+$filasTabla = 0;
+if (!empty($datosCampos)) {
+    foreach($datosCampos as $k => $v) {
+        if (preg_match('/^tabla_peligros\[(\d+)\]\[/', $k, $matches)) {
+            $num = (int)$matches[1];
+            if ($num >= $filasTabla) {
+                $filasTabla = $num + 1;
+            }
+        }
+    }
+}
+// Mínimo una fila por defecto
+if ($filasTabla === 0) {
+    $filasTabla = 1;
 }
 ?>
 <!DOCTYPE html>
@@ -74,6 +108,10 @@ if (empty($tabla_peligros)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4.1.1 Metodología Matriz de Peligros</title>
+    
+    <!-- Librería de alertas -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         *{box-sizing:border-box;margin:0;padding:0;font-family:Arial, Helvetica, sans-serif}
         body{background:#f2f4f7;padding:20px;color:#111}
@@ -96,13 +134,9 @@ if (empty($tabla_peligros)) {
             word-break:break-word;
         }
         .encabezado td,.encabezado th{text-align:center}
-        .logo-box{width:140px;height:65px;border:2px dashed #c8c8c8;display:flex;align-items:center;justify-content:center;margin:auto;color:#999;font-weight:bold;font-size:14px;text-align:center}
+        .logo-box{width:140px;height:65px;display:flex;align-items:center;justify-content:center;margin:auto;color:#999;font-weight:bold;font-size:14px;text-align:center}
         .titulo-principal{font-size:16px;font-weight:700}
         .subtitulo{font-size:14px;line-height:1.35}
-        .save-msg{
-            margin:0 0 15px 0;padding:10px 14px;border-radius:8px;background:#e9f7ef;color:#166534;
-            border:1px solid #b7e4c7;font-size:14px;font-weight:700;
-        }
         .seccion-title{
             margin:18px 0 8px;
             font-size:13px;
@@ -281,7 +315,7 @@ if (empty($tabla_peligros)) {
 
         @media print{
             body{background:#fff;padding:0}
-            .toolbar,.acciones-tabla{display:none}
+            .toolbar,.acciones-tabla, .print-hide {display:none !important}
             .contenedor{box-shadow:none;border:none;max-width:100%}
             .contenido{padding:6px}
             input, textarea, select{
@@ -317,34 +351,37 @@ if (empty($tabla_peligros)) {
 </head>
 <body>
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>4.1.1 Metodología para la Matriz de Identificación de Peligros</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="form411">Guardar</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Datos</button>
             <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
         </div>
     </div>
 
     <div class="contenido">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="form411" method="POST" action="">
+        <form id="form411">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:18%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:18%; padding:0;">
+                        <!-- Logo dinámico de la empresa -->
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:64%;">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
-                    <td style="width:18%;font-weight:700;"><?php echo $empresa['version']; ?></td>
+                    <td style="width:18%;font-weight:700;"><?php echo $empresa_data['version']; ?></td>
                 </tr>
                 <tr>
                     <td class="subtitulo">METODOLOGÍA PARA LA MATRIZ DE IDENTIFICACIÓN DE PELIGROS, VALORACIÓN Y PRIORIZACIÓN DEL RIESGO</td>
                     <td style="font-weight:700;">
-                        <?php echo $empresa['codigo']; ?><br>
-                        <?php echo $empresa['fecha_documento']; ?>
+                        <?php echo $empresa_data['codigo']; ?><br>
+                        <?php echo $empresa_data['fecha_documento']; ?>
                     </td>
                 </tr>
             </table>
@@ -353,19 +390,19 @@ if (empty($tabla_peligros)) {
             <table class="tabla-datos">
                 <tr>
                     <td>EMPRESA</td>
-                    <td><input type="text" name="razon_social" value="<?php echo $empresa['razon_social']; ?>"></td>
+                    <td><input type="text" name="razon_social" value="<?php echo $empresa_data['razon_social']; ?>"></td>
                 </tr>
                 <tr>
                     <td>VERSIÓN</td>
-                    <td><input type="text" name="version" value="<?php echo $empresa['version']; ?>"></td>
+                    <td><input type="text" name="version" value="<?php echo $empresa_data['version']; ?>"></td>
                 </tr>
                 <tr>
                     <td>CÓDIGO</td>
-                    <td><input type="text" name="codigo" value="<?php echo $empresa['codigo']; ?>"></td>
+                    <td><input type="text" name="codigo" value="<?php echo $empresa_data['codigo']; ?>"></td>
                 </tr>
                 <tr>
                     <td>FECHA</td>
-                    <td><input type="date" name="fecha_documento" value="<?php echo $empresa['fecha_documento']; ?>"></td>
+                    <td><input type="date" name="fecha_documento" value="<?php echo $empresa_data['fecha_documento']; ?>"></td>
                 </tr>
             </table>
 
@@ -390,18 +427,18 @@ if (empty($tabla_peligros)) {
 
             <div class="seccion-title">4. Generalidades de la empresa</div>
             <table class="tabla-datos">
-                <tr><td>RAZÓN SOCIAL</td><td><input type="text" name="razon_social" value="<?php echo $empresa['razon_social']; ?>"></td></tr>
-                <tr><td>NIT</td><td><input type="text" name="nit" value="<?php echo $empresa['nit']; ?>"></td></tr>
-                <tr><td>ACTIVIDAD ECONÓMICA (OBJETO SOCIAL)</td><td><textarea name="actividad"><?php echo $empresa['actividad']; ?></textarea></td></tr>
-                <tr><td>DEPARTAMENTO</td><td><input type="text" name="departamento" value="<?php echo $empresa['departamento']; ?>"></td></tr>
-                <tr><td>CIUDAD</td><td><input type="text" name="ciudad" value="<?php echo $empresa['ciudad']; ?>"></td></tr>
-                <tr><td>DIRECCIÓN</td><td><input type="text" name="direccion" value="<?php echo $empresa['direccion']; ?>"></td></tr>
-                <tr><td>TELÉFONOS</td><td><input type="text" name="telefonos" value="<?php echo $empresa['telefonos']; ?>"></td></tr>
-                <tr><td>CORREO ELECTRÓNICO</td><td><input type="email" name="correo" value="<?php echo $empresa['correo']; ?>"></td></tr>
-                <tr><td>ARL</td><td><input type="text" name="arl" value="<?php echo $empresa['arl']; ?>"></td></tr>
-                <tr><td>No. DE TRABAJADORES</td><td><input type="number" name="trabajadores" value="<?php echo $empresa['trabajadores']; ?>"></td></tr>
-                <tr><td>HORARIO LUNES A VIERNES</td><td><input type="text" name="horario_lv" value="<?php echo $empresa['horario_lv']; ?>"></td></tr>
-                <tr><td>HORARIO SÁBADOS</td><td><input type="text" name="horario_sab" value="<?php echo $empresa['horario_sab']; ?>"></td></tr>
+                <tr><td>RAZÓN SOCIAL</td><td><input type="text" name="razon_social" value="<?php echo $empresa_data['razon_social']; ?>"></td></tr>
+                <tr><td>NIT</td><td><input type="text" name="nit" value="<?php echo $empresa_data['nit']; ?>"></td></tr>
+                <tr><td>ACTIVIDAD ECONÓMICA (OBJETO SOCIAL)</td><td><textarea name="actividad"><?php echo $empresa_data['actividad']; ?></textarea></td></tr>
+                <tr><td>DEPARTAMENTO</td><td><input type="text" name="departamento" value="<?php echo $empresa_data['departamento']; ?>"></td></tr>
+                <tr><td>CIUDAD</td><td><input type="text" name="ciudad" value="<?php echo $empresa_data['ciudad']; ?>"></td></tr>
+                <tr><td>DIRECCIÓN</td><td><input type="text" name="direccion" value="<?php echo $empresa_data['direccion']; ?>"></td></tr>
+                <tr><td>TELÉFONOS</td><td><input type="text" name="telefonos" value="<?php echo $empresa_data['telefonos']; ?>"></td></tr>
+                <tr><td>CORREO ELECTRÓNICO</td><td><input type="email" name="correo" value="<?php echo $empresa_data['correo']; ?>"></td></tr>
+                <tr><td>ARL</td><td><input type="text" name="arl" value="<?php echo $empresa_data['arl']; ?>"></td></tr>
+                <tr><td>No. DE TRABAJADORES</td><td><input type="number" name="trabajadores" value="<?php echo $empresa_data['trabajadores']; ?>"></td></tr>
+                <tr><td>HORARIO LUNES A VIERNES</td><td><input type="text" name="horario_lv" value="<?php echo $empresa_data['horario_lv']; ?>"></td></tr>
+                <tr><td>HORARIO SÁBADOS</td><td><input type="text" name="horario_sab" value="<?php echo $empresa_data['horario_sab']; ?>"></td></tr>
             </table>
 
             <div class="seccion-title">5. Marco teórico</div>
@@ -616,34 +653,34 @@ if (empty($tabla_peligros)) {
                         </tr>
                     </thead>
                     <tbody id="tbodyPeligros">
-                        <?php foreach ($tabla_peligros as $i => $fila): ?>
+                        <?php for ($i = 0; $i < $filasTabla; $i++): ?>
                             <tr>
-                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][proceso]"><?php echo htmlspecialchars($fila['proceso'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][zona]"><?php echo htmlspecialchars($fila['zona'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][actividad]"><?php echo htmlspecialchars($fila['actividad'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][tarea]"><?php echo htmlspecialchars($fila['tarea'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td><input type="text" name="tabla_peligros[<?php echo $i; ?>][rutinaria]" value="<?php echo htmlspecialchars($fila['rutinaria'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"></td>
-                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][peligro]"><?php echo htmlspecialchars($fila['peligro'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][clasificacion]"><?php echo htmlspecialchars($fila['clasificacion'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][efectos]"><?php echo htmlspecialchars($fila['efectos'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][controles]"><?php echo htmlspecialchars($fila['controles'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td><input type="number" step="any" name="tabla_peligros[<?php echo $i; ?>][nd]" value="<?php echo htmlspecialchars($fila['nd'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="campo-nd"></td>
-                                <td><input type="number" step="any" name="tabla_peligros[<?php echo $i; ?>][ne]" value="<?php echo htmlspecialchars($fila['ne'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="campo-ne"></td>
-                                <td><input type="number" step="any" name="tabla_peligros[<?php echo $i; ?>][np]" value="<?php echo htmlspecialchars($fila['np'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="campo-np"></td>
-                                <td><input type="number" step="any" name="tabla_peligros[<?php echo $i; ?>][nc]" value="<?php echo htmlspecialchars($fila['nc'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="campo-nc"></td>
-                                <td><input type="number" step="any" name="tabla_peligros[<?php echo $i; ?>][nr]" value="<?php echo htmlspecialchars($fila['nr'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="campo-nr"></td>
-                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][aceptabilidad]"><?php echo htmlspecialchars($fila['aceptabilidad'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][intervencion]"><?php echo htmlspecialchars($fila['intervencion'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
+                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][proceso]"><?php echo oldv("tabla_peligros[$i][proceso]"); ?></textarea></td>
+                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][zona]"><?php echo oldv("tabla_peligros[$i][zona]"); ?></textarea></td>
+                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][actividad]"><?php echo oldv("tabla_peligros[$i][actividad]"); ?></textarea></td>
+                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][tarea]"><?php echo oldv("tabla_peligros[$i][tarea]"); ?></textarea></td>
+                                <td><input type="text" name="tabla_peligros[<?php echo $i; ?>][rutinaria]" value="<?php echo oldv("tabla_peligros[$i][rutinaria]"); ?>"></td>
+                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][peligro]"><?php echo oldv("tabla_peligros[$i][peligro]"); ?></textarea></td>
+                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][clasificacion]"><?php echo oldv("tabla_peligros[$i][clasificacion]"); ?></textarea></td>
+                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][efectos]"><?php echo oldv("tabla_peligros[$i][efectos]"); ?></textarea></td>
+                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][controles]"><?php echo oldv("tabla_peligros[$i][controles]"); ?></textarea></td>
+                                <td><input type="number" step="any" name="tabla_peligros[<?php echo $i; ?>][nd]" value="<?php echo oldv("tabla_peligros[$i][nd]"); ?>" class="campo-nd"></td>
+                                <td><input type="number" step="any" name="tabla_peligros[<?php echo $i; ?>][ne]" value="<?php echo oldv("tabla_peligros[$i][ne]"); ?>" class="campo-ne"></td>
+                                <td><input type="number" step="any" name="tabla_peligros[<?php echo $i; ?>][np]" value="<?php echo oldv("tabla_peligros[$i][np]"); ?>" class="campo-np"></td>
+                                <td><input type="number" step="any" name="tabla_peligros[<?php echo $i; ?>][nc]" value="<?php echo oldv("tabla_peligros[$i][nc]"); ?>" class="campo-nc"></td>
+                                <td><input type="number" step="any" name="tabla_peligros[<?php echo $i; ?>][nr]" value="<?php echo oldv("tabla_peligros[$i][nr]"); ?>" class="campo-nr"></td>
+                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][aceptabilidad]"><?php echo oldv("tabla_peligros[$i][aceptabilidad]"); ?></textarea></td>
+                                <td><textarea name="tabla_peligros[<?php echo $i; ?>][intervencion]"><?php echo oldv("tabla_peligros[$i][intervencion]"); ?></textarea></td>
                             </tr>
-                        <?php endforeach; ?>
+                        <?php endfor; ?>
                     </tbody>
                 </table>
             </div>
 
-            <div class="acciones-tabla">
+            <div class="acciones-tabla print-hide">
                 <button type="button" class="btn btn-agregar" id="agregarFila">Agregar fila</button>
             </div>
-            <div class="nota">La tabla inicia con una fila y puedes agregar todas las que necesites sin afectar el diseño.</div>
+            <div class="nota print-hide">La tabla inicia con una fila y puedes agregar todas las que necesites sin afectar el diseño.</div>
 
             <div class="seccion-title">12. Conclusiones</div>
             <table class="tabla-datos">
@@ -669,6 +706,7 @@ if (empty($tabla_peligros)) {
 </div>
 
 <script>
+// Lógica de cálculo y agregado de filas
 (function(){
     const tbody = document.getElementById('tbodyPeligros');
     const btnAgregar = document.getElementById('agregarFila');
@@ -743,6 +781,70 @@ if (empty($tabla_peligros)) {
 
     recalcularTodo();
 })();
+
+// ----------------------------------------------------
+// INTEGRACIÓN DE GUARDADO CON FETCH API Y SWEETALERT2
+// ----------------------------------------------------
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('form411');
+    const formData = new FormData(form);
+    
+    // Convertimos el formulario en un objeto JSON limpio
+    const datosJSON = Object.fromEntries(formData.entries());
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'La metodología y matriz de peligros se guardaron correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+// ----------------------------------------------------
 </script>
 </body>
 </html>

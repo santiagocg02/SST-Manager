@@ -1,57 +1,81 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
 }
 
-function post($key, $default = '')
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos para la Matriz GTC-45 (ej. 50)
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 50;
+
+// --- Lógica de Empresa (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// Función para leer datos desde la API
+function oldv($key, $default = '')
 {
-    return isset($_POST[$key]) ? htmlspecialchars($_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
+    global $datosCampos;
+    return (isset($datosCampos[$key]) && $datosCampos[$key] !== '') ? htmlspecialchars((string)$datosCampos[$key], ENT_QUOTES, 'UTF-8') : $default;
 }
 
 $datos = [
-    'version' => post('version', '0'),
-    'codigo' => post('codigo', 'AN-SST-08'),
-    'fecha_documento' => post('fecha_documento', 'XX/XX/2025'),
-    'elaboro' => post('elaboro'),
-    'cargo' => post('cargo'),
-    'fecha_elaboracion' => post('fecha_elaboracion'),
-    'fecha_actualizacion' => post('fecha_actualizacion'),
+    'version'             => oldv('version', '0'),
+    'codigo'              => oldv('codigo', 'AN-SST-08'),
+    'fecha_documento'     => oldv('fecha_documento', date('Y-m-d')),
+    'elaboro'             => oldv('elaboro'),
+    'cargo'               => oldv('cargo'),
+    'fecha_elaboracion'   => oldv('fecha_elaboracion'),
+    'fecha_actualizacion' => oldv('fecha_actualizacion'),
 ];
 
-$filas = isset($_POST['matriz']) && is_array($_POST['matriz']) ? $_POST['matriz'] : [];
-if (empty($filas)) {
-    $filas = [
-        [
-            'proceso' => '',
-            'zona_lugar' => '',
-            'actividades' => '',
-            'tareas' => '',
-            'rutinaria' => '',
-            'peligro_desc' => '',
-            'peligro_clas' => '',
-            'efectos_posibles' => '',
-            'ctrl_fuente' => '',
-            'ctrl_medio' => '',
-            'ctrl_individuo' => '',
-            'nd' => '',
-            'ne' => '',
-            'np' => '',
-            'interp_np' => '',
-            'nc' => '',
-            'nr' => '',
-            'interp_nr' => '',
-            'aceptabilidad' => '',
-            'expuestos' => '',
-            'peor_consecuencia' => '',
-            'eliminacion' => '',
-            'sustitucion' => '',
-            'ingenieria' => '',
-            'administrativos' => '',
-            'epp' => '',
-        ]
-    ];
+// Calcular el número de filas dinámicas de la matriz basado en los datos de la API
+$filasTabla = 0;
+if (!empty($datosCampos)) {
+    foreach($datosCampos as $k => $v) {
+        if (preg_match('/^matriz\[(\d+)\]\[/', $k, $matches)) {
+            $num = (int)$matches[1];
+            if ($num >= $filasTabla) {
+                $filasTabla = $num + 1;
+            }
+        }
+    }
+}
+// Mínimo una fila por defecto
+if ($filasTabla === 0) {
+    $filasTabla = 1;
 }
 ?>
 <!DOCTYPE html>
@@ -60,6 +84,10 @@ if (empty($filas)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4.1.2 Matriz para la Identificación de Peligros y Valoración de Riesgos GTC-45</title>
+    
+    <!-- Librería de alertas -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         *{box-sizing:border-box;margin:0;padding:0;font-family:Arial, Helvetica, sans-serif}
         body{background:#f2f4f7;padding:20px;color:#111}
@@ -74,11 +102,7 @@ if (empty($filas)) {
         .btn-imprimir{background:#0d6efd;color:#fff}
         .btn-agregar{background:#0d6efd;color:#fff}
         .contenido{padding:18px}
-        .save-msg{
-            margin:0 0 15px 0;padding:10px 14px;border-radius:8px;background:#e9f7ef;color:#166534;
-            border:1px solid #b7e4c7;font-size:14px;font-weight:700;
-        }
-
+        
         table{width:100%;border-collapse:collapse;table-layout:fixed}
         .encabezado td,.encabezado th,.tabla-datos td,.tabla-datos th,.tabla-matriz td,.tabla-matriz th{
             border:1px solid #6b6b6b;
@@ -89,13 +113,13 @@ if (empty($filas)) {
         }
         .encabezado td,.encabezado th{text-align:center}
         .logo-box{
-            width:140px;height:65px;border:2px dashed #c8c8c8;display:flex;align-items:center;justify-content:center;
+            width:140px;height:65px;display:flex;align-items:center;justify-content:center;
             margin:auto;color:#999;font-weight:bold;font-size:14px;text-align:center
         }
         .titulo-principal{font-size:16px;font-weight:700}
         .subtitulo{font-size:14px;font-weight:700;line-height:1.25}
 
-        .tabla-datos td:first-child{
+        .tabla-datos td:first-child, .tabla-datos td:nth-child(3){
             width:25%;
             font-weight:700;
             background:#f8fafc;
@@ -235,7 +259,7 @@ if (empty($filas)) {
 
         @media print{
             body{background:#fff;padding:0}
-            .toolbar,.acciones-tabla,.nota{display:none}
+            .toolbar,.acciones-tabla,.nota,.print-hide{display:none !important}
             .contenedor{box-shadow:none;border:none;max-width:100%}
             .contenido{padding:5px}
             .tabla-wrap{overflow:visible;border:1px solid #6b6b6b;border-top:none}
@@ -270,25 +294,28 @@ if (empty($filas)) {
 </head>
 <body>
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>4.1.2 Matriz para la Identificación de Peligros y la Valoración de Riesgos GTC-45</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="form412">Guardar</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Datos</button>
             <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
         </div>
     </div>
 
     <div class="contenido">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="form412" method="POST" action="">
+        <form id="form412">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:18%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:18%; padding:0;">
+                        <!-- Logo dinámico de la empresa -->
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:58%;">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
                     <td style="width:24%;font-weight:700;"><?php echo $datos['version']; ?></td>
@@ -363,55 +390,56 @@ if (empty($filas)) {
                         </tr>
                     </thead>
                     <tbody id="tbodyMatriz">
-                        <?php foreach ($filas as $i => $fila): ?>
+                        <?php for ($i = 0; $i < $filasTabla; $i++): ?>
                             <tr>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][proceso]"><?php echo htmlspecialchars($fila['proceso'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][zona_lugar]"><?php echo htmlspecialchars($fila['zona_lugar'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][actividades]"><?php echo htmlspecialchars($fila['actividades'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][tareas]"><?php echo htmlspecialchars($fila['tareas'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][proceso]"><?php echo oldv("matriz[$i][proceso]"); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][zona_lugar]"><?php echo oldv("matriz[$i][zona_lugar]"); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][actividades]"><?php echo oldv("matriz[$i][actividades]"); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][tareas]"><?php echo oldv("matriz[$i][tareas]"); ?></textarea></td>
                                 <td>
+                                    <?php $rut = oldv("matriz[$i][rutinaria]"); ?>
                                     <select name="matriz[<?php echo $i; ?>][rutinaria]">
                                         <option value=""></option>
-                                        <option value="RUTINARIA" <?php echo (($fila['rutinaria'] ?? '') === 'RUTINARIA') ? 'selected' : ''; ?>>RUTINARIA</option>
-                                        <option value="NO RUTINARIA" <?php echo (($fila['rutinaria'] ?? '') === 'NO RUTINARIA') ? 'selected' : ''; ?>>NO RUTINARIA</option>
+                                        <option value="RUTINARIA" <?php echo ($rut === 'RUTINARIA') ? 'selected' : ''; ?>>RUTINARIA</option>
+                                        <option value="NO RUTINARIA" <?php echo ($rut === 'NO RUTINARIA') ? 'selected' : ''; ?>>NO RUTINARIA</option>
                                     </select>
                                 </td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][peligro_desc]"><?php echo htmlspecialchars($fila['peligro_desc'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][peligro_clas]"><?php echo htmlspecialchars($fila['peligro_clas'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][efectos_posibles]"><?php echo htmlspecialchars($fila['efectos_posibles'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][peligro_desc]"><?php echo oldv("matriz[$i][peligro_desc]"); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][peligro_clas]"><?php echo oldv("matriz[$i][peligro_clas]"); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][efectos_posibles]"><?php echo oldv("matriz[$i][efectos_posibles]"); ?></textarea></td>
 
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][ctrl_fuente]"><?php echo htmlspecialchars($fila['ctrl_fuente'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][ctrl_medio]"><?php echo htmlspecialchars($fila['ctrl_medio'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][ctrl_individuo]"><?php echo htmlspecialchars($fila['ctrl_individuo'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][ctrl_fuente]"><?php echo oldv("matriz[$i][ctrl_fuente]"); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][ctrl_medio]"><?php echo oldv("matriz[$i][ctrl_medio]"); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][ctrl_individuo]"><?php echo oldv("matriz[$i][ctrl_individuo]"); ?></textarea></td>
 
-                                <td><input type="number" step="any" class="campo-nd" name="matriz[<?php echo $i; ?>][nd]" value="<?php echo htmlspecialchars($fila['nd'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"></td>
-                                <td><input type="number" step="any" class="campo-ne" name="matriz[<?php echo $i; ?>][ne]" value="<?php echo htmlspecialchars($fila['ne'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"></td>
-                                <td><input type="number" step="any" class="campo-np" name="matriz[<?php echo $i; ?>][np]" value="<?php echo htmlspecialchars($fila['np'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"></td>
-                                <td><input type="text" class="campo-interp-np" name="matriz[<?php echo $i; ?>][interp_np]" value="<?php echo htmlspecialchars($fila['interp_np'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"></td>
-                                <td><input type="number" step="any" class="campo-nc" name="matriz[<?php echo $i; ?>][nc]" value="<?php echo htmlspecialchars($fila['nc'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"></td>
-                                <td><input type="number" step="any" class="campo-nr" name="matriz[<?php echo $i; ?>][nr]" value="<?php echo htmlspecialchars($fila['nr'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"></td>
-                                <td><input type="text" class="campo-interp-nr" name="matriz[<?php echo $i; ?>][interp_nr]" value="<?php echo htmlspecialchars($fila['interp_nr'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"></td>
+                                <td><input type="number" step="any" class="campo-nd" name="matriz[<?php echo $i; ?>][nd]" value="<?php echo oldv("matriz[$i][nd]"); ?>"></td>
+                                <td><input type="number" step="any" class="campo-ne" name="matriz[<?php echo $i; ?>][ne]" value="<?php echo oldv("matriz[$i][ne]"); ?>"></td>
+                                <td><input type="number" step="any" class="campo-np" name="matriz[<?php echo $i; ?>][np]" value="<?php echo oldv("matriz[$i][np]"); ?>"></td>
+                                <td><input type="text" class="campo-interp-np" name="matriz[<?php echo $i; ?>][interp_np]" value="<?php echo oldv("matriz[$i][interp_np]"); ?>"></td>
+                                <td><input type="number" step="any" class="campo-nc" name="matriz[<?php echo $i; ?>][nc]" value="<?php echo oldv("matriz[$i][nc]"); ?>"></td>
+                                <td><input type="number" step="any" class="campo-nr" name="matriz[<?php echo $i; ?>][nr]" value="<?php echo oldv("matriz[$i][nr]"); ?>"></td>
+                                <td><input type="text" class="campo-interp-nr" name="matriz[<?php echo $i; ?>][interp_nr]" value="<?php echo oldv("matriz[$i][interp_nr]"); ?>"></td>
 
-                                <td><input type="text" class="campo-aceptabilidad" name="matriz[<?php echo $i; ?>][aceptabilidad]" value="<?php echo htmlspecialchars($fila['aceptabilidad'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"></td>
+                                <td><input type="text" class="campo-aceptabilidad" name="matriz[<?php echo $i; ?>][aceptabilidad]" value="<?php echo oldv("matriz[$i][aceptabilidad]"); ?>"></td>
 
-                                <td><input type="number" step="any" name="matriz[<?php echo $i; ?>][expuestos]" value="<?php echo htmlspecialchars($fila['expuestos'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][peor_consecuencia]"><?php echo htmlspecialchars($fila['peor_consecuencia'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
+                                <td><input type="number" step="any" name="matriz[<?php echo $i; ?>][expuestos]" value="<?php echo oldv("matriz[$i][expuestos]"); ?>"></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][peor_consecuencia]"><?php echo oldv("matriz[$i][peor_consecuencia]"); ?></textarea></td>
 
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][eliminacion]"><?php echo htmlspecialchars($fila['eliminacion'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][sustitucion]"><?php echo htmlspecialchars($fila['sustitucion'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][ingenieria]"><?php echo htmlspecialchars($fila['ingenieria'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][administrativos]"><?php echo htmlspecialchars($fila['administrativos'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
-                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][epp]"><?php echo htmlspecialchars($fila['epp'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][eliminacion]"><?php echo oldv("matriz[$i][eliminacion]"); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][sustitucion]"><?php echo oldv("matriz[$i][sustitucion]"); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][ingenieria]"><?php echo oldv("matriz[$i][ingenieria]"); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][administrativos]"><?php echo oldv("matriz[$i][administrativos]"); ?></textarea></td>
+                                <td class="texto-izq"><textarea name="matriz[<?php echo $i; ?>][epp]"><?php echo oldv("matriz[$i][epp]"); ?></textarea></td>
                             </tr>
-                        <?php endforeach; ?>
+                        <?php endfor; ?>
                     </tbody>
                 </table>
             </div>
 
-            <div class="acciones-tabla">
+            <div class="acciones-tabla print-hide">
                 <button type="button" class="btn btn-agregar" id="agregarFila">Agregar fila</button>
             </div>
-            <div class="nota">La matriz inicia con una fila. Puedes seguir agregando filas sin afectar el diseño.</div>
+            <div class="nota print-hide">La matriz inicia con una fila. Puedes seguir agregando filas sin afectar el diseño.</div>
         </form>
     </div>
 </div>
@@ -538,6 +566,70 @@ if (empty($filas)) {
 
     recalcularTodo();
 })();
+
+// ----------------------------------------------------
+// INTEGRACIÓN DE GUARDADO CON FETCH API Y SWEETALERT2
+// ----------------------------------------------------
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('form412');
+    const formData = new FormData(form);
+    
+    // Convertimos el formulario en un objeto JSON limpio
+    const datosJSON = Object.fromEntries(formData.entries());
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'La matriz de peligros se guardó correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+// ----------------------------------------------------
 </script>
 </body>
 </html>
