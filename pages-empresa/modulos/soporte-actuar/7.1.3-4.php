@@ -17,8 +17,9 @@ $idItem = isset($_GET['item']) ? (int)$_GET['item'] : 55;
 $logoUrl = "";
 if ($empresaId > 0) {
     $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresaId", "GET", null, $token);
-    if (isset($resEmpresa['data'][0])) {
-        $logoUrl = $resEmpresa['data'][0]['logo_url'] ?? '';
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoUrl = $empData['logo_url'] ?? '';
     }
 }
 
@@ -145,6 +146,12 @@ if ($filasMatriz === 0) {
 
         .encabezado td { text-align: center; }
 
+        /* LOGO */
+        .logo-box{
+            width:140px;height:65px;display:flex;align-items:center;justify-content:center;
+            margin:auto;color:#999;font-weight:bold;font-size:14px;text-align:center
+        }
+
         /* AJUSTE COLUMNA STATUS */
         #tablaMatriz th:nth-child(8),
         #tablaMatriz td:nth-child(8){
@@ -218,12 +225,14 @@ if ($filasMatriz === 0) {
         <div class="table-wrap">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:180px;text-align:center;">
-                        <?php if($logoUrl): ?>
-                            <img src="<?= $logoUrl ?>" style="max-height:60px;">
-                        <?php else: ?>
-                            LOGO
-                        <?php endif; ?>
+                    <td rowspan="2" style="width:180px;text-align:center; padding:0;">
+                        <div class="logo-box" style="<?= empty($logoUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoUrl)): ?>
+                                <img src="<?= $logoUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td style="text-align:center;font-weight:bold; font-size:15px;">
                         SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO
