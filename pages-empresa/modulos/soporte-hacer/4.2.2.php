@@ -1,49 +1,81 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
 }
 
-function post($key, $default = '')
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos para este formato (ej. 52)
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 52;
+
+// --- Lógica de Empresa (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// Funciones para leer datos desde la API
+function oldv($key, $default = '')
 {
-    return isset($_POST[$key]) ? htmlspecialchars($_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
+    global $datosCampos;
+    return (isset($datosCampos[$key]) && $datosCampos[$key] !== '') ? htmlspecialchars((string)$datosCampos[$key], ENT_QUOTES, 'UTF-8') : $default;
+}
+
+function isChecked($key)
+{
+    return oldv($key) === '1' ? 'checked' : '';
 }
 
 $datos = [
-    'version' => post('version', '0'),
-    'codigo' => post('codigo', 'RE-SST-26'),
-    'fecha_documento' => post('fecha_documento', 'XX/XX/2025'),
-    'fecha' => post('fecha', ''),
-    'consecutivo' => post('consecutivo', ''),
-    'nombre_reporta' => post('nombre_reporta', ''),
-    'descripcion_reporte' => post('descripcion_reporte', ''),
-    'otro_acto' => post('otro_acto', ''),
-    'otro_condicion' => post('otro_condicion', ''),
-    'diagnostico' => post('diagnostico', ''),
-    'fecha_recibido_sst' => post('fecha_recibido_sst', ''),
-    'recibido_por' => post('recibido_por', ''),
-    'fecha_traslado' => post('fecha_traslado', ''),
-    'fecha_max_solucion' => post('fecha_max_solucion', ''),
-    'responsable' => post('responsable', ''),
-    'grupo' => post('grupo', ''),
-    'acciones_propuestas' => post('acciones_propuestas', ''),
-    'fecha_cierre' => post('fecha_cierre', ''),
-    'visto_bueno_sst' => post('visto_bueno_sst', ''),
-];
-
-$tipos_reportante = [
-    'funcionario' => post('funcionario'),
-    'contratista' => post('contratista'),
-    'visitante' => post('visitante'),
-    'otro_tipo' => post('otro_tipo'),
-    'otro_tipo_texto' => post('otro_tipo_texto'),
-];
-
-$tipo_reporte = [
-    'actos_inseguros' => post('actos_inseguros'),
-    'autoreporte_salud' => post('autoreporte_salud'),
-    'condiciones_inseguras' => post('condiciones_inseguras'),
+    'version'             => oldv('version', '0'),
+    'codigo'              => oldv('codigo', 'RE-SST-26'),
+    'fecha_documento'     => oldv('fecha_documento', date('Y-m-d')),
+    'fecha'               => oldv('fecha', ''),
+    'consecutivo'         => oldv('consecutivo', ''),
+    'nombre_reporta'      => oldv('nombre_reporta', ''),
+    'descripcion_reporte' => oldv('descripcion_reporte', ''),
+    'otro_acto'           => oldv('otro_acto', ''),
+    'otro_condicion'      => oldv('otro_condicion', ''),
+    'diagnostico'         => oldv('diagnostico', ''),
+    'fecha_recibido_sst'  => oldv('fecha_recibido_sst', ''),
+    'recibido_por'        => oldv('recibido_por', ''),
+    'fecha_traslado'      => oldv('fecha_traslado', ''),
+    'fecha_max_solucion'  => oldv('fecha_max_solucion', ''),
+    'responsable'         => oldv('responsable', ''),
+    'grupo'               => oldv('grupo', ''),
+    'acciones_propuestas' => oldv('acciones_propuestas', ''),
+    'fecha_cierre'        => oldv('fecha_cierre', ''),
+    'visto_bueno_sst'     => oldv('visto_bueno_sst', ''),
 ];
 
 $actos = [
@@ -81,37 +113,32 @@ $condiciones = [
 ];
 
 $sistemas_salud_izq = [
-    'nervioso' => 'Nervioso',
+    'nervioso'       => 'Nervioso',
     'cardiovascular' => 'Cardiovascular',
-    'osteomuscular' => 'Osteomuscular',
-    'digestivo' => 'Digestivo',
+    'osteomuscular'  => 'Osteomuscular',
+    'digestivo'      => 'Digestivo',
 ];
 
 $sistemas_salud_der = [
-    'tegumentario' => 'Tegumentario',
-    'sensorial' => 'Sensorial',
-    'respiratorio' => 'Respiratorio',
-    'psicosocial' => 'Psicosocial',
+    'tegumentario'  => 'Tegumentario',
+    'sensorial'     => 'Sensorial',
+    'respiratorio'  => 'Respiratorio',
+    'psicosocial'   => 'Psicosocial',
 ];
 
 $riesgos_asociados_izq = [
-    'riesgo_fisicos' => 'Físicos',
-    'riesgo_quimicos' => 'Químicos',
-    'riesgo_biologicos' => 'Biológicos',
-    'riesgo_biomecanicos' => 'Biomecánicos',
+    'riesgo_fisicos'       => 'Físicos',
+    'riesgo_quimicos'      => 'Químicos',
+    'riesgo_biologicos'    => 'Biológicos',
+    'riesgo_biomecanicos'  => 'Biomecánicos',
 ];
 
 $riesgos_asociados_der = [
     'riesgo_psicosociales' => 'Psicosociales',
-    'riesgo_naturales' => 'Riesgos naturales',
-    'riesgo_seguridad' => 'Condiciones de Seguridad',
-    'riesgo_salud' => 'Condiciones de Salud',
+    'riesgo_naturales'     => 'Riesgos naturales',
+    'riesgo_seguridad'     => 'Condiciones de Seguridad',
+    'riesgo_salud'         => 'Condiciones de Salud',
 ];
-
-function checked($value)
-{
-    return !empty($value) ? 'checked' : '';
-}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -119,6 +146,9 @@ function checked($value)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4.2.2 Reporte de Actos y Condiciones Inseguras</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         *{box-sizing:border-box;margin:0;padding:0;font-family:Arial, Helvetica, sans-serif}
         body{background:#f2f4f7;padding:20px;color:#111}
@@ -132,11 +162,7 @@ function checked($value)
         .btn-atras{background:#6c757d;color:#fff}
         .btn-imprimir{background:#0d6efd;color:#fff}
         .contenido{padding:18px}
-        .save-msg{
-            margin:0 0 15px 0;padding:10px 14px;border-radius:8px;background:#e9f7ef;color:#166534;
-            border:1px solid #b7e4c7;font-size:14px;font-weight:700;
-        }
-
+        
         table{width:100%;border-collapse:collapse;table-layout:fixed}
         .encabezado td,.encabezado th,.tabla-base td,.tabla-base th{
             border:1px solid #444;
@@ -147,7 +173,7 @@ function checked($value)
         }
         .encabezado td,.encabezado th{text-align:center}
         .logo-box{
-            width:140px;height:65px;border:2px dashed #c8c8c8;display:flex;align-items:center;justify-content:center;
+            width:140px;height:65px;display:flex;align-items:center;justify-content:center;
             margin:auto;color:#999;font-weight:bold;font-size:14px;text-align:center
         }
         .titulo-principal{font-size:15px;font-weight:700}
@@ -194,12 +220,6 @@ function checked($value)
             overflow-wrap:anywhere;
         }
 
-        .input-box{
-            height:30px;
-            border:1px solid #444;
-            background:#fff;
-        }
-
         .mini-box{
             width:18px;
             height:18px;
@@ -224,6 +244,8 @@ function checked($value)
 
         .tipo-item .box-text{
             width:54px;
+            border:1px solid #444;
+            height:22px;
         }
 
         .descripcion-lg{
@@ -231,32 +253,36 @@ function checked($value)
         }
 
         .tabla-listado{
-        table-layout:fixed;
-    }
+            table-layout:fixed;
+        }
 
-    .tabla-listado td:first-child{
-        width:94%;
-    }
+        .tabla-listado td:first-child{
+            width:94%;
+        }
 
-    .tabla-listado td:last-child{
-        width:6%;
-        min-width:44px;
-        text-align:center;
-        vertical-align:middle;
-        padding:0;
-    }
+        .tabla-listado td:last-child{
+            width:6%;
+            min-width:44px;
+            text-align:center;
+            vertical-align:middle;
+            padding:0;
+        }
 
-    .tabla-listado td:last-child .box-center{
-        width:100%;
-        min-height:28px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-    }
+        .tabla-listado td:last-child .box-center{
+            width:100%;
+            min-height:28px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
 
         .tabla-listado .linea-otro{
             padding-top:2px;
             padding-bottom:2px;
+        }
+        .linea-otro input {
+            width: 80%;
+            border-bottom: 1px dashed #444;
         }
 
         .diag-grid{
@@ -347,27 +373,13 @@ function checked($value)
             font-size:12px;
         }
 
-        .firma-row{
-            display:grid;
-            grid-template-columns:1fr 1fr;
-            gap:0;
-        }
-
-        .firma-row > div{
-            border-right:1px solid #444;
-        }
-
-        .firma-row > div:last-child{
-            border-right:none;
-        }
-
         .muted{
             color:#555;
         }
 
         @media (max-width: 980px){
             .toolbar{position:static}
-            .tipo-grid,.diag-grid,.riesgo-grid,.soportes-grid,.firma-row{grid-template-columns:1fr}
+            .tipo-grid,.diag-grid,.riesgo-grid,.soportes-grid{grid-template-columns:1fr}
             body{padding:10px}
         }
 
@@ -378,7 +390,7 @@ function checked($value)
 
         @media print{
             body{background:#fff;padding:0}
-            .toolbar{display:none}
+            .toolbar, .print-hide{display:none !important}
             .contenedor{box-shadow:none;border:none;max-width:100%}
             .contenido{padding:5px}
             .encabezado td,.tabla-base td,.tabla-base th,.section-title{
@@ -397,25 +409,27 @@ function checked($value)
 </head>
 <body>
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>4.2.2 Reporte de Actos y Condiciones Inseguras</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="form422">Guardar</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Datos</button>
             <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
         </div>
     </div>
 
     <div class="contenido">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="form422" method="POST" action="">
+        <form id="form422">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:20%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:20%; padding:0;">
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:58%;">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
                     <td style="width:22%;font-weight:700;"><?php echo $datos['version']; ?></td>
@@ -450,22 +464,22 @@ function checked($value)
                         <div class="tipo-grid">
                             <label class="tipo-item">
                                 <span>Funcionario</span>
-                                <input class="mini-box" type="checkbox" name="funcionario" value="1" <?php echo checked($tipos_reportante['funcionario']); ?>>
+                                <input class="mini-box" type="checkbox" name="funcionario" value="1" <?php echo isChecked('funcionario'); ?>>
                             </label>
                             <label class="tipo-item">
                                 <span>Contratista</span>
-                                <input class="mini-box" type="checkbox" name="contratista" value="1" <?php echo checked($tipos_reportante['contratista']); ?>>
+                                <input class="mini-box" type="checkbox" name="contratista" value="1" <?php echo isChecked('contratista'); ?>>
                             </label>
                             <label class="tipo-item">
                                 <span>Visitante</span>
-                                <input class="mini-box" type="checkbox" name="visitante" value="1" <?php echo checked($tipos_reportante['visitante']); ?>>
+                                <input class="mini-box" type="checkbox" name="visitante" value="1" <?php echo isChecked('visitante'); ?>>
                             </label>
                             <div class="tipo-item">
                                 <label style="display:flex;align-items:center;gap:8px;">
                                     <span>Otro</span>
-                                    <input class="mini-box" type="checkbox" name="otro_tipo" value="1" <?php echo checked($tipos_reportante['otro_tipo']); ?>>
+                                    <input class="mini-box" type="checkbox" name="otro_tipo" value="1" <?php echo isChecked('otro_tipo'); ?>>
                                 </label>
-                                <input class="box-text" type="text" name="otro_tipo_texto" value="<?php echo $tipos_reportante['otro_tipo_texto']; ?>">
+                                <input class="box-text" type="text" name="otro_tipo_texto" value="<?php echo oldv('otro_tipo_texto'); ?>">
                             </div>
                         </div>
 
@@ -477,7 +491,7 @@ function checked($value)
                                     <strong>Actos Inseguros:</strong> Es la violación de un procedimiento o norma de trabajo por parte del trabajador que puede conllevar a la ocurrencia de un incidente, accidente de trabajo o afectación ambiental.
                                 </td>
                                 <td class="box-center">
-                                    <input class="mini-box" type="checkbox" name="actos_inseguros" value="1" <?php echo checked($tipo_reporte['actos_inseguros']); ?>>
+                                    <input class="mini-box" type="checkbox" name="actos_inseguros" value="1" <?php echo isChecked('actos_inseguros'); ?>>
                                 </td>
                             </tr>
                             <tr>
@@ -485,7 +499,7 @@ function checked($value)
                                     <strong>Autoreporte de Condiciones en Salud:</strong> Proceso mediante el cual funcionario o contratista reporta por escrito al empleador o contratante las condiciones adversas en salud que identifica en su lugar de trabajo.
                                 </td>
                                 <td class="box-center">
-                                    <input class="mini-box" type="checkbox" name="autoreporte_salud" value="1" <?php echo checked($tipo_reporte['autoreporte_salud']); ?>>
+                                    <input class="mini-box" type="checkbox" name="autoreporte_salud" value="1" <?php echo isChecked('autoreporte_salud'); ?>>
                                 </td>
                             </tr>
                             <tr>
@@ -493,7 +507,7 @@ function checked($value)
                                     <strong>Condiciones Inseguras:</strong> Toda circunstancia física que presente una desviación de lo estándar o establecido y que facilite la ocurrencia de accidentes.
                                 </td>
                                 <td class="box-center">
-                                    <input class="mini-box" type="checkbox" name="condiciones_inseguras" value="1" <?php echo checked($tipo_reporte['condiciones_inseguras']); ?>>
+                                    <input class="mini-box" type="checkbox" name="condiciones_inseguras" value="1" <?php echo isChecked('condiciones_inseguras'); ?>>
                                 </td>
                             </tr>
                         </table>
@@ -520,13 +534,13 @@ function checked($value)
                     <tr>
                         <td><?php echo htmlspecialchars($item, ENT_QUOTES, 'UTF-8'); ?></td>
                         <td class="box-center">
-                            <input class="mini-box" type="checkbox" name="acto_<?php echo $i; ?>" value="1" <?php echo checked(post("acto_$i")); ?>>
+                            <input class="mini-box" type="checkbox" name="acto_<?php echo $i; ?>" value="1" <?php echo isChecked("acto_$i"); ?>>
                         </td>
                     </tr>
                 <?php endforeach; ?>
                 <tr>
                     <td>Otro</td>
-                    <td class="box-center"><input class="mini-box" type="checkbox" name="acto_otro_check" value="1" <?php echo checked(post('acto_otro_check')); ?>></td>
+                    <td class="box-center"><input class="mini-box" type="checkbox" name="acto_otro_check" value="1" <?php echo isChecked('acto_otro_check'); ?>></td>
                 </tr>
                 <tr>
                     <td class="linea-otro">Cuál? <input type="text" name="otro_acto" value="<?php echo $datos['otro_acto']; ?>"></td>
@@ -540,13 +554,13 @@ function checked($value)
                     <tr>
                         <td><?php echo htmlspecialchars($item, ENT_QUOTES, 'UTF-8'); ?></td>
                         <td class="box-center">
-                            <input class="mini-box" type="checkbox" name="condicion_<?php echo $i; ?>" value="1" <?php echo checked(post("condicion_$i")); ?>>
+                            <input class="mini-box" type="checkbox" name="condicion_<?php echo $i; ?>" value="1" <?php echo isChecked("condicion_$i"); ?>>
                         </td>
                     </tr>
                 <?php endforeach; ?>
                 <tr>
                     <td>Otro</td>
-                    <td class="box-center"><input class="mini-box" type="checkbox" name="condicion_otro_check" value="1" <?php echo checked(post('condicion_otro_check')); ?>></td>
+                    <td class="box-center"><input class="mini-box" type="checkbox" name="condicion_otro_check" value="1" <?php echo isChecked('condicion_otro_check'); ?>></td>
                 </tr>
                 <tr>
                     <td class="linea-otro">Cuál? <input type="text" name="otro_condicion" value="<?php echo $datos['otro_condicion']; ?>"></td>
@@ -560,22 +574,22 @@ function checked($value)
                     <td colspan="2" style="text-align:center;">Cuál sistema se encuentra afectado por su sintomatología?</td>
                 </tr>
                 <tr>
-                    <td style="width:50%;">
+                    <td style="width:50%; vertical-align: top;">
                         <div class="diag-col">
                             <?php foreach ($sistemas_salud_izq as $key => $label): ?>
                                 <div class="fila">
                                     <span><?php echo $label; ?></span>
-                                    <div class="box-center"><input class="mini-box" type="checkbox" name="<?php echo $key; ?>" value="1" <?php echo checked(post($key)); ?>></div>
+                                    <div class="box-center"><input class="mini-box" type="checkbox" name="<?php echo $key; ?>" value="1" <?php echo isChecked($key); ?>></div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
                     </td>
-                    <td style="width:50%;">
+                    <td style="width:50%; vertical-align: top;">
                         <div class="diag-col">
                             <?php foreach ($sistemas_salud_der as $key => $label): ?>
                                 <div class="fila">
                                     <span><?php echo $label; ?></span>
-                                    <div class="box-center"><input class="mini-box" type="checkbox" name="<?php echo $key; ?>" value="1" <?php echo checked(post($key)); ?>></div>
+                                    <div class="box-center"><input class="mini-box" type="checkbox" name="<?php echo $key; ?>" value="1" <?php echo isChecked($key); ?>></div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -586,8 +600,8 @@ function checked($value)
                     <td colspan="2">
                         <div class="bool-row">
                             <div>Presenta una sintomatología específica (Diagnóstico emitido por médico)</div>
-                            <label class="opt">SI <input class="mini-box" type="checkbox" name="diag_si" value="1" <?php echo checked(post('diag_si')); ?>></label>
-                            <label class="opt">NO <input class="mini-box" type="checkbox" name="diag_no" value="1" <?php echo checked(post('diag_no')); ?>></label>
+                            <label class="opt">SI <input class="mini-box" type="checkbox" name="diag_si" value="1" <?php echo isChecked('diag_si'); ?>></label>
+                            <label class="opt">NO <input class="mini-box" type="checkbox" name="diag_no" value="1" <?php echo isChecked('diag_no'); ?>></label>
                         </div>
                     </td>
                 </tr>
@@ -596,8 +610,8 @@ function checked($value)
                     <td colspan="2">
                         <div class="bool-row">
                             <div>Cree que su sintomatología puede afectar sus actividades laborales diarias</div>
-                            <label class="opt">SI <input class="mini-box" type="checkbox" name="afecta_si" value="1" <?php echo checked(post('afecta_si')); ?>></label>
-                            <label class="opt">NO <input class="mini-box" type="checkbox" name="afecta_no" value="1" <?php echo checked(post('afecta_no')); ?>></label>
+                            <label class="opt">SI <input class="mini-box" type="checkbox" name="afecta_si" value="1" <?php echo isChecked('afecta_si'); ?>></label>
+                            <label class="opt">NO <input class="mini-box" type="checkbox" name="afecta_no" value="1" <?php echo isChecked('afecta_no'); ?>></label>
                         </div>
                     </td>
                 </tr>
@@ -631,7 +645,7 @@ function checked($value)
                                 <?php foreach ($riesgos_asociados_izq as $key => $label): ?>
                                     <div class="fila">
                                         <span><?php echo $label; ?></span>
-                                        <div class="box-center"><input class="mini-box" type="checkbox" name="<?php echo $key; ?>" value="1" <?php echo checked(post($key)); ?>></div>
+                                        <div class="box-center"><input class="mini-box" type="checkbox" name="<?php echo $key; ?>" value="1" <?php echo isChecked($key); ?>></div>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -639,7 +653,7 @@ function checked($value)
                                 <?php foreach ($riesgos_asociados_der as $key => $label): ?>
                                     <div class="fila">
                                         <span><?php echo $label; ?></span>
-                                        <div class="box-center"><input class="mini-box" type="checkbox" name="<?php echo $key; ?>" value="1" <?php echo checked(post($key)); ?>></div>
+                                        <div class="box-center"><input class="mini-box" type="checkbox" name="<?php echo $key; ?>" value="1" <?php echo isChecked($key); ?>></div>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -682,19 +696,19 @@ function checked($value)
                 </tr>
                 <tr>
                     <td colspan="2">Las acciones propuestas requieren modificación de la matriz de identificación de peligros, valoración de riesgos y determinación de controles.</td>
-                    <td class="box-center">SI <input class="mini-box" type="checkbox" name="modifica_matriz_si" value="1" <?php echo checked(post('modifica_matriz_si')); ?>></td>
-                    <td class="box-center">NO <input class="mini-box" type="checkbox" name="modifica_matriz_no" value="1" <?php echo checked(post('modifica_matriz_no')); ?>></td>
+                    <td class="box-center">SI <input class="mini-box" type="checkbox" name="modifica_matriz_si" value="1" <?php echo isChecked('modifica_matriz_si'); ?>></td>
+                    <td class="box-center">NO <input class="mini-box" type="checkbox" name="modifica_matriz_no" value="1" <?php echo isChecked('modifica_matriz_no'); ?>></td>
                 </tr>
                 <tr>
                     <td>Las acciones fueron eficaces</td>
-                    <td class="box-center">SI <input class="mini-box" type="checkbox" name="acciones_eficaces_si" value="1" <?php echo checked(post('acciones_eficaces_si')); ?>></td>
-                    <td class="box-center">NO <input class="mini-box" type="checkbox" name="acciones_eficaces_no" value="1" <?php echo checked(post('acciones_eficaces_no')); ?>></td>
+                    <td class="box-center">SI <input class="mini-box" type="checkbox" name="acciones_eficaces_si" value="1" <?php echo isChecked('acciones_eficaces_si'); ?>></td>
+                    <td class="box-center">NO <input class="mini-box" type="checkbox" name="acciones_eficaces_no" value="1" <?php echo isChecked('acciones_eficaces_no'); ?>></td>
                     <td></td>
                 </tr>
                 <tr>
                     <td colspan="2">Se requiere reprogramar acciones de intervención</td>
-                    <td class="box-center">SI <input class="mini-box" type="checkbox" name="reprogramar_si" value="1" <?php echo checked(post('reprogramar_si')); ?>></td>
-                    <td class="box-center">NO <input class="mini-box" type="checkbox" name="reprogramar_no" value="1" <?php echo checked(post('reprogramar_no')); ?>></td>
+                    <td class="box-center">SI <input class="mini-box" type="checkbox" name="reprogramar_si" value="1" <?php echo isChecked('reprogramar_si'); ?>></td>
+                    <td class="box-center">NO <input class="mini-box" type="checkbox" name="reprogramar_no" value="1" <?php echo isChecked('reprogramar_no'); ?>></td>
                 </tr>
             </table>
 
@@ -703,10 +717,10 @@ function checked($value)
                 <tr>
                     <td colspan="2">
                         <div class="soportes-grid">
-                            <label class="soporte-item">Fotografías <input class="mini-box" type="checkbox" name="soporte_fotos" value="1" <?php echo checked(post('soporte_fotos')); ?>></label>
-                            <label class="soporte-item">Informe <input class="mini-box" type="checkbox" name="soporte_informe" value="1" <?php echo checked(post('soporte_informe')); ?>></label>
-                            <label class="soporte-item">Recibidos a satisfacción <input class="mini-box" type="checkbox" name="soporte_satisfaccion" value="1" <?php echo checked(post('soporte_satisfaccion')); ?>></label>
-                            <label class="soporte-item">Otros <input class="mini-box" type="checkbox" name="soporte_otros" value="1" <?php echo checked(post('soporte_otros')); ?>></label>
+                            <label class="soporte-item">Fotografías <input class="mini-box" type="checkbox" name="soporte_fotos" value="1" <?php echo isChecked('soporte_fotos'); ?>></label>
+                            <label class="soporte-item">Informe <input class="mini-box" type="checkbox" name="soporte_informe" value="1" <?php echo isChecked('soporte_informe'); ?>></label>
+                            <label class="soporte-item">Recibidos a satisfacción <input class="mini-box" type="checkbox" name="soporte_satisfaccion" value="1" <?php echo isChecked('soporte_satisfaccion'); ?>></label>
+                            <label class="soporte-item">Otros <input class="mini-box" type="checkbox" name="soporte_otros" value="1" <?php echo isChecked('soporte_otros'); ?>></label>
                         </div>
                     </td>
                 </tr>
@@ -722,5 +736,71 @@ function checked($value)
         </form>
     </div>
 </div>
+
+<script>
+// ----------------------------------------------------
+// INTEGRACIÓN DE GUARDADO CON FETCH API Y SWEETALERT2
+// ----------------------------------------------------
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('form422');
+    const formData = new FormData(form);
+    
+    // Convertimos el formulario en un objeto JSON limpio
+    const datosJSON = Object.fromEntries(formData.entries());
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'El reporte de actos y condiciones inseguras se ha guardado correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+// ----------------------------------------------------
+</script>
 </body>
 </html>

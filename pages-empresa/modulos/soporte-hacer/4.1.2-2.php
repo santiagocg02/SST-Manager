@@ -1,26 +1,67 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
 }
 
-function post($key, $default = '')
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos para este formato (ej. 51)
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 51;
+
+// --- Lógica de Empresa (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// Función para leer datos desde la API
+function oldv($key, $default = '')
 {
-    return isset($_POST[$key]) ? htmlspecialchars($_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
+    global $datosCampos;
+    return (isset($datosCampos[$key]) && $datosCampos[$key] !== '') ? htmlspecialchars((string)$datosCampos[$key], ENT_QUOTES, 'UTF-8') : $default;
 }
 
 $datos = [
-    'version' => post('version', '0'),
-    'codigo' => post('codigo', 'RE-SST-24'),
-    'fecha_documento' => post('fecha_documento', 'XX/XX/2025'),
-    'dia' => post('dia', ''),
-    'mes' => post('mes', ''),
-    'anio' => post('anio', ''),
-    'proceso' => post('proceso', ''),
-    'nombre' => post('nombre', ''),
-    'cargo' => post('cargo', ''),
-    'trabajador' => post('trabajador', ''),
+    'version'         => oldv('version', '0'),
+    'codigo'          => oldv('codigo', 'RE-SST-24'),
+    'fecha_documento' => oldv('fecha_documento', 'XX/XX/2025'),
+    'dia'             => oldv('dia', ''),
+    'mes'             => oldv('mes', ''),
+    'anio'            => oldv('anio', ''),
+    'proceso'         => oldv('proceso', ''),
+    'nombre'          => oldv('nombre', ''),
+    'cargo'           => oldv('cargo', ''),
+    'trabajador'      => oldv('trabajador', ''),
 ];
 
 $categorias = [
@@ -192,9 +233,7 @@ $categorias = [
     ],
 ];
 
-$filasGuardadas = isset($_POST['factores']) && is_array($_POST['factores']) ? $_POST['factores'] : [];
-$firma_trabajador = post('firma_trabajador', '');
-
+$firma_trabajador = oldv('firma_trabajador', '');
 $indice = 0;
 ?>
 <!DOCTYPE html>
@@ -203,6 +242,9 @@ $indice = 0;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4.1.2-2 Identificación de Factores de Riesgo</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         *{box-sizing:border-box;margin:0;padding:0;font-family:Arial, Helvetica, sans-serif}
         body{background:#f2f4f7;padding:20px;color:#111}
@@ -216,11 +258,7 @@ $indice = 0;
         .btn-atras{background:#6c757d;color:#fff}
         .btn-imprimir{background:#0d6efd;color:#fff}
         .contenido{padding:18px}
-        .save-msg{
-            margin:0 0 15px 0;padding:10px 14px;border-radius:8px;background:#e9f7ef;color:#166534;
-            border:1px solid #b7e4c7;font-size:14px;font-weight:700;
-        }
-
+        
         table{width:100%;border-collapse:collapse;table-layout:fixed}
         .encabezado td,.encabezado th,.tabla-datos td,.tabla-datos th,.tabla-riesgos td,.tabla-riesgos th{
             border:1px solid #6b6b6b;
@@ -232,7 +270,7 @@ $indice = 0;
 
         .encabezado td,.encabezado th{text-align:center}
         .logo-box{
-            width:140px;height:65px;border:2px dashed #c8c8c8;display:flex;align-items:center;justify-content:center;
+            width:140px;height:65px;display:flex;align-items:center;justify-content:center;
             margin:auto;color:#999;font-weight:bold;font-size:14px;text-align:center
         }
         .titulo-principal{font-size:16px;font-weight:700}
@@ -357,7 +395,7 @@ $indice = 0;
 
         @media print{
             body{background:#fff;padding:0}
-            .toolbar{display:none}
+            .toolbar, .print-hide{display:none !important}
             .contenedor{box-shadow:none;border:none;max-width:100%}
             .contenido{padding:5px}
             .tabla-riesgos th,
@@ -384,25 +422,27 @@ $indice = 0;
 </head>
 <body>
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>4.1.2-2 Identificación de Factores de Riesgo en los Puestos de Trabajo</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="form4122">Guardar</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Datos</button>
             <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
         </div>
     </div>
 
     <div class="contenido">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="form4122" method="POST" action="">
+        <form id="form4122">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:18%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:18%; padding:0;">
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:60%;">IDENTIFICACIÓN DE FACTORES DE RIESGO EN LOS PUESTOS DE TRABAJO</td>
                     <td style="width:22%;font-weight:700;"><?php echo $datos['version']; ?></td>
@@ -453,10 +493,9 @@ $indice = 0;
 
                     <?php foreach ($items as $item): ?>
                         <?php
-                        $fila = $filasGuardadas[$indice] ?? [];
-                        $seleccion = !empty($fila['seleccion']);
-                        $controles = htmlspecialchars($fila['controles'] ?? '', ENT_QUOTES, 'UTF-8');
-                        $observaciones = htmlspecialchars($fila['observaciones'] ?? '', ENT_QUOTES, 'UTF-8');
+                        $seleccion = oldv("factores[$indice][seleccion]") === 'X';
+                        $controles = oldv("factores[$indice][controles]");
+                        $observaciones = oldv("factores[$indice][observaciones]");
                         ?>
                         <tr>
                             <td class="factor">
@@ -496,5 +535,71 @@ $indice = 0;
         </form>
     </div>
 </div>
+
+<script>
+// ----------------------------------------------------
+// INTEGRACIÓN DE GUARDADO CON FETCH API Y SWEETALERT2
+// ----------------------------------------------------
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('form4122');
+    const formData = new FormData(form);
+    
+    // Convertimos el formulario en un objeto JSON limpio
+    const datosJSON = Object.fromEntries(formData.entries());
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'La identificación de factores de riesgo se ha guardado correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+// ----------------------------------------------------
+</script>
 </body>
 </html>
