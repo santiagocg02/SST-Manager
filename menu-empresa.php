@@ -70,6 +70,8 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
     }
     .accordion-button.active-parent { background: #198754 !important; color: #fff !important; }
     .admin-sidebar { overflow-y: auto; height: calc(100vh - 100px); }
+    /* Corrección de subrayados en enlaces */
+    a.admin-accordion-btn, a.admin-subitem { text-decoration: none !important; }
   </style>
 </head>
 
@@ -206,6 +208,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
 
     <!-- =============== OPCIONES: PESV Y ALTURAS =============== -->
     <?php if (puedeVer(26, $rolSesion, $misPermisos, $modulosPermitidosPorPlan)): ?>   
+
     <div class="accordion-item">
       <h2 class="accordion-header">
         <button class="accordion-button collapsed admin-accordion-btn" data-bs-toggle="collapse" data-bs-target="#collapsePESV">
@@ -291,6 +294,7 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
 </aside>
       <main class="admin-content">
         <iframe id="contentFrame" name="contentFrame" src="pages-empresa/bienvenidaes.php" class="admin-iframe"></iframe>
+        <iframe id="contentFrame" name="contentFrame" class="admin-iframe"></iframe>
       </main>
     </div>
 
@@ -303,6 +307,8 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
   <script>
     const menuLinks = document.querySelectorAll(".admin-subitem, .admin-accordion-btn");
     const frame = document.getElementById("contentFrame");
+    // Pasamos el nombre de la empresa como parámetro para que Bienvenida lo capture
+    const nombreE = encodeURIComponent("<?= $nombreEmpresaLogeada ?>");
 
     // Función para marcar el activo y asegurar que el acordeón se mantenga abierto
     function activarLink(link) {
@@ -333,6 +339,10 @@ function puedeVer($idModulo, $rol, $permisos, $modulosPlan) {
       
       menuLinks.forEach(l => l.classList.remove("active"));
       sessionStorage.removeItem("lastPageSST");
+    frame.src = `pages-empresa/bienvenidaes.php?nombre=${nombreE}`;
+    
+    menuLinks.forEach(l => l.classList.remove("active"));
+    sessionStorage.removeItem("lastPageSST");
     });
   </script>
 </body>

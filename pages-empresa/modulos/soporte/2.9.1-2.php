@@ -14,7 +14,6 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 $api = new ConexionAPI();
 $token = $_SESSION["token"] ?? "";
 $empresa = (int)($_SESSION["id_empresa"] ?? 0);
-// Ajusta el ID de este ítem según tu base de datos (Ej: 36 para Especificaciones de Compras)
 $idItem = isset($_GET['item']) ? (int)$_GET['item'] : 36; 
 
 // --- Lógica de Empresa Optimizada (Logo, Nombres y Firmas) ---
@@ -32,7 +31,6 @@ if ($empresa > 0) {
         $nombreEmpresaLogeada = $empData['nombre_empresa'] ?? 'NOMBRE DE LA EMPRESA';
         $logoEmpresaUrl = $empData['logo_url'] ?? '';
         
-        // Priorizando campos _rl y _sst
         $nombreRL = $empData['nombre_rl'] ?? $empData['representante_legal'] ?? '';
         $firmaRL = $empData['firma_rl'] ?? $empData['firma_representante'] ?? '';
         $nombreSST = $empData['nombre_sst'] ?? $empData['responsable_sst'] ?? '';
@@ -68,6 +66,7 @@ if (is_string($camposCrudos)) {
 
     <link rel="stylesheet" href="../../../assets/css/toolbar.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
@@ -100,59 +99,6 @@ if (is_string($camposCrudos)) {
 
         .page-wrap{ padding:20px; max-width: 1200px; margin: 0 auto; }
 
-        .topbar{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            gap:12px;
-            flex-wrap:wrap;
-            margin-bottom:16px;
-            background: #d9dde2;
-            padding: 10px 16px;
-            border: 1px solid #c8cdd3;
-            border-radius: 6px;
-        }
-
-        .topbar-left,
-        .topbar-right{
-            display:flex;
-            align-items:center;
-            gap:10px;
-            flex-wrap:wrap;
-        }
-
-        .btn-ui{
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            gap:8px;
-            padding:6px 12px;
-            border-radius:6px;
-            border:1px solid var(--btn);
-            background:var(--btn);
-            color:#fff;
-            text-decoration:none;
-            font-size:12px;
-            font-weight:800;
-            transition:.2s ease;
-            cursor:pointer;
-        }
-
-        .btn-ui:hover{ background:var(--btn-hover); border-color:var(--btn-hover); color:#fff; }
-
-        .btn-ui.secondary{ background:#fff; color:var(--btn); border-color:#cfd6e4; }
-        .btn-ui.secondary:hover{ background:#eef5ff; color:var(--btn-hover); }
-
-        .btn-ui.success { background:var(--green); border-color:var(--green); color:#fff; }
-        .btn-ui.success:hover { background:var(--green-hover); }
-
-        .badge-format{
-            font-size:12px;
-            color:#0f2f5c;
-            background:transparent;
-            font-weight:900;
-        }
-
         .sheet-card{
             background:var(--paper);
             border:1px solid #d7dee6;
@@ -160,25 +106,6 @@ if (is_string($camposCrudos)) {
             overflow:hidden;
             box-shadow:0 8px 24px rgba(31,41,55,.08);
             margin-bottom: 20px;
-        }
-
-        .sheet-header{
-            padding:14px 18px;
-            background:linear-gradient(135deg, #f8fbff 0%, #eef4fb 100%);
-            border-bottom:1px solid #dde6ef;
-        }
-
-        .sheet-header-title{
-            margin:0;
-            font-size:16px;
-            font-weight:800;
-            color:var(--blue-dark);
-        }
-
-        .sheet-header-subtitle{
-            margin:4px 0 0;
-            font-size:12px;
-            color:var(--muted);
         }
 
         .sheet-scroll{
@@ -270,16 +197,17 @@ if (is_string($camposCrudos)) {
             color:#0f172a;
             font-size:14px;
             font-weight:800;
-            text-align:center;
-            padding:7px 10px !important;
+            padding:6px 14px !important;
         }
 
+        /* Contenedor de la celda de índice */
         .item-cell{
             text-align:center;
             font-weight:800;
             font-size:13px;
             background:#fbfcfd;
             padding:10px 6px !important;
+            position: relative;
         }
 
         .editable{
@@ -337,9 +265,60 @@ if (is_string($camposCrudos)) {
             position: relative;
         }
 
-        .w-item{ width:90px; }
+        /* --- BOTONES ESTILIZADOS (INTEGRACIÓN ESTÉTICA) --- */
+        
+        /* Botón Agregar dentro de la fila azul */
+        .btn-add-section {
+            background: transparent;
+            border: none;
+            color: #0f172a;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease-in-out;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-add-section:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: #000;
+        }
+        .btn-add-section i {
+            margin-right: 4px;
+        }
+
+        /* Botón eliminar ultra sutil (Aparece solo en Hover) */
+        .btn-remove-row {
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: var(--danger);
+            font-size: 12px;
+            padding: 4px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.15s ease-in-out;
+            z-index: 10;
+        }
+        /* Al hacer hover sobre la celda del número, se revela suavemente la papelera */
+        .item-cell:hover .btn-remove-row {
+            opacity: 1;
+        }
+        /* Ocultar el texto correlativo (a, b, c) brevemente si la papelera está encima */
+        .item-cell:hover .lbl-index {
+            opacity: 0.15;
+        }
+        .lbl-index {
+            transition: opacity 0.15s ease-in-out;
+        }
+
+        .w-item{ width:100px; }
         .w-desc{ width:290px; }
-        .w-esp{ width:470px; }
+        .w-esp{ width:460px; }
         .w-norma{ width:330px; }
 
         @media (max-width: 768px){
@@ -353,11 +332,12 @@ if (is_string($camposCrudos)) {
             @page{ size:portrait; margin:10mm; }
             body{ background:#fff !important; }
             .page-wrap{ padding:0 !important; max-width: 100%; }
-            .topbar, .sheet-header, .print-hide { display:none !important; }
+            .sst-toolbar, .topbar, .sheet-header, .print-hide, .btn-remove-row { display:none !important; }
             .sheet-card{ border:none !important; border-radius:0 !important; box-shadow:none !important; margin: 0; }
             .sheet-scroll{ overflow:visible !important; }
             .sheet{ min-width:100% !important; }
             .editable input, .editable textarea{ font-size:12px !important; background:transparent !important; }
+            .item-cell .lbl-index { opacity: 1 !important; }
         }
     </style>
 </head>
@@ -365,234 +345,268 @@ if (is_string($camposCrudos)) {
 
 <div class="page-wrap">
     <div class="sst-toolbar">
-  <h1 class="sst-toolbar-title">COMPRAS SST · RE-SST-18</h1>
-
-  <div class="sst-toolbar-actions">
-    <a href="#" class="btn btn-secondary btn-sm">Volver</a>
-
-    <button type="button" class="btn btn-success btn-sm">
-      <i class="fa-solid fa-save"></i> Guardar
-    </button>
-
-    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
-      <i class="fa-solid fa-print"></i> Imprimir
-    </button>
-  </div>
-</div>
+        <h1 class="sst-toolbar-title">COMPRAS SST · RE-SST-18</h1>
+        <div class="sst-toolbar-actions">
+            <a href="#" class="btn btn-secondary btn-sm">Volver</a>
+            <button type="button" id="btnGuardar" class="btn btn-success btn-sm">
+                <i class="fa-solid fa-save"></i> Guardar
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Imprimir
+            </button>
+        </div>
+    </div>
 
     <form id="form-sst-dinamico">
-        
+        <div class="sheet-scroll">
+            <div class="sheet">
+                <table class="form-sheet" id="tabla-especificaciones">
+                    <colgroup>
+                        <col class="w-item">
+                        <col class="w-desc">
+                        <col class="w-esp">
+                        <col class="w-norma">
+                    </colgroup>
 
-            <div class="sheet-scroll">
-                <div class="sheet">
-                    <table class="form-sheet">
-                        <colgroup>
-                            <col class="w-item">
-                            <col class="w-desc">
-                            <col class="w-esp">
-                            <col class="w-norma">
-                        </colgroup>
-
-                        <tr>
-                            <td rowspan="3" class="logo-box">
-                                <div class="logo-box-inner">
-                                    <div class="logo-placeholder" style="<?= empty($logoEmpresaUrl) ? '' : 'border:none; padding:0;' ?>">
-                                        <?php if(!empty($logoEmpresaUrl)): ?>
-                                            <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 80px; object-fit: contain;">
-                                        <?php else: ?>
-                                            TU LOGO<br>AQUÍ
-                                        <?php endif; ?>
-                                    </div>
+                    <tr>
+                        <td rowspan="3" class="logo-box">
+                            <div class="logo-box-inner">
+                                <div class="logo-placeholder" style="<?= empty($logoEmpresaUrl) ? '' : 'border:none; padding:0;' ?>">
+                                    <?php if(!empty($logoEmpresaUrl)): ?>
+                                        <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 80px; object-fit: contain;">
+                                    <?php else: ?>
+                                        TU LOGO<br>AQUÍ
+                                    <?php endif; ?>
                                 </div>
-                            </td>
-                            <td colspan="2" class="top-title">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
-                            <td class="top-cell">
-                                <input type="text" name="meta_version" value="0" style="width:100%; border:none; background:transparent; font-weight:bold; text-align:center;">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td colspan="2" class="top-subtitle">ESPECIFICACIONES DE LAS COMPRAS EN SST</td>
-                            <td class="top-cell">
-                                <input type="text" name="meta_codigo" value="RE-SST-18" style="width:100%; border:none; background:transparent; font-weight:bold; text-align:center;">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td colspan="2" class="top-cell">&nbsp;</td>
-                            <td class="top-cell">
-                                <input type="date" name="meta_fecha" id="metaFecha" style="width:100%; border:none; background:transparent; font-weight:bold; text-align:center;">
-                            </td>
-                        </tr>
+                            </div>
+                        </td>
+                        <td colspan="2" class="top-title">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
+                        <td class="top-cell">
+                            <input type="text" name="meta_version" value="0" style="width:100%; border:none; background:transparent; font-weight:bold; text-align:center;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="top-subtitle">ESPECIFICACIONES DE LAS COMPRAS EN SST</td>
+                        <td class="top-cell">
+                            <input type="text" name="meta_codigo" value="RE-SST-18" style="width:100%; border:none; background:transparent; font-weight:bold; text-align:center;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="top-cell">&nbsp;</td>
+                        <td class="top-cell">
+                            <input type="date" name="meta_fecha" id="metaFecha" style="width:100%; border:none; background:transparent; font-weight:bold; text-align:center;">
+                        </td>
+                    </tr>
 
-                        <tr class="head-row">
-                            <th>Ítem</th>
-                            <th>Descripción</th>
-                            <th>Especificaciones</th>
-                            <th>Normas específicas</th>
-                        </tr>
+                    <tr class="head-row">
+                        <th>Ítem</th>
+                        <th>Descripción</th>
+                        <th>Especificaciones</th>
+                        <th>Normas específicas</th>
+                    </tr>
 
-                        <tr class="section-row">
-                            <td colspan="4">Equipos de protección personal</td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">a)</td>
-                            <td class="editable"><input type="text" name="epp_desc[]" value="Gafas de seguridad"></td>
-                            <td class="editable"><textarea name="epp_esp[]" rows="3">En policarbonato, liviana, anti-impacto, filtro UV 99,9%, resistencia a impactos, abrasión y salpicaduras de líquidos irritantes.</textarea></td>
-                            <td class="editable"><textarea name="epp_norma[]" rows="3">ANSI Z87.1:2010</textarea></td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">b)</td>
-                            <td class="editable"><input type="text" name="epp_desc[]" value="Protector respiratorio"></td>
-                            <td class="editable"><textarea name="epp_esp[]" rows="3">Respirador para partículas N95, protección contra polvo y partículas sin presencia de aceite.</textarea></td>
-                            <td class="editable"><textarea name="epp_norma[]" rows="3">NIOSH bajo la especificación N95 de la norma 42CFR84.</textarea></td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">c)</td>
-                            <td class="editable"><input type="text" name="epp_desc[]" value="Guantes de impacto"></td>
-                            <td class="editable"><textarea name="epp_esp[]" rows="3">Guante de alta sensibilidad con una alta resistencia, aplicaciones de peso medio.</textarea></td>
-                            <td class="editable"><textarea name="epp_norma[]" rows="3">EN 420 Requisitos generales.&#13;&#10;EN 388 Protección contra riesgo mecánico (3143X).</textarea></td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">d)</td>
-                            <td class="editable"><input type="text" name="epp_desc[]" value="Protectores auditivos de inserción"></td>
-                            <td class="editable"><textarea name="epp_esp[]" rows="3">Polímero hipoalergénico, premoldeados, con tres falanges que se adaptan a la cavidad auditiva.</textarea></td>
-                            <td class="editable"><textarea name="epp_norma[]" rows="3">ANSI S3.19-1974</textarea></td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">e)</td>
-                            <td class="editable"><input type="text" name="epp_desc[]" value="Botas de seguridad"></td>
-                            <td class="editable"><textarea name="epp_esp[]" rows="3">Dieléctricas, antideslizantes, con puntera, livianas y resistentes a hidrocarburos.</textarea></td>
-                            <td class="editable"><textarea name="epp_norma[]" rows="3">NTC ISO 20345, Numeral 8.2.3&#13;&#10;ASTM F2413-05, Numeral 5.5.8.1&#13;&#10;NTC ISO 20344:2007</textarea></td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">f)</td>
-                            <td class="editable"><input type="text" name="epp_desc[]" value="Guantes de hilaza con látex"></td>
-                            <td class="editable"><textarea name="epp_esp[]" rows="2">Resistencia mecánica leve.</textarea></td>
-                            <td class="editable"><textarea name="epp_norma[]" rows="2">EN 420 Requisitos generales.</textarea></td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">g)</td>
-                            <td class="editable"><input type="text" name="epp_desc[]" value="Gafas de seguridad"></td>
-                            <td class="editable"><textarea name="epp_esp[]" rows="3">Gafas de protección ante proyección de partículas con protección frontal y lateral en material de policarbonato.</textarea></td>
-                            <td class="editable"><textarea name="epp_norma[]" rows="3">ANSI Z87.1</textarea></td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">h)</td>
-                            <td class="editable"><input type="text" name="epp_desc[]" value="Guantes de seguridad"></td>
-                            <td class="editable"><textarea name="epp_esp[]" rows="3">En poliuretano, diseñadas para procesos industriales y mantenimiento.</textarea></td>
-                            <td class="editable"><textarea name="epp_norma[]" rows="3">EN166 CE&#13;&#10;EN 388</textarea></td>
-                        </tr>
+                    <!-- SECCIÓN 1 -->
+                    <tr class="section-row" data-prefix="epp">
+                        <td colspan="4">
+                            <div class="d-flex justify-content-between align-items-center w-100 px-1">
+                                <span>Equipos de protección personal</span>
+                                <button type="button" class="btn-add-section print-hide" onclick="agregarFila(this, 'epp')">
+                                    <i class="fa-solid fa-plus"></i> Agregar ítem
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="row-epp">
+                        <td class="item-cell"><span class="lbl-index">a)</span></td>
+                        <td class="editable"><input type="text" name="epp_desc[]" value="Gafas de seguridad"></td>
+                        <td class="editable"><textarea name="epp_esp[]" rows="3">En policarbonato, liviana, anti-impacto, filtro UV 99,9%, resistencia a impactos, abrasión y salpicaduras de líquidos irritantes.</textarea></td>
+                        <td class="editable"><textarea name="epp_norma[]" rows="3">ANSI Z87.1:2010</textarea></td>
+                    </tr>
+                    <tr class="row-epp">
+                        <td class="item-cell"><span class="lbl-index">b)</span></td>
+                        <td class="editable"><input type="text" name="epp_desc[]" value="Protector respiratorio"></td>
+                        <td class="editable"><textarea name="epp_esp[]" rows="3">Respirador para partículas N95, protección contra polvo y partículas sin presencia de aceite.</textarea></td>
+                        <td class="editable"><textarea name="epp_norma[]" rows="3">NIOSH bajo la especificación N95 de la norma 42CFR84.</textarea></td>
+                    </tr>
+                    <tr class="row-epp">
+                        <td class="item-cell"><span class="lbl-index">c)</span></td>
+                        <td class="editable"><input type="text" name="epp_desc[]" value="Guantes de impacto"></td>
+                        <td class="editable"><textarea name="epp_esp[]" rows="3">Guante de alta sensibilidad con una alta resistencia, aplicaciones de peso medio.</textarea></td>
+                        <td class="editable"><textarea name="epp_norma[]" rows="3">EN 420 Requisitos generales.&#13;&#10;EN 388 Protección contra riesgo mecánico (3143X).</textarea></td>
+                    </tr>
+                    <tr class="row-epp">
+                        <td class="item-cell"><span class="lbl-index">d)</span></td>
+                        <td class="editable"><input type="text" name="epp_desc[]" value="Protectores auditivos de inserción"></td>
+                        <td class="editable"><textarea name="epp_esp[]" rows="3">Polímero hipoalergénico, premoldeados, con tres falanges que se adaptan a la cavidad auditiva.</textarea></td>
+                        <td class="editable"><textarea name="epp_norma[]" rows="3">ANSI S3.19-1974</textarea></td>
+                    </tr>
+                    <tr class="row-epp">
+                        <td class="item-cell"><span class="lbl-index">e)</span></td>
+                        <td class="editable"><input type="text" name="epp_desc[]" value="Botas de seguridad"></td>
+                        <td class="editable"><textarea name="epp_esp[]" rows="3">Dieléctricas, antideslizantes, con puntera, livianas y resistentes a hidrocarburos.</textarea></td>
+                        <td class="editable"><textarea name="epp_norma[]" rows="3">NTC ISO 20345, Numeral 8.2.3&#13;&#10;ASTM F2413-05, Numeral 5.5.8.1&#13;&#10;NTC ISO 20344:2007</textarea></td>
+                    </tr>
+                    <tr class="row-epp">
+                        <td class="item-cell"><span class="lbl-index">f)</span></td>
+                        <td class="editable"><input type="text" name="epp_desc[]" value="Guantes de hilaza con látex"></td>
+                        <td class="editable"><textarea name="epp_esp[]" rows="2">Resistencia mecánica leve.</textarea></td>
+                        <td class="editable"><textarea name="epp_norma[]" rows="2">EN 420 Requisitos generales.</textarea></td>
+                    </tr>
+                    <tr class="row-epp">
+                        <td class="item-cell"><span class="lbl-index">g)</span></td>
+                        <td class="editable"><input type="text" name="epp_desc[]" value="Gafas de seguridad"></td>
+                        <td class="editable"><textarea name="epp_esp[]" rows="3">Gafas de protección ante proyección de partículas con protección frontal y lateral en material de policarbonato.</textarea></td>
+                        <td class="editable"><textarea name="epp_norma[]" rows="3">ANSI Z87.1</textarea></td>
+                    </tr>
+                    <tr class="row-epp">
+                        <td class="item-cell"><span class="lbl-index">h)</span></td>
+                        <td class="editable"><input type="text" name="epp_desc[]" value="Guantes de seguridad"></td>
+                        <td class="editable"><textarea name="epp_esp[]" rows="3">En poliuretano, diseñadas para procesos industriales y mantenimiento.</textarea></td>
+                        <td class="editable"><textarea name="epp_norma[]" rows="3">EN166 CE&#13;&#10;EN 388</textarea></td>
+                    </tr>
 
-                        <tr class="section-row">
-                            <td colspan="4">Equipos emergencias</td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">a)</td>
-                            <td class="editable"><input type="text" name="emg_desc[]" value="Collarín"></td>
-                            <td class="editable"><textarea name="emg_esp[]" rows="2"></textarea></td>
-                            <td class="editable"><textarea name="emg_norma[]" rows="2"></textarea></td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">b)</td>
-                            <td class="editable"><input type="text" name="emg_desc[]" value="Extintor"></td>
-                            <td class="editable"><textarea name="emg_esp[]" rows="2">Polvo químico seco BC, agente limpio, gas carbónico CO2.</textarea></td>
-                            <td class="editable"><textarea name="emg_norma[]" rows="2">NFPA 10</textarea></td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">c)</td>
-                            <td class="editable"><input type="text" name="emg_desc[]" value="Camilla"></td>
-                            <td class="editable"><textarea name="emg_esp[]" rows="3">Camilla rígida de 6.5 kg, de alta resistencia, resistente al agua, con arnés reflectivo y soporte hasta 180 kg.</textarea></td>
-                            <td class="editable"><textarea name="emg_norma[]" rows="3">NTC 2885</textarea></td>
-                        </tr>
+                    <!-- SECCIÓN 2 -->
+                    <tr class="section-row" data-prefix="emg">
+                        <td colspan="4">
+                            <div class="d-flex justify-content-between align-items-center w-100 px-1">
+                                <span>Equipos emergencias</span>
+                                <button type="button" class="btn-add-section print-hide" onclick="agregarFila(this, 'emg')">
+                                    <i class="fa-solid fa-plus"></i> Agregar ítem
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="row-emg">
+                        <td class="item-cell"><span class="lbl-index">a)</span></td>
+                        <td class="editable"><input type="text" name="emg_desc[]" value="Collarín"></td>
+                        <td class="editable"><textarea name="emg_esp[]" rows="2"></textarea></td>
+                        <td class="editable"><textarea name="emg_norma[]" rows="2"></textarea></td>
+                    </tr>
+                    <tr class="row-emg">
+                        <td class="item-cell"><span class="lbl-index">b)</span></td>
+                        <td class="editable"><input type="text" name="emg_desc[]" value="Extintor"></td>
+                        <td class="editable"><textarea name="emg_esp[]" rows="2">Polvo químico seco BC, agente limpio, gas carbónico CO2.</textarea></td>
+                        <td class="editable"><textarea name="emg_norma[]" rows="2">NFPA 10</textarea></td>
+                    </tr>
+                    <tr class="row-emg">
+                        <td class="item-cell"><span class="lbl-index">c)</span></td>
+                        <td class="editable"><input type="text" name="emg_desc[]" value="Camilla"></td>
+                        <td class="editable"><textarea name="emg_esp[]" rows="3">Camilla rígida de 6.5 kg, de alta resistencia, resistente al agua, con arnés reflectivo y soporte hasta 180 kg.</textarea></td>
+                        <td class="editable"><textarea name="emg_norma[]" rows="3">NTC 2885</textarea></td>
+                    </tr>
 
-                        <tr class="section-row">
-                            <td colspan="4">Productos químicos</td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">a)</td>
-                            <td class="editable"><input type="text" name="pq_desc[]" value="Hojas de seguridad"></td>
-                            <td class="editable"><textarea name="pq_esp[]" rows="2">Merakem - inhibidor de corrosión</textarea></td>
-                            <td class="editable"><textarea name="pq_norma[]" rows="2">Documento bajo los criterios de peligro y las regulaciones controladas de los productos (CPR).</textarea></td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">b)</td>
-                            <td class="editable"><input type="text" name="pq_desc[]" value="Hojas de seguridad"></td>
-                            <td class="editable"><textarea name="pq_esp[]" rows="2">Ikempol - polímero floculante</textarea></td>
-                            <td class="editable"><textarea name="pq_norma[]" rows="2">Documento bajo los criterios de peligro y las regulaciones controladas de los productos (CPR).</textarea></td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">c)</td>
-                            <td class="editable"><input type="text" name="pq_desc[]" value="Fichas técnicas"></td>
-                            <td class="editable"><textarea name="pq_esp[]" rows="2"></textarea></td>
-                            <td class="editable"><textarea name="pq_norma[]" rows="2"></textarea></td>
-                        </tr>
+                    <!-- SECCIÓN 3 -->
+                    <tr class="section-row" data-prefix="pq">
+                        <td colspan="4">
+                            <div class="d-flex justify-content-between align-items-center w-100 px-1">
+                                <span>Productos químicos</span>
+                                <button type="button" class="btn-add-section print-hide" onclick="agregarFila(this, 'pq')">
+                                    <i class="fa-solid fa-plus"></i> Agregar ítem
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="row-pq">
+                        <td class="item-cell"><span class="lbl-index">a)</span></td>
+                        <td class="editable"><input type="text" name="pq_desc[]" value="Hojas de seguridad"></td>
+                        <td class="editable"><textarea name="pq_esp[]" rows="2">Merakem - inhibidor de corrosión</textarea></td>
+                        <td class="editable"><textarea name="pq_norma[]" rows="2">Documento bajo los criterios de peligro y las regulaciones controladas de los productos (CPR).</textarea></td>
+                    </tr>
+                    <tr class="row-pq">
+                        <td class="item-cell"><span class="lbl-index">b)</span></td>
+                        <td class="editable"><input type="text" name="pq_desc[]" value="Hojas de seguridad"></td>
+                        <td class="editable"><textarea name="pq_esp[]" rows="2">Ikempol - polímero floculante</textarea></td>
+                        <td class="editable"><textarea name="pq_norma[]" rows="2">Documento bajo los criterios de peligro y las regulaciones controladas de los productos (CPR).</textarea></td>
+                    </tr>
+                    <tr class="row-pq">
+                        <td class="item-cell"><span class="lbl-index">c)</span></td>
+                        <td class="editable"><input type="text" name="pq_desc[]" value="Fichas técnicas"></td>
+                        <td class="editable"><textarea name="pq_esp[]" rows="2"></textarea></td>
+                        <td class="editable"><textarea name="pq_norma[]" rows="2"></textarea></td>
+                    </tr>
 
-                        <tr class="section-row">
-                            <td colspan="4">Equipos</td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">a)</td>
-                            <td class="editable"><input type="text" name="eq_desc[]" value=""></td>
-                            <td class="editable"><textarea name="eq_esp[]" rows="2"></textarea></td>
-                            <td class="editable"><textarea name="eq_norma[]" rows="2"></textarea></td>
-                        </tr>
+                    <!-- SECCIÓN 4 -->
+                    <tr class="section-row" data-prefix="eq">
+                        <td colspan="4">
+                            <div class="d-flex justify-content-between align-items-center w-100 px-1">
+                                <span>Equipos</span>
+                                <button type="button" class="btn-add-section print-hide" onclick="agregarFila(this, 'eq')">
+                                    <i class="fa-solid fa-plus"></i> Agregar ítem
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="row-eq">
+                        <td class="item-cell"><span class="lbl-index">a)</span></td>
+                        <td class="editable"><input type="text" name="eq_desc[]" value=""></td>
+                        <td class="editable"><textarea name="eq_esp[]" rows="2"></textarea></td>
+                        <td class="editable"><textarea name="eq_norma[]" rows="2"></textarea></td>
+                    </tr>
 
-                        <tr class="section-row">
-                            <td colspan="4">Maquinaria</td>
-                        </tr>
-                        <tr>
-                            <td class="item-cell">a)</td>
-                            <td class="editable"><input type="text" name="maq_desc[]" value=""></td>
-                            <td class="editable"><textarea name="maq_esp[]" rows="2"></textarea></td>
-                            <td class="editable"><textarea name="maq_norma[]" rows="2"></textarea></td>
-                        </tr>
+                    <!-- SECCIÓN 5 -->
+                    <tr class="section-row" data-prefix="maq">
+                        <td colspan="4">
+                            <div class="d-flex justify-content-between align-items-center w-100 px-1">
+                                <span>Maquinaria</span>
+                                <button type="button" class="btn-add-section print-hide" onclick="agregarFila(this, 'maq')">
+                                    <i class="fa-solid fa-plus"></i> Agregar ítem
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="row-maq">
+                        <td class="item-cell"><span class="lbl-index">a)</span></td>
+                        <td class="editable"><input type="text" name="maq_desc[]" value=""></td>
+                        <td class="editable"><textarea name="maq_esp[]" rows="2"></textarea></td>
+                        <td class="editable"><textarea name="maq_norma[]" rows="2"></textarea></td>
+                    </tr>
 
-                        <tr>
-                            <td colspan="4" class="note-cell">
-                                NOTA. En esta matriz se deben incluir todos los requisitos y estándares de seguridad y salud necesarios para máquinas, herramientas, EPP, elementos de emergencia y todos aquellos equipos que se consideren necesarios en la organización al realizar las compras.
-                            </td>
-                        </tr>
-                    </table>
+                    <!-- NOTA FIJA FIN DE TABLA -->
+                    <tr id="row-nota-fija">
+                        <td colspan="4" class="note-cell">
+                            NOTA. En esta matriz se deben incluir todos los requisitos y estándares de seguridad y salud necesarios para máquinas, herramientas, EPP, elementos de emergencia y todos aquellos equipos que se consideren necesarios en la organización al realizar las compras.
+                        </td>
+                    </tr>
+                </table>
+                
+                <div class="sign-grid">
+                    <div class="sign">
+                        <div style="min-height: 40px; position:relative; margin-bottom:5px;">
+                            <?php if(!empty($firmaSST)): ?>
+                                <img src="<?= $firmaSST ?>" alt="Firma Elaborador" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
+                            <?php endif; ?>
+                        </div>
+                        ELABORÓ<br>
+                        <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreSST) ?></span>
+                    </div>
                     
-                    <div class="sign-grid">
-                        <div class="sign">
-                            <div style="min-height: 40px; position:relative; margin-bottom:5px;">
-                                <?php if(!empty($firmaSST)): ?>
-                                    <img src="<?= $firmaSST ?>" alt="Firma Elaborador" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
-                                <?php endif; ?>
-                            </div>
-                            ELABORÓ<br>
-                            <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreSST) ?></span>
+                    <div class="sign">
+                        <div style="min-height: 40px; position:relative; margin-bottom:5px;">
+                            <?php if(!empty($firmaSST)): ?>
+                                <img src="<?= $firmaSST ?>" alt="Firma Revisor" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
+                            <?php endif; ?>
                         </div>
-                        
-                        <div class="sign">
-                            <div style="min-height: 40px; position:relative; margin-bottom:5px;">
-                                <?php if(!empty($firmaSST)): ?>
-                                    <img src="<?= $firmaSST ?>" alt="Firma Revisor" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
-                                <?php endif; ?>
-                            </div>
-                            REVISÓ<br>
-                            <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreSST) ?></span>
-                        </div>
-
-                        <div class="sign">
-                            <div style="min-height: 40px; position:relative; margin-bottom:5px;">
-                                <?php if(!empty($firmaRL)): ?>
-                                    <img src="<?= $firmaRL ?>" alt="Firma Aprobador" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
-                                <?php endif; ?>
-                            </div>
-                            APROBÓ<br>
-                            <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreRL) ?></span>
-                        </div>
+                        REVISÓ<br>
+                        <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreSST) ?></span>
                     </div>
 
+                    <div class="sign">
+                        <div style="min-height: 40px; position:relative; margin-bottom:5px;">
+                            <?php if(!empty($firmaRL)): ?>
+                                <img src="<?= $firmaRL ?>" alt="Firma Aprobador" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
+                            <?php endif; ?>
+                        </div>
+                        APROBÓ<br>
+                        <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreRL) ?></span>
+                    </div>
                 </div>
+
             </div>
         </div>
     </form>
 </div>
 
 <script>
-    // Poner fecha de hoy por defecto si está vacía
     function setHoy(){
         const d = new Date();
         const y = d.getFullYear();
@@ -604,14 +618,87 @@ if (is_string($camposCrudos)) {
     }
     setHoy();
 
-    // --- LÓGICA DE CARGADO DE DATOS DESDE PHP ---
+    // --- LÓGICA DINÁMICA DE AGREGAR / ELIMINAR FILAS ---
+    function obtenerLetraIndex(num) {
+        let letra = "";
+        while (num >= 0) {
+            letra = String.fromCharCode((num % 26) + 97) + letra;
+            num = Math.floor(num / 26) - 1;
+        }
+        return letra + ")";
+    }
+
+    function renombrarIndicesSeccion(prefix) {
+        const filas = document.querySelectorAll(`.row-${prefix}`);
+        filas.forEach((fila, index) => {
+            const lbl = fila.querySelector('.lbl-index');
+            if (lbl) lbl.textContent = obtenerLetraIndex(index);
+        });
+    }
+
+    function agregarFila(btn, prefix, valDesc = '', valEsp = '', valNorma = '') {
+        const trSeccion = btn.closest('tr');
+        
+        // Creamos la nueva fila perfectamente estructurada e integrada visualmente
+        const nuevaFila = document.createElement('tr');
+        nuevaFila.className = `row-${prefix}`;
+        
+        nuevaFila.innerHTML = `
+            <td class="item-cell">
+                <button type="button" class="btn-remove-row print-hide" onclick="eliminarFila(this, '${prefix}')" title="Eliminar ítem">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+                <span class="lbl-index">a)</span>
+            </td>
+            <td class="editable"><input type="text" name="${prefix}_desc[]" value="${valDesc}"></td>
+            <td class="editable"><textarea name="${prefix}_esp[]" rows="2">${valEsp}</textarea></td>
+            <td class="editable"><textarea name="${prefix}_norma[]" rows="2">${valNorma}</textarea></td>
+        `;
+
+        // Ubicamos la fila inmediatamente después de la última del mismo bloque
+        const filasExistentes = document.querySelectorAll(`.row-${prefix}`);
+        if (filasExistentes.length > 0) {
+            const ultimaFila = filasExistentes[filasExistentes.length - 1];
+            ultimaFila.parentNode.insertBefore(nuevaFila, ultimaFila.nextSibling);
+        } else {
+            trSeccion.parentNode.insertBefore(nuevaFila, trSeccion.nextSibling);
+        }
+
+        renombrarIndicesSeccion(prefix);
+    }
+
+    function eliminarFila(btn, prefix) {
+        const fila = btn.closest('tr');
+        fila.remove();
+        renombrarIndicesSeccion(prefix);
+    }
+
+    // --- LÓGICA DE CARGADO DE DATOS DESDE PHP / API ---
     document.addEventListener('DOMContentLoaded', function () {
         let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
         if (typeof datosGuardados === 'string') {
             try { datosGuardados = JSON.parse(datosGuardados); } catch(e) {}
         }
 
+        const prefijos = ['epp', 'emg', 'pq', 'eq', 'maq'];
+
         if (datosGuardados && Object.keys(datosGuardados).length > 0) {
+            
+            // 1. Validar si la API tiene más ítems de los renderizados por defecto
+            prefijos.forEach(pfx => {
+                const arrayDesc = datosGuardados[`${pfx}_desc`] || [];
+                const filasActuales = document.querySelectorAll(`.row-${pfx}`);
+                
+                // Si la API tiene más elementos que el HTML base, generamos las filas necesarias
+                if (arrayDesc.length > filasActuales.length) {
+                    for (let i = filasActuales.length; i < arrayDesc.length; i++) {
+                        const btnSeccion = document.querySelector(`tr[data-prefix="${pfx}"] .print-hide`);
+                        if (btnSeccion) agregarFila(btnSeccion, pfx);
+                    }
+                }
+            });
+
+            // 2. Mapear y rellenar los datos de forma exacta en inputs y textareas
             for (const [key, value] of Object.entries(datosGuardados)) {
                 if (Array.isArray(value)) {
                     let campos = document.querySelectorAll(`[name="${key}[]"]`);
@@ -646,7 +733,7 @@ if (is_string($camposCrudos)) {
         }
 
         const originalText = btn.innerHTML;
-        btn.innerHTML = 'Guardando...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
         btn.disabled = true;
 
         try {
@@ -668,7 +755,7 @@ if (is_string($camposCrudos)) {
 
             const result = await response.json();
 
-            if (result.ok) {
+            if (result.ok || result.status === 'success') {
                 Swal.fire({
                     title: '¡Éxito!',
                     text: 'Especificaciones guardadas correctamente',
@@ -680,7 +767,7 @@ if (is_string($camposCrudos)) {
                     title: 'Error al guardar',
                     text: result.error || "No se pudo completar la operación.",
                     icon: 'error',
-                    confirmButtonColor: '#1b4fbd'
+                    confirmButtonColor: '#d62828'
                 });
             }
         } catch (error) {
@@ -689,7 +776,7 @@ if (is_string($camposCrudos)) {
                 title: 'Error de conexión',
                 text: 'No se pudo contactar al servidor para guardar.',
                 icon: 'error',
-                confirmButtonColor: '#1b4fbd'
+                confirmButtonColor: '#d62828'
             });
         } finally {
             btn.innerHTML = originalText;

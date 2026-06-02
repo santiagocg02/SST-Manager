@@ -194,7 +194,7 @@ $rows = [
       ['codigo'=>'3.1.1', 'item'=>'Descripción sociodemográfica. Diagnóstico de condiciones de salud', 'valor'=>'1', 'total'=>'', 'nc'=>'0', 'na'=>'', 'calif'=>'5'],
       ['codigo'=>'3.1.2', 'item'=>'Actividades de Promoción y Prevención en Salud', 'valor'=>'1', 'total'=>'', 'nc'=>'0', 'na'=>'', 'calif'=>''],
       ['codigo'=>'3.1.3', 'item'=>'Información al médico de los perfiles de cargo', 'valor'=>'1', 'total'=>'', 'nc'=>'0', 'na'=>'', 'calif'=>''],
-      ['codigo'=>'3.1.4', 'item'=>'Realización de evaluaciones médicas ocupacionales: peligros / periodicidad / comunicación al trabajador', 'valor'=>'1', 'total'=>'1', 'nc'=>'', 'na'=>'', 'calif'=>''],
+      ['codigo'=>'3.1.4', 'item'=>'Realización de evaluaciones médicas ocupacionales: peligros / periodicidad / communication al trabajador', 'valor'=>'1', 'total'=>'1', 'nc'=>'', 'na'=>'', 'calif'=>''],
       ['codigo'=>'3.1.5', 'item'=>'Custodia de historias clínicas', 'valor'=>'1', 'total'=>'', 'nc'=>'0', 'na'=>'', 'calif'=>''],
       ['codigo'=>'3.1.6', 'item'=>'Restricciones y recomendaciones médico laborales', 'valor'=>'1', 'total'=>'1', 'nc'=>'', 'na'=>'', 'calif'=>''],
       ['codigo'=>'3.1.7', 'item'=>'Estilos de vida y entornos saludables', 'valor'=>'1', 'total'=>'1', 'nc'=>'', 'na'=>'', 'calif'=>''],
@@ -288,6 +288,11 @@ $rows = [
     ]
   ],
 ];
+
+// Obtener la fecha previa si existe
+$fechaGuardada = $datosCampos['diag_fecha'] ?? '';
+$anoEvaluarGuardado = $datosCampos['diag_ano_evaluar'] ?? '2025';
+$totalGeneralGuardado = $datosCampos['total_general_calif'] ?? '54';
 ?>
 <!doctype html>
 <html lang="es">
@@ -516,7 +521,7 @@ $rows = [
 
     @media print{
       body{ background:#fff; }
-      .toolbar, .top-scroll{ display:none !important; }
+      .toolbar, .top-scroll, .sst-toolbar{ display:none !important; }
       .sheet{ box-shadow:none; border:2px solid #000; }
       .tbl-scroll{ max-height:none; overflow:visible; border:none; }
       table.diag { min-width: 100%; width: 100%; }
@@ -534,7 +539,7 @@ $rows = [
   <div class="sst-toolbar-actions">
     <a href="#" class="btn btn-secondary btn-sm">Volver</a>
 
-    <button type="button" class="btn btn-success btn-sm">
+    <button type="submit" form="form-sst-dinamico" class="btn btn-success btn-sm">
       <i class="fa-solid fa-save"></i> Guardar
     </button>
 
@@ -567,7 +572,7 @@ $rows = [
           </tr>
           <tr>
             <td>DIAGNOSTICO INICIAL</td>
-            <td><input type="date" name="diag_fecha" id="metaFecha" style="border:none; background:transparent; font-size:11px; font-weight:900; outline:none; text-align:center; width:100%;"></td>
+            <td><input type="date" name="diag_fecha" id="metaFecha" value="<?= e($fechaGuardada) ?>" style="border:none; background:transparent; font-size:11px; font-weight:900; outline:none; text-align:center; width:100%;"></td>
           </tr>
         </table>
 
@@ -583,7 +588,7 @@ $rows = [
           </colgroup>
           <tr>
             <td><strong>Año a Evaluar</strong></td>
-            <td class="center"><input type="text" name="diag_ano_evaluar" value="2025" class="cell-input" style="font-weight:900;"></td>
+            <td class="center"><input type="text" name="diag_ano_evaluar" value="<?= e($anoEvaluarGuardado) ?>" class="cell-input" style="font-weight:900;"></td>
             <td></td>
             <td><strong>Fecha de Aplicación de la Autoevaluación:</strong></td>
             <td class="center"><strong>1</strong></td>
@@ -611,10 +616,10 @@ $rows = [
           <table class="diag" id="diagTable">
             <thead>
               <tr>
-                <th colspan="9" class="sec-title">ESTÁNDARES MÍNIMOS SG-SST</th>
+                <th colspan="10" class="sec-title">ESTÁNDARES MÍNIMOS SG-SST</th>
               </tr>
               <tr>
-                <th colspan="9" class="sec-sub">TABLA DE VALORES Y CALIFICACIÓN</th>
+                <th colspan="10" class="sec-sub">TABLA DE VALORES Y CALIFICACIÓN</th>
               </tr>
               <tr>
                 <th class="w-ciclo">CICLO</th>
@@ -641,6 +646,14 @@ $rows = [
                 $first = true;
               ?>
               <?php foreach($block['items'] as $idx => $it): ?>
+                <?php 
+                  // Generamos llaves únicas por ítem para vincular con la API
+                  $cod = $it['codigo'];
+                  $valCumple   = $datosCampos["cumple_$cod"]   ?? $it['total'];
+                  $valNoCumple = $datosCampos["nocumple_$cod"] ?? $it['nc'];
+                  $valNoAplica = $datosCampos["noaplica_$cod"] ?? $it['na'];
+                  $valCalif    = $datosCampos["calif_$cod"]    ?? $it['calif'];
+                ?>
                 <tr>
                   <?php if($first && $block['ciclo'] !== ''): ?>
                     <td rowspan="<?php echo $itemCount; ?>" class="cycle w-ciclo"><?php echo htmlspecialchars($block['ciclo']); ?></td>
@@ -667,13 +680,19 @@ $rows = [
                     <td rowspan="<?php echo $itemCount; ?>" class="center"><strong><?php echo htmlspecialchars($block['peso']); ?></strong></td>
                   <?php endif; ?>
 
-                  <td class="center"><?php echo htmlspecialchars($it['total']); ?></td>
-                  <td class="center"><?php echo htmlspecialchars($it['nc']); ?></td>
-                  <td class="center"><?php echo htmlspecialchars($it['na']); ?></td>
+                  <td class="center">
+                    <input type="text" name="cumple_<?= $cod ?>" value="<?= e($valCumple) ?>" class="cell-input">
+                  </td>
+                  <td class="center">
+                    <input type="text" name="nocumple_<?= $cod ?>" value="<?= e($valNoCumple) ?>" class="cell-input">
+                  </td>
+                  <td class="center">
+                    <input type="text" name="noaplica_<?= $cod ?>" value="<?= e($valNoAplica) ?>" class="cell-input">
+                  </td>
 
-                  <?php if($first): ?>
-                    <td rowspan="<?php echo $itemCount; ?>" class="center"><strong><?php echo htmlspecialchars($it['calif']); ?></strong></td>
-                  <?php endif; ?>
+                  <td class="center">
+                    <input type="text" name="calif_<?= $cod ?>" value="<?= e($valCalif) ?>" class="cell-input" style="font-weight:bold;">
+                  </td>
                 </tr>
                 <?php $first = false; ?>
               <?php endforeach; ?>
@@ -686,7 +705,9 @@ $rows = [
               <td class="center"></td>
               <td class="center"></td>
               <td class="center"></td>
-              <td class="center"><strong>54</strong></td>
+              <td class="center">
+                <input type="text" name="total_general_calif" value="<?= e($totalGeneralGuardado) ?>" class="cell-input" style="font-weight:900;">
+              </td>
             </tr>
             </tbody>
           </table>
@@ -739,99 +760,18 @@ $rows = [
   window.addEventListener('load', syncTopScrollWidth);
   window.addEventListener('resize', syncTopScrollWidth);
 
-  // Poner fecha de hoy por defecto
+  // Poner fecha de hoy por defecto si el input está vacío
   function setHoy(){
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,"0");
-    const dd = String(d.getDate()).padStart(2,"0");
-    document.getElementById("hoyTxt").textContent = `${y}/${m}/${dd}`;
     const fmeta = document.getElementById("metaFecha");
-    if (fmeta && !fmeta.value) fmeta.value = `${y}-${m}-${dd}`;
+    if (fmeta && !fmeta.value) {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      fmeta.value = `${y}-${m}-${dd}`;
+    }
   }
   setHoy();
-
-  // --- LÓGICA DE CARGADO DE DATOS DESDE PHP ---
-  document.addEventListener('DOMContentLoaded', function () {
-    let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
-    if (typeof datosGuardados === 'string') {
-        try { datosGuardados = JSON.parse(datosGuardados); } catch(e) {}
-    }
-
-    if (datosGuardados && Object.keys(datosGuardados).length > 0) {
-        for (const [key, value] of Object.entries(datosGuardados)) {
-            const campo = document.querySelector(`[name="${key}"]`);
-            if (campo) {
-                campo.value = typeof value === 'string' ? value.replace(/\\n/g, '\n') : value;
-            }
-        }
-    }
-  });
-
-  // --- LÓGICA DE GUARDADO ---
-  document.getElementById('btnGuardar').addEventListener('click', async function() {
-    const btn = this;
-    const form = document.getElementById('form-sst-dinamico');
-    const formData = new FormData(form);
-    const datosJSON = {};
-
-    for (const [key, value] of formData.entries()) {
-        datosJSON[key] = value;
-    }
-
-    const originalText = btn.innerHTML;
-    btn.innerHTML = 'Guardando...';
-    btn.disabled = true;
-
-    try {
-        const token = "<?= $token ?>";
-        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
-
-        const response = await fetch(urlAPI, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify({
-                id_empresa: <?= $empresa ?>,
-                id_item_sst: <?= $idItem ?>,
-                datos: datosJSON
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.ok) {
-            Swal.fire({
-                title: '¡Éxito!',
-                text: 'Diagnóstico guardado correctamente',
-                icon: 'success',
-                confirmButtonColor: '#198754'
-            });
-        } else {
-            Swal.fire({
-                title: 'Error al guardar',
-                text: result.error || "No se pudo completar la operación.",
-                icon: 'error',
-                confirmButtonColor: '#1b4fbd'
-            });
-        }
-    } catch (error) {
-        console.error(error);
-        Swal.fire({
-            title: 'Error de conexión',
-            text: 'No se pudo contactar al servidor para guardar.',
-            icon: 'error',
-            confirmButtonColor: '#1b4fbd'
-        });
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-  });
 </script>
-
-<script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>

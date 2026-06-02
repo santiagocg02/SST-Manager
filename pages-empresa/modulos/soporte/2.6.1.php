@@ -14,10 +14,9 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 $api = new ConexionAPI();
 $token = $_SESSION["token"] ?? "";
 $empresa = (int)($_SESSION["id_empresa"] ?? 0);
-// Ajusta el ID de este ítem según tu base de datos (Ej: 29 para "2.6.1")
 $idItem = isset($_GET['item']) ? (int)$_GET['item'] : 29; 
 
-// --- Lógica de Empresa Optimizada (Logo, Nombres y Firmas) ---
+// --- Lógica de Empresa (Logo, Nombres y Firmas) ---
 $nombreEmpresaLogeada = "NOMBRE DE LA EMPRESA";
 $logoEmpresaUrl = "";
 $nombreRL = "";
@@ -32,7 +31,6 @@ if ($empresa > 0) {
         $nombreEmpresaLogeada = $empData['nombre_empresa'] ?? 'NOMBRE DE LA EMPRESA';
         $logoEmpresaUrl = $empData['logo_url'] ?? '';
         
-        // Priorizando campos _rl y _sst
         $nombreRL = $empData['nombre_rl'] ?? $empData['representante_legal'] ?? '';
         $firmaRL = $empData['firma_rl'] ?? $empData['firma_representante'] ?? '';
         $nombreSST = $empData['nombre_sst'] ?? $empData['responsable_sst'] ?? '';
@@ -91,53 +89,6 @@ if (is_string($camposCrudos)) {
             margin:16px auto;
             padding:0 10px;
         }
-
-        .toolbar{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            gap:10px;
-            margin-bottom:12px;
-            flex-wrap:wrap;
-            background: #d9dde2;
-            padding: 10px 16px;
-            border: 1px solid #c8cdd3;
-            border-radius: 6px;
-        }
-        .btn-action{
-            border:1px solid #cfd6e4;
-            background:#fff;
-            color: #2f62b6;
-            padding:6px 12px;
-            border-radius:6px;
-            font-weight:800;
-            cursor:pointer;
-            font-size:12px;
-        }
-        .btn-action:hover { background: #eef4ff; }
-        .btn-primary-action{
-            border-color:#1b4fbd;
-            background:#1b4fbd;
-            color:#fff;
-            padding:6px 12px;
-            border-radius:6px;
-            font-weight:800;
-            cursor:pointer;
-            font-size:12px;
-        }
-        .btn-primary-action:hover { background: #0f3484; }
-        .btn-success-action {
-            border: 1px solid #198754;
-            background: #198754;
-            color: #fff;
-            padding:6px 12px;
-            border-radius:6px;
-            font-weight:800;
-            cursor:pointer;
-            font-size:12px;
-        }
-        .btn-success-action:hover { background: #146c43; }
-        .tiny{ font-size:11px; color:#6b7280; font-weight:700; }
 
         .sheet{
             background:#fff;
@@ -304,16 +255,6 @@ if (is_string($camposCrudos)) {
 
         .center{ text-align:center; }
 
-        .list-box{
-            margin:0;
-            padding-left:20px;
-        }
-
-        .list-box li{
-            margin-bottom:8px;
-            line-height:1.55;
-        }
-
         .sign-grid{
             display:grid;
             grid-template-columns:1fr 1fr 1fr;
@@ -333,7 +274,7 @@ if (is_string($camposCrudos)) {
 
         @media print{
             body{ background:#fff; }
-            .toolbar{ display:none !important; }
+            .sst-toolbar, .no-print{ display:none !important; }
             .sheet{ box-shadow:none; margin-bottom:0; border:2px solid #000; }
         }
 
@@ -342,9 +283,7 @@ if (is_string($camposCrudos)) {
                 grid-template-columns:1fr;
                 gap: 40px;
             }
-            .cover-title{
-                font-size:22px;
-            }
+            .cover-title{ font-size:22px; }
         }
     </style>
     <link rel="stylesheet" href="../../../assets/css/toolbar.css">
@@ -354,22 +293,20 @@ if (is_string($camposCrudos)) {
 <div class="wrap">
 
   <div class="sst-toolbar">
-  <h1 class="sst-toolbar-title">REVISIÓN POR DIRECCIÓN</h1>
-
-  <div class="sst-toolbar-actions">
-    <a href="#" class="btn btn-secondary btn-sm">Volver</a>
-
-    <button type="button" class="btn btn-success btn-sm">
-      <i class="fa-solid fa-save"></i> Guardar
-    </button>
-
-    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
-      <i class="fa-solid fa-print"></i> Imprimir
-    </button>
+    <h1 class="sst-toolbar-title">REVISIÓN POR DIRECCIÓN</h1>
+    <div class="sst-toolbar-actions">
+        <a href="#" class="btn btn-secondary btn-sm">Volver</a>
+        <button type="button" id="btnGuardar" class="btn btn-success btn-sm">
+            <i class="fa-solid fa-save"></i> Guardar
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+            <i class="fa-solid fa-print"></i> Imprimir
+        </button>
+    </div>
   </div>
-</div>
 
     <form id="form-sst-dinamico">
+        <!-- PÁGINA 1: PORTADA -->
         <div class="sheet page-break">
             <table class="format">
                 <colgroup>
@@ -416,6 +353,7 @@ if (is_string($camposCrudos)) {
             </div>
         </div>
 
+        <!-- PÁGINA 2: CONTENIDO DEL CUERPO -->
         <div class="sheet">
             <table class="format">
                 <colgroup>
@@ -477,7 +415,7 @@ Las Revisiones Gerenciales son convocadas por el Gerente General de la Empresa o
             </div>
 
             <div class="sec-h">Aspectos a tener en cuenta para el análisis de la revisión</div>
-            <table class="formtbl">
+            <table class="formtbl" id="tabla-aspectos">
                 <thead>
                     <tr>
                         <th style="width:70px;">N°</th>
@@ -485,22 +423,27 @@ Las Revisiones Gerenciales son convocadas por el Gerente General de la Empresa o
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td class="center">1</td><td>La política, los objetivos y metas del SGSST.</td></tr>
-                    <tr><td class="center">2</td><td>Resultados de indicadores.</td></tr>
-                    <tr><td class="center">3</td><td>Estrategias implementadas para el cumplimiento de los objetivos y metas.</td></tr>
-                    <tr><td class="center">4</td><td>Cumplimiento del plan de trabajo.</td></tr>
-                    <tr><td class="center">5</td><td>Ejecución del presupuesto y suficiencia de los recursos.</td></tr>
-                    <tr><td class="center">6</td><td>El análisis estadístico del sistema (accidentalidad, incidentalidad, inspecciones, entre otras) y la notificación de accidentes.</td></tr>
-                    <tr><td class="center">7</td><td>Estado de acciones derivadas de hallazgos al sistema (no conformidades, iniciativas, recomendaciones, entre otras).</td></tr>
-                    <tr><td class="center">8</td><td>Resultados de implementaciones de acciones preventivas y correctivas.</td></tr>
-                    <tr><td class="center">9</td><td>El resultado de las auditorías internas y externas.</td></tr>
-                    <tr><td class="center">10</td><td>Los cambios que puedan afectar el SGSST.</td></tr>
-                    <tr><td class="center">11</td><td>Requerimientos del COPASST.</td></tr>
-                    <tr><td class="center">12</td><td>Participación de los trabajadores (mecanismos, evidencias).</td></tr>
-                    <tr><td class="center">13</td><td>Requisitos legales de SST.</td></tr>
-                    <tr><td class="center">14</td><td>Entre otros descritos en la norma.</td></tr>
+                    <tr><td class="center index-aspecto">1</td><td><input type="text" name="aspecto_texto[]" class="edit" value="La política, los objetivos y metas del SGSST."></td></tr>
+                    <tr><td class="center index-aspecto">2</td><td><input type="text" name="aspecto_texto[]" class="edit" value="Resultados de indicadores."></td></tr>
+                    <tr><td class="center index-aspecto">3</td><td><input type="text" name="aspecto_texto[]" class="edit" value="Estrategias implementadas para el cumplimiento de los objetivos y metas."></td></tr>
+                    <tr><td class="center index-aspecto">4</td><td><input type="text" name="aspecto_texto[]" class="edit" value="Cumplimiento del plan de trabajo."></td></tr>
+                    <tr><td class="center index-aspecto">5</td><td><input type="text" name="aspecto_texto[]" class="edit" value="Ejecución del presupuesto y suficiencia de los recursos."></td></tr>
+                    <tr><td class="center index-aspecto">6</td><td><input type="text" name="aspecto_texto[]" class="edit" value="El análisis estadístico del sistema (accidentalidad, incidentalidad, inspecciones, entre otras) and la notificación de accidentes."></td></tr>
+                    <tr><td class="center index-aspecto">7</td><td><input type="text" name="aspecto_texto[]" class="edit" value="Estado de acciones derivadas de hallazgos al sistema (no conformidades, iniciativas, recomendaciones, entre otras)."></td></tr>
+                    <tr><td class="center index-aspecto">8</td><td><input type="text" name="aspecto_texto[]" class="edit" value="Resultados de implementaciones de acciones preventivas y correctivas."></td></tr>
+                    <tr><td class="center index-aspecto">9</td><td><input type="text" name="aspecto_texto[]" class="edit" value="El resultado de las auditorías internas y externas."></td></tr>
+                    <tr><td class="center index-aspecto">10</td><td><input type="text" name="aspecto_texto[]" class="edit" value="Los cambios que puedan afectar el SGSST."></td></tr>
+                    <tr><td class="center index-aspecto">11</td><td><input type="text" name="aspecto_texto[]" class="edit" value="Requerimientos del COPASST."></td></tr>
+                    <tr><td class="center index-aspecto">12</td><td><input type="text" name="aspecto_texto[]" class="edit" value="Participación de los trabajadores (mecanismos, evidencias)."></td></tr>
+                    <tr><td class="center index-aspecto">13</td><td><input type="text" name="aspecto_texto[]" class="edit" value="Requisitos legales de SST."></td></tr>
+                    <tr><td class="center index-aspecto">14</td><td><input type="text" name="aspecto_texto[]" class="edit" value="Entre otros descritos en la norma."></td></tr>
                 </tbody>
             </table>
+            <div class="mb-3 no-print">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btn-add-aspecto">
+                    <i class="fa-solid fa-plus"></i> Agregar Aspecto
+                </button>
+            </div>
 
             <div class="sec-h">Resultado de la revisión gerencial</div>
             <div class="box text-just">
@@ -508,7 +451,7 @@ Las Revisiones Gerenciales son convocadas por el Gerente General de la Empresa o
             </div>
 
             <div class="sec-h">Plan de acciones derivado de la revisión</div>
-            <table class="formtbl">
+            <table class="formtbl" id="tabla-plan">
                 <thead>
                     <tr>
                         <th style="width:60px;">N°</th>
@@ -520,24 +463,28 @@ Las Revisiones Gerenciales son convocadas por el Gerente General de la Empresa o
                     </tr>
                 </thead>
                 <tbody>
-                    <?php for($i=1; $i<=8; $i++): ?>
                     <tr>
-                        <td class="center"><?php echo $i; ?></td>
+                        <td class="center index-plan">1</td>
                         <td><textarea name="plan_hallazgo[]" class="edit" rows="2"></textarea></td>
                         <td><textarea name="plan_accion[]" class="edit" rows="2"></textarea></td>
                         <td><input name="plan_responsable[]" class="edit" type="text"></td>
                         <td><input name="plan_fecha[]" class="edit" type="text" placeholder="DD/MM/AAAA"></td>
                         <td><input name="plan_estado[]" class="edit" type="text"></td>
                     </tr>
-                    <?php endfor; ?>
                 </tbody>
             </table>
+            <div class="mb-3 no-print">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btn-add-plan">
+                    <i class="fa-solid fa-plus"></i> Agregar Fila al Plan
+                </button>
+            </div>
 
             <div class="sec-h">Observaciones</div>
             <div class="box">
                 <textarea name="txt_observaciones" class="edit" rows="4" placeholder="Añada aquí cualquier observación adicional..."></textarea>
             </div>
 
+            <!-- BLOQUE DE FIRMAS -->
             <div class="sign-grid">
                 <div class="sign">
                     <div style="min-height: 40px; position:relative; margin-bottom:5px;">
@@ -575,13 +522,11 @@ Las Revisiones Gerenciales son convocadas por el Gerente General de la Empresa o
 </div>
 
 <script>
-    // Poner fecha de hoy por defecto si está vacía
     function setHoy(){
         const d = new Date();
         const y = d.getFullYear();
         const m = String(d.getMonth()+1).padStart(2,"0");
         const dd = String(d.getDate()).padStart(2,"0");
-        document.getElementById("hoyTxt").textContent = `${y}/${m}/${dd}`;
         
         const fmeta1 = document.getElementById("metaFecha1");
         if (fmeta1 && !fmeta1.value) fmeta1.value = `${y}-${m}-${dd}`;
@@ -589,13 +534,42 @@ Las Revisiones Gerenciales son convocadas por el Gerente General de la Empresa o
         const fmeta2 = document.getElementById("metaFecha2");
         if (fmeta2 && !fmeta2.value) fmeta2.value = `${y}-${m}-${dd}`;
         
-        // Poner en portada también si aplica
         const c_fecha = document.querySelector('input[name="cover_fecha"]');
         if(c_fecha && !c_fecha.value) c_fecha.value = `${dd}/${m}/${y}`;
     }
     setHoy();
 
-    // --- LÓGICA DE CARGADO DE DATOS DESDE PHP ---
+    // Botón Agregar Aspecto Dinámico
+    document.getElementById('btn-add-aspecto').addEventListener('click', function() {
+        const tbody = document.querySelector('#tabla-aspectos tbody');
+        const numFilas = tbody.querySelectorAll('tr').length + 1;
+        
+        const nuevaFila = document.createElement('tr');
+        nuevaFila.innerHTML = `
+            <td class="center index-aspecto">${numFilas}</td>
+            <td><input type="text" name="aspecto_texto[]" class="edit" placeholder="Escriba el aspecto a revisar..."></td>
+        `;
+        tbody.appendChild(nuevaFila);
+    });
+
+    // Botón Agregar fila al Plan de Acción Dinámico
+    document.getElementById('btn-add-plan').addEventListener('click', function() {
+        const tbody = document.querySelector('#tabla-plan tbody');
+        const numFilas = tbody.querySelectorAll('tr').length + 1;
+        
+        const nuevaFila = document.createElement('tr');
+        nuevaFila.innerHTML = `
+            <td class="center index-plan">${numFilas}</td>
+            <td><textarea name="plan_hallazgo[]" class="edit" rows="2"></textarea></td>
+            <td><textarea name="plan_accion[]" class="edit" rows="2"></textarea></td>
+            <td><input name="plan_responsable[]" class="edit" type="text"></td>
+            <td><input name="plan_fecha[]" class="edit" type="text" placeholder="DD/MM/AAAA"></td>
+            <td><input name="plan_estado[]" class="edit" type="text"></td>
+        `;
+        tbody.appendChild(nuevaFila);
+    });
+
+    // Renderizar datos guardados de la API
     document.addEventListener('DOMContentLoaded', function () {
         let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
         if (typeof datosGuardados === 'string') {
@@ -603,6 +577,32 @@ Las Revisiones Gerenciales son convocadas por el Gerente General de la Empresa o
         }
 
         if (datosGuardados && Object.keys(datosGuardados).length > 0) {
+            
+            if(datosGuardados['aspecto_texto'] && datosGuardados['aspecto_texto'].length > 14) {
+                const tbodyA = document.querySelector('#tabla-aspectos tbody');
+                for(let i = 14; i < datosGuardados['aspecto_texto'].length; i++) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td class="center index-aspecto">${i+1}</td><td><input type="text" name="aspecto_texto[]" class="edit"></td>`;
+                    tbodyA.appendChild(tr);
+                }
+            }
+
+            if(datosGuardados['plan_hallazgo'] && datosGuardados['plan_hallazgo'].length > 1) {
+                const tbodyP = document.querySelector('#tabla-plan tbody');
+                for(let i = 1; i < datosGuardados['plan_hallazgo'].length; i++) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="center index-plan">${i+1}</td>
+                        <td><textarea name="plan_hallazgo[]" class="edit" rows="2"></textarea></td>
+                        <td><textarea name="plan_accion[]" class="edit" rows="2"></textarea></td>
+                        <td><input name="plan_responsable[]" class="edit" type="text"></td>
+                        <td><input name="plan_fecha[]" class="edit" type="text" placeholder="DD/MM/AAAA"></td>
+                        <td><input name="plan_estado[]" class="edit" type="text"></td>
+                    `;
+                    tbodyP.appendChild(tr);
+                }
+            }
+
             for (const [key, value] of Object.entries(datosGuardados)) {
                 if (Array.isArray(value)) {
                     let campos = document.querySelectorAll(`[name="${key}[]"]`);
@@ -619,7 +619,7 @@ Las Revisiones Gerenciales son convocadas por el Gerente General de la Empresa o
         }
     });
 
-    // --- LÓGICA DE GUARDADO ---
+    // Evento de envío y guardado HTTP POST
     document.getElementById('btnGuardar').addEventListener('click', async function() {
         const btn = this;
         const form = document.getElementById('form-sst-dinamico');

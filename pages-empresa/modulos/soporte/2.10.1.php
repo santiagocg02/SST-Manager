@@ -14,7 +14,6 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 $api = new ConexionAPI();
 $token = $_SESSION["token"] ?? "";
 $empresa = (int)($_SESSION["id_empresa"] ?? 0);
-// Ajusta el ID de este ítem según tu base de datos (Ej: 38 para Lista Chequeo Persona Natural)
 $idItem = isset($_GET['item']) ? (int)$_GET['item'] : 38; 
 
 // --- Lógica de Empresa Optimizada (Logo) ---
@@ -46,6 +45,7 @@ if (is_string($camposCrudos)) {
     $datosCampos = $camposCrudos;
 }
 
+// Textos por defecto si no existen datos guardados aún
 $bloque1 = [
     "Entrega certificado de afiliación vigente a salud y pensiones",
     "Entrega carta de intención de afiliarse o no a la ARL",
@@ -107,59 +107,6 @@ $bloque2 = [
             margin: 0 auto;
         }
 
-        .topbar{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            gap:12px;
-            flex-wrap:wrap;
-            margin-bottom:16px;
-            background: #d9dde2;
-            padding: 10px 16px;
-            border: 1px solid #c8cdd3;
-            border-radius: 6px;
-        }
-
-        .topbar-left,
-        .topbar-right{
-            display:flex;
-            align-items:center;
-            gap:10px;
-            flex-wrap:wrap;
-        }
-
-        .btn-ui{
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            gap:8px;
-            padding:6px 12px;
-            border-radius:6px;
-            border:1px solid var(--btn);
-            background:var(--btn);
-            color:#fff;
-            text-decoration:none;
-            font-size:12px;
-            font-weight:800;
-            transition:.2s ease;
-            cursor:pointer;
-        }
-
-        .btn-ui:hover{ background:var(--btn-hover); border-color:var(--btn-hover); color:#fff; }
-
-        .btn-ui.secondary{ background:#fff; color:var(--btn); border-color:#cfd6e4; }
-        .btn-ui.secondary:hover{ background:#eef5ff; color:var(--btn-hover); }
-
-        .btn-ui.success { background:var(--green); border-color:var(--green); color:#fff; }
-        .btn-ui.success:hover { background:var(--green-hover); }
-
-        .badge-format{
-            font-size:12px;
-            color:#0f2f5c;
-            background:transparent;
-            font-weight:900;
-        }
-
         .sheet-card{
             background:var(--paper);
             border:1px solid #d7dee6;
@@ -167,25 +114,6 @@ $bloque2 = [
             overflow:hidden;
             box-shadow:0 8px 24px rgba(31,41,55,.08);
             margin-bottom: 20px;
-        }
-
-        .sheet-header{
-            padding:14px 18px;
-            background:linear-gradient(135deg, #f8fbff 0%, #eef4fb 100%);
-            border-bottom:1px solid #dde6ef;
-        }
-
-        .sheet-header-title{
-            margin:0;
-            font-size:16px;
-            font-weight:800;
-            color:var(--blue-dark);
-        }
-
-        .sheet-header-subtitle{
-            margin:4px 0 0;
-            font-size:12px;
-            color:var(--muted);
         }
 
         .sheet-scroll{
@@ -267,8 +195,12 @@ $bloque2 = [
             background:#fbfcfd;
             font-size:12px;
             font-weight:700;
-            padding:8px 10px !important;
-        }
+            padding:10px 12px !important;
+            white-space: normal; /* Permite saltos de línea */
+    word-break: break-word; /* Rompe palabras largas si es necesario */
+    vertical-align: middle;
+}
+        
 
         .info-field{
             background:#fff;
@@ -276,11 +208,14 @@ $bloque2 = [
 
         .info-field input{
             width:100%;
+            max-width: 100%;
             border:none;
             outline:none;
             background:transparent;
-            font-size:13px;
-            padding:8px 10px;
+            font-size:12px;
+            padding:10px;
+            box-sizing: border-box;
+            display: block;
         }
         
         .info-field input:focus { background: #f8fbff; }
@@ -320,12 +255,25 @@ $bloque2 = [
         }
 
         .req-cell{
-            padding:10px 10px !important;
+            background:#fff;
+            padding: 0 !important;
+        }
+
+        .req-cell textarea{
+            width:100%;
+            min-height:54px;
+            resize:vertical;
+            border:none;
+            outline:none;
+            background:transparent;
+            padding:10px;
             font-size:13px;
             line-height:1.35;
-            background:#fff;
-            white-space:pre-line;
+            font-family: Arial, Helvetica, sans-serif;
+            display: block;
         }
+
+        .req-cell textarea:focus { background: #f8fbff; }
 
         .check-cell{
             text-align:center;
@@ -352,6 +300,8 @@ $bloque2 = [
             padding:10px;
             font-size:13px;
             line-height:1.35;
+            font-family: Arial, Helvetica, sans-serif;
+            display: block;
         }
 
         .obs-cell textarea:focus { background: #f8fbff; }
@@ -382,10 +332,10 @@ $bloque2 = [
             background:#fff;
         }
 
-        .w-no{ width:70px; }
-        .w-req{ width:520px; }
-        .w-check{ width:70px; }
-        .w-obs{ width:240px; }
+        .w-no{ width:45px; }
+        .w-req{ width:535px; }
+        .w-check{ width:85px; }
+        .w-obs{ width:265px; }
 
         @media (max-width: 768px){
             .page-wrap{ padding:10px; }
@@ -394,15 +344,50 @@ $bloque2 = [
             .top-subtitle{ font-size:12px; }
         }
 
+        /* CONFIGURACIÓN EXCLUSIVA PARA IMPRESIÓN EN TAMAÑO CARTA */
         @media print{
-            @page{ size:portrait; margin:10mm; }
-            body{ background:#fff !important; }
-            .page-wrap{ padding:0 !important; max-width: 100%; }
-            .topbar, .sheet-header, .footer-help, .print-hide { display:none !important; }
-            .sheet-card{ border:none !important; border-radius:0 !important; box-shadow:none !important; margin: 0; }
-            .sheet-scroll{ overflow:visible !important; }
-            .sheet{ min-width:100% !important; }
-            .info-field input, .obs-cell textarea { background: transparent !important; }
+            @page{ 
+                size: letter portrait; 
+                margin: 8mm; 
+            }
+            body{ 
+                background:#fff !important; 
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .page-wrap{ 
+                padding:0 !important; 
+                max-width: 100% !important; 
+                width: 100% !important;
+            }
+            .topbar, .sst-toolbar, .footer-help, .print-hide { 
+                display:none !important; 
+            }
+            .sheet-card{ 
+                border:none !important; 
+                border-radius:0 !important; 
+                box-shadow:none !important; 
+                margin: 0 !important; 
+                padding: 0 !important;
+            }
+            .sheet-scroll{ 
+                overflow:visible !important; 
+                width: 100% !important;
+            }
+            .sheet{ 
+                min-width:100% !important; 
+                width: 100% !important;
+            }
+            table.form-sheet {
+                width: 100% !important;
+                table-layout: fixed !important;
+            }
+            .info-field input, .obs-cell textarea, .req-cell textarea { 
+                background: transparent !important; 
+                border:none !important; 
+                resize:none !important; 
+                overflow: hidden !important;
+            }
         }
     </style>
     <link rel="stylesheet" href="../../../assets/css/toolbar.css">
@@ -412,36 +397,32 @@ $bloque2 = [
 
 <div class="page-wrap">
     <div class="sst-toolbar">
-  <h1 class="sst-toolbar-title">LISTA CHEQUEO · RE-SST-15</h1>
+        <h1 class="sst-toolbar-title">LISTA CHEQUEO · RE-SST-15</h1>
 
-  <div class="sst-toolbar-actions">
-    <a href="#" class="btn btn-secondary btn-sm">Volver</a>
-
-    <button type="button" class="btn btn-success btn-sm">
-      <i class="fa-solid fa-save"></i> Guardar
-    </button>
-
-    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
-      <i class="fa-solid fa-print"></i> Imprimir
-    </button>
-  </div>
-</div>
+        <div class="sst-toolbar-actions">
+            <a href="#" class="btn btn-secondary btn-sm">Volver</a>
+            <button type="button" class="btn btn-success btn-sm" id="btnGuardar">
+                <i class="fa-solid fa-save"></i> Guardar
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> Imprimir
+            </button>
+        </div>
+    </div>
 
     <form id="form-sst-dinamico">
         <div class="sheet-card">
-
-
             <div class="sheet-scroll">
                 <div class="sheet">
                     <table class="form-sheet">
                         <colgroup>
-                            <col style="width:190px">
-                            <col style="width:390px">
-                            <col style="width:85px">
-                            <col style="width:85px">
-                            <col style="width:85px">
-                            <col style="width:280px">
-                        </colgroup>
+    <col style="width:160px"> 
+    <col style="width:420px">
+    <col style="width:85px">
+    <col style="width:85px">
+    <col style="width:85px">
+    <col style="width:265px">
+</colgroup>
 
                         <tr>
                             <td rowspan="3" colspan="2" class="logo-box">
@@ -474,22 +455,22 @@ $bloque2 = [
                         </tr>
 
                         <tr>
-                            <td class="info-label">Fecha:</td>
-                            <td class="info-field" colspan="3"><input type="date" name="fecha_evaluacion" id="fechaEvaluacion"></td>
-                            <td class="info-label">&nbsp;</td>
-                            <td class="info-field"><input type="text" name="codigo_evaluacion" placeholder="Cod. Evaluación"></td>
+                            <td class="info-label" colspan="1">Fecha:</td>
+                            <td class="info-field" colspan="2"><input type="date" name="fecha_evaluacion" id="fechaEvaluacion"></td>
+                            <td class="info-label" colspan="1" style="text-align: right;">&nbsp;</td>
+                            <td class="info-field" colspan="2"><input type="text" name="codigo_evaluacion" placeholder="Cod. Evaluación"></td>
                         </tr>
                         <tr>
-                            <td class="info-label">Nombre del contratista</td>
-                            <td class="info-field" colspan="2"><input type="text" name="contratista"></td>
-                            <td class="info-label" colspan="2" style="text-align: right;">Nit / CC:</td>
-                            <td class="info-field"><input type="text" name="nit"></td>
+                            <td class="info-label" colspan="1">Nombre del contratista:</td>
+                            <td class="info-field" colspan="2"><input type="text" name="contratista" placeholder="Nombre completo..."></td>
+                            <td class="info-label" colspan="1" style="text-align: right;">Nit / CC:</td>
+                            <td class="info-field" colspan="2"><input type="text" name="nit" placeholder="Documento..."></td>
                         </tr>
                         <tr>
-                            <td class="info-label">Nombre del Supervisor</td>
-                            <td class="info-field" colspan="2"><input type="text" name="supervisor" id="nombreSupervisor"></td>
-                            <td class="info-label" colspan="2" style="text-align: right;">CC:</td>
-                            <td class="info-field"><input type="text" name="cc_supervisor"></td>
+                            <td class="info-label" colspan="1">Nombre del Supervisor:</td>
+                            <td class="info-field" colspan="2"><input type="text" name="supervisor" id="nombreSupervisor" placeholder="Nombre del supervisor..."></td>
+                            <td class="info-label" colspan="1" style="text-align: right;">CC:</td>
+                            <td class="info-field" colspan="2"><input type="text" name="cc_supervisor" placeholder="Cédula supervisor..."></td>
                         </tr>
 
                         <tr>
@@ -510,14 +491,17 @@ $bloque2 = [
                             <th class="table-head-sub w-check">N/A</th>
                         </tr>
 
+                        <!-- BLOQUE 1 EDITABLE -->
                         <?php foreach($bloque1 as $i => $req): $n = $i + 1; ?>
                         <tr>
-                            <td class="num-cell"><?= $n ?></td>
-                            <td class="req-cell"><?= e($req) ?></td>
-                            <td class="check-cell"><input type="radio" name="b1_<?= $n ?>" value="SI"></td>
-                            <td class="check-cell"><input type="radio" name="b1_<?= $n ?>" value="NO"></td>
-                            <td class="check-cell"><input type="radio" name="b1_<?= $n ?>" value="NA"></td>
-                            <td class="obs-cell"><textarea name="obs_b1_<?= $n ?>"></textarea></td>
+                            <td class="num-cell w-no"><?= $n ?></td>
+                            <td class="req-cell w-req">
+                                <textarea name="req_b1_<?= $n ?>" placeholder="Escribe el requerimiento..."><?= e($req) ?></textarea>
+                            </td>
+                            <td class="check-cell w-check"><input type="radio" name="b1_<?= $n ?>" value="SI"></td>
+                            <td class="check-cell w-check"><input type="radio" name="b1_<?= $n ?>" value="NO"></td>
+                            <td class="check-cell w-check"><input type="radio" name="b1_<?= $n ?>" value="NA"></td>
+                            <td class="obs-cell w-obs"><textarea name="obs_b1_<?= $n ?>" placeholder="Observaciones..."></textarea></td>
                         </tr>
                         <?php endforeach; ?>
 
@@ -537,14 +521,17 @@ $bloque2 = [
                             <th class="table-head-sub w-check">N/A</th>
                         </tr>
 
+                        <!-- BLOQUE 2 EDITABLE -->
                         <?php foreach($bloque2 as $i => $req): $n = $i + 1; ?>
                         <tr>
-                            <td class="num-cell"><?= $n ?></td>
-                            <td class="req-cell"><?= e($req) ?></td>
-                            <td class="check-cell"><input type="radio" name="b2_<?= $n ?>" value="SI"></td>
-                            <td class="check-cell"><input type="radio" name="b2_<?= $n ?>" value="NO"></td>
-                            <td class="check-cell"><input type="radio" name="b2_<?= $n ?>" value="NA"></td>
-                            <td class="obs-cell"><textarea name="obs_b2_<?= $n ?>"></textarea></td>
+                            <td class="num-cell w-no"><?= $n ?></td>
+                            <td class="req-cell w-req">
+                                <textarea name="req_b2_<?= $n ?>" placeholder="Escribe el requerimiento..."><?= e($req) ?></textarea>
+                            </td>
+                            <td class="check-cell w-check"><input type="radio" name="b2_<?= $n ?>" value="SI"></td>
+                            <td class="check-cell w-check"><input type="radio" name="b2_<?= $n ?>" value="NO"></td>
+                            <td class="check-cell w-check"><input type="radio" name="b2_<?= $n ?>" value="NA"></td>
+                            <td class="obs-cell w-obs"><textarea name="obs_b2_<?= $n ?>" placeholder="Observaciones..."></textarea></td>
                         </tr>
                         <?php endforeach; ?>
 
@@ -560,14 +547,13 @@ $bloque2 = [
             </div>
 
             <div class="footer-help print-hide">
-                Puedes diligenciar la información, marcar SI / NO / N/A y agregar observaciones. Recuerda presionar "Guardar Cambios".
+                Puedes modificar los textos de los requerimientos, marcar SI / NO / N/A y agregar observaciones. Recuerda presionar "Guardar".
             </div>
         </div>
     </form>
 </div>
 
 <script>
-    // Poner fecha de hoy por defecto
     function setHoy(){
         const d = new Date();
         const y = d.getFullYear();
@@ -582,12 +568,10 @@ $bloque2 = [
     }
     setHoy();
 
-    // Actualizar nombre bajo la firma dinámicamente
     document.getElementById('nombreSupervisor').addEventListener('input', function() {
         document.getElementById('firmaText').textContent = this.value || "Firma";
     });
 
-    // --- LÓGICA DE CARGADO DE DATOS DESDE PHP ---
     document.addEventListener('DOMContentLoaded', function () {
         let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
         if (typeof datosGuardados === 'string') {
@@ -597,35 +581,31 @@ $bloque2 = [
         if (datosGuardados && Object.keys(datosGuardados).length > 0) {
             for (const [key, value] of Object.entries(datosGuardados)) {
                 if (Array.isArray(value)) {
-                    // arrays if necessary
+                    // arrays processing
                 } else {
                     let campo = document.querySelector(`[name="${key}"]`);
                     if (!campo) {
-                        // Buscar si es un Radio Button
                         let radio = document.querySelector(`input[name="${key}"][value="${value}"]`);
                         if(radio) radio.checked = true;
                     } else if (campo.type === 'radio' || campo.type === 'checkbox') {
-                        // handled above
+                        // Handled
                     } else {
                         campo.value = typeof value === 'string' ? value.replace(/\\n/g, '\n') : value;
                     }
                 }
             }
             
-            // Actualizar nombre de firma al cargar
             let sup = document.getElementById('nombreSupervisor').value;
             if (sup) document.getElementById('firmaText').textContent = sup;
         }
     });
 
-    // --- LÓGICA DE GUARDADO ---
     document.getElementById('btnGuardar').addEventListener('click', async function() {
         const btn = this;
         const form = document.getElementById('form-sst-dinamico');
         const formData = new FormData(form);
         const datosJSON = {};
 
-        // Recolectar datos y manejar inputs radio
         for (const [key, value] of formData.entries()) {
             if (key.endsWith('[]')) {
                 const cleanKey = key.replace('[]', '');
@@ -688,7 +668,6 @@ $bloque2 = [
         }
     });
 </script>
-
 <script src="../../../assets/js/soporte-toolbar-unificado.js"></script>
 </body>
 </html>
