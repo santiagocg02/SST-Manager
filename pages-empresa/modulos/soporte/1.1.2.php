@@ -146,22 +146,46 @@ if (is_string($camposCrudos)) {
       border:2px dashed #b5b5b5; text-align:center; line-height:1.2;
     }
 
-    .header-main{
-      text-align:center; font-weight:800; font-size:14px; line-height:1.4; text-transform:uppercase;
+    .header-main-textarea {
+      width: 100%; border: none; outline: none; background: transparent;
+      text-align: center; font-weight: 800; font-size: 13px; line-height: 1.4;
+      text-transform: uppercase; font-family: Arial, Helvetica, sans-serif;
+      resize: none; overflow: hidden; height: 42px; color: #111;
     }
 
     .meta-box{
-      display:flex; flex-direction:column; gap:8px; font-size:12px; height:100%; justify-content:center;
+      display:flex; flex-direction:column; gap:4px; font-size:12px; height:100%; justify-content:center;
     }
     .meta-box .meta-item{ text-align:right; font-weight:800; }
 
     .firma-wrapper{ text-align:center; padding:18px 8px 10px; }
     .firma-line{ width:70%; margin:26px auto 6px; border-top:1px solid #000; }
 
-    .check-list{ margin:0; padding:0; list-style:none; }
-    .check-list li{ display:flex; gap:10px; align-items:flex-start; padding:6px 0; }
-    .check{ font-weight:800; min-width:18px; text-align:center; }
-    .empresa-title{ font-size:18px; font-weight:800; text-transform:uppercase; margin-bottom:6px; }
+    .empresa-title-input{ font-size:18px; font-weight:800; text-transform:uppercase; border:none; outline:none; background:transparent; text-align:center; width:100%; }
+
+    /* Estilos de la lista dinámica con puntos viñeta */
+    .punto-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 4px 0;
+    }
+    .punto-bullet {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--sst-text);
+      user-select: none;
+    }
+    .btn-eliminar-punto {
+      color: #dc3545;
+      cursor: pointer;
+      opacity: 0.4;
+      transition: opacity 0.2s;
+      padding-top: 2px;
+    }
+    .punto-item:hover .btn-eliminar-punto {
+      opacity: 1;
+    }
 
     @page{ size:Letter; margin:8mm; }
     @media print{
@@ -172,7 +196,7 @@ if (is_string($camposCrudos)) {
         width:100% !important; min-height:auto !important; margin:0 !important;
         border:none !important; box-shadow:none !important; padding:0 !important;
       }
-      .sst-input, .sst-select, .sst-textarea, .sst-input-line, .editable-block, .editable-list{ color:#000 !important; }
+      .sst-input, .sst-select, .sst-textarea, .sst-input-line, .editable-block, .editable-list, .header-main-textarea, .empresa-title-input{ color:#000 !important; }
     }
     @media (max-width: 991px){
       .sst-page{ padding:12px; }
@@ -217,84 +241,69 @@ if (is_string($camposCrudos)) {
             </td>
 
             <td colspan="3">
-              <div class="header-main">
-                SISTEMA DE GESTIÓN EN SEGURIDAD Y SALUD EN EL TRABAJO<br>
-                CARTA DE NOMBRAMIENTO, REPRESENTANTE POR LA ALTA DIRECCIÓN
+              <div style="padding: 2px;">
+                <textarea name="header_titulo_completo" class="header-main-textarea">SISTEMA DE GESTIÓN EN SEGURIDAD Y SALUD EN EL TRABAJO&#10;CARTA DE NOMBRAMIENTO, REPRESENTANTE POR LA ALTA DIRECCIÓN</textarea>
               </div>
             </td>
 
             <td style="width:18%;">
               <div class="meta-box">
-                <div class="meta-item">0</div>
-                <div class="meta-item">AC-SST-05</div>
                 <div class="meta-item">
-                  <input name="fecha_documento" class="sst-input-line" type="text" value="XX/XX/2025">
+                  <input name="documento_version" class="sst-input right" type="text" value="Versión: 0" style="font-weight:800; padding:0;">
+                </div>
+                <div class="meta-item">
+                  <input name="documento_codigo" class="sst-input right" type="text" value="AC-SST-05" style="font-weight:800; padding:0;">
+                </div>
+                <div class="meta-item">
+                  <input name="fecha_documento" class="sst-input-line right" type="text" value="XX/XX/2025">
                 </div>
               </div>
             </td>
           </tr>
 
           <tr>
-            <td colspan="5" class="sst-title">Identificación de la Empresa</td>
+            <td colspan="5" class="sst-title" style="padding: 0;">
+              <input name="seccion_titulo_1" class="sst-input center bold" type="text" value="Identificación de la Empresa" style="text-transform:uppercase; color:#111; font-size:12px; height:28px;">
+            </td>
           </tr>
 
           <tr>
-            <td colspan="5" class="center" style="padding:20px 10px;">
-              <div class="empresa-title">EMPRESA</div>
+            <td colspan="5" class="center" style="padding:15px 10px;">
+              <div style="margin-bottom: 4px;">
+                <input name="label_empresa" class="empresa-title-input" type="text" value="EMPRESA">
+              </div>
               <input name="nombre_empresa" class="sst-input-line center" style="max-width:420px; display:inline-block;" type="text" value="<?= htmlspecialchars($nombreEmpresaLogeada) ?>">
-              <div class="bold" style="margin-top:18px; font-size:14px;">CERTIFICA:</div>
+              <div style="margin-top:14px;">
+                <input name="label_certifica" class="sst-input center bold" type="text" value="CERTIFICA:" style="font-size:14px;">
+              </div>
             </td>
           </tr>
 
           <tr>
-            <td colspan="5">
-              <ul class="check-list">
-                <li>
-                  <div class="check">✓</div>
-                  <div style="width:100%;">
-                    Que
-                    <input name="nombre_encargado" class="sst-input-line" style="display:inline-block; width:220px;" type="text" value="NOMBRE COMPLETO">
-                    identificado(a) con C.C.
-                    <input name="cc_encargado" class="sst-input-line" style="display:inline-block; width:150px;" type="text" value="XXXXXXXXXX">
-                    ha sido designado(a) como representante de la Dirección para el Sistema de Gestión de Seguridad y Salud en el Trabajo, y se le han asignado las funciones, responsabilidades y autoridades para:
-                  </div>
-                </li>
+            <td colspan="5" style="padding: 15px 20px;">
+              <div style="width:100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 15px;">
+                <span>Que</span>
+                <input name="nombre_encargado" class="sst-input-line" style="width:220px;" type="text" value="NOMBRE COMPLETO">
+                <span>identificado(a) con C.C.</span>
+                <input name="cc_encargado" class="sst-input-line" style="width:130px;" type="text" value="XXXXXXXXXX">
+                <span>ha sido designado(a) como representante de la Dirección para el Sistema de Gestión de Seguridad y Salud en el Trabajo, y se le han asignado las funciones, responsabilidades y autoridades para:</span>
+              </div>
 
-                <li>
-                  <div class="check">✓</div>
-                  <div>Planear, organizar, dirigir, desarrollar y aplicar el SG-SST, y realizar por lo menos una vez al año su evaluación.</div>
-                </li>
+              <ul id="lista-responsabilidades" style="margin:0; padding:0; list-style:none;">
+                </ul>
 
-                <li>
-                  <div class="check">✓</div>
-                  <div>Asegurar que los requisitos del SG-SST se establezcan, implementen y mantengan, de acuerdo con lo indicado en el Decreto 1072 de 2015, Resolución 0312 de 2019 y demás normas asociadas.</div>
-                </li>
-
-                <li>
-                  <div class="check">✓</div>
-                  <div>Informar a la alta dirección sobre el funcionamiento y los resultados del SG-SST.</div>
-                </li>
-
-                <li>
-                  <div class="check">✓</div>
-                  <div>Promover la participación de todos los miembros de la empresa en la implementación del SG-SST.</div>
-                </li>
-
-                <li>
-                  <div class="check">✓</div>
-                  <div>Asegurarse de que se promueva la toma de conciencia de la conformidad con los requisitos del SG-SST.</div>
-                </li>
-
-                <li>
-                  <div class="check">✓</div>
-                  <div>Programar las auditorías internas necesarias para el mantenimiento y mejora continua del SG-SST.</div>
-                </li>
-              </ul>
+              <div class="text-start mt-2 d-print-none">
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btn-agregar-punto">
+                  <i class="fa-solid fa-plus"></i> Añadir punto
+                </button>
+              </div>
             </td>
           </tr>
 
           <tr>
-            <td colspan="5" class="sst-title">Firmas de Responsabilidad</td>
+            <td colspan="5" class="sst-title" style="padding: 0;">
+              <input name="seccion_titulo_2" class="sst-input center bold" type="text" value="Firmas de Responsabilidad" style="text-transform:uppercase; color:#111; font-size:12px; height:28px;">
+            </td>
           </tr>
 
           <tr>
@@ -333,9 +342,50 @@ if (is_string($camposCrudos)) {
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // 1. INYECCIÓN DE DATOS DESDE PHP
+        const contenedorLista = document.getElementById('lista-responsabilidades');
+        const btnAgregar = document.getElementById('btn-agregar-punto');
+
+        // Responsabilidades por defecto si el formato no tiene datos previos guardados
+        const responsabilidadesPorDefecto = [
+            "Planear, organizar, dirigir, desarrollar y aplicar el SG-SST, y realizar por lo menos una vez al año su evaluación.",
+            "Asegurar que los requisitos del SG-SST se establezcan, implementen y mantengan, de acuerdo con lo indicado en el Decreto 1072 de 2015, Resolución 0312 de 2019 y demás normas asociadas.",
+            "Informar a la alta dirección sobre el funcionamiento y los resultados del SG-SST.",
+            "Promover la participación de todos los miembros de la empresa en la implementación del SG-SST.",
+            "Asegurarse de que se promueva la toma de conciencia de la conformidad con los requisitos del SG-SST.",
+            "Programar las auditorías internas necesarias para el mantenimiento y mejora continua del SG-SST."
+        ];
+
+        // Función para renderizar una viñeta rellena o vacía en el HTML
+        function agregarFilaPunto(texto = "") {
+            const li = document.createElement('li');
+            li.className = 'punto-item';
+            li.innerHTML = `
+                <div class="punto-bullet">•</div>
+                <div style="width: 100%;">
+                    <textarea name="responsabilidades_lista[]" class="sst-textarea" style="height:auto;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'">${texto}</textarea>
+                </div>
+                <div class="btn-eliminar-punto d-print-none" title="Eliminar punto">
+                    <i class="fa-solid fa-trash-can"></i>
+                </div>
+            `;
+
+            // Escuchar la eliminación de la fila
+            li.querySelector('.btn-eliminar-punto').addEventListener('click', function() {
+                li.remove();
+            });
+
+            contenedorLista.appendChild(li);
+
+            // Ajustar altura inicial del textarea según el volumen de texto
+            const tx = li.querySelector('textarea');
+            tx.style.height = tx.scrollHeight + 'px';
+        }
+
+        // Evento click del botón para agregar nuevas líneas en blanco
+        btnAgregar.addEventListener('click', () => agregarFilaPunto(""));
+
+        // 1. INYECCIÓN DE DATOS DESDE PHP / API
         let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
-        
         if (typeof datosGuardados === 'string') {
             try { datosGuardados = JSON.parse(datosGuardados); } 
             catch(e) { console.error("No se pudo parsear el JSON de datosGuardados"); }
@@ -343,23 +393,45 @@ if (is_string($camposCrudos)) {
         
         <?php if(isset($errorCarga)) echo "console.warn('Advertencia API:', " . json_encode($errorCarga) . ");"; ?>
         
-        // Si hay datos en la BD, se sobreescribe el contenido
+        // Mapear y rellenar los inputs normales del formulario
         if (datosGuardados && Object.keys(datosGuardados).length > 0) {
             for (const [key, value] of Object.entries(datosGuardados)) {
+                if (key === 'responsabilidades_lista') continue; // Ignoramos la lista dinámica aquí
+
                 const campo = document.querySelector(`[name="${key}"]`);
                 if (campo) {
                     campo.value = typeof value === 'string' ? value.replace(/\\n/g, '\n') : value;
+                    if(campo.tagName.toLowerCase() === 'textarea') {
+                         campo.style.height = '';
+                         campo.style.height = campo.scrollHeight + 'px';
+                    }
                 }
             }
         }
+
+        // Carga de la lista de responsabilidades (Usa datos de BD o en su defecto los iniciales de SST)
+        if (datosGuardados && datosGuardados.responsabilidades_lista && Array.isArray(datosGuardados.responsabilidades_lista)) {
+            datosGuardados.responsabilidades_lista.forEach(texto => agregarFilaPunto(texto));
+        } else {
+            responsabilidadesPorDefecto.forEach(texto => agregarFilaPunto(texto));
+        }
     });
 
-    // 2. LÓGICA DE GUARDADO
+    // 2. LÓGICA DE ENVÍO Y GUARDADO EN LA API
     document.getElementById('btnGuardar').addEventListener('click', async function() {
         const btn = this;
         const form = document.getElementById('form-sst-dinamico');
+        
+        // Obtenemos los campos fijos
         const formData = new FormData(form);
         const datosJSON = Object.fromEntries(formData.entries());
+
+        // Capturamos y mapeamos el contenido de los textareas del listado de puntos
+        const textareasDinamicos = document.querySelectorAll('textarea[name="responsabilidades_lista[]"]');
+        datosJSON.responsabilidades_lista = Array.from(textareasDinamicos).map(tx => tx.value);
+        
+        // Quitamos la llave temporal que genera el parse nativo de los inputs del formulario
+        delete datosJSON['responsabilidades_lista[]'];
 
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
@@ -385,28 +457,13 @@ if (is_string($camposCrudos)) {
             const result = await response.json();
 
             if (result.ok) {
-                Swal.fire({
-                    title: '¡Éxito!',
-                    text: 'Configuración guardada correctamente',
-                    icon: 'success',
-                    confirmButtonColor: '#1fa339'
-                });
+                Swal.fire({ title: '¡Éxito!', text: 'Configuración guardada correctamente', icon: 'success', confirmButtonColor: '#1fa339' });
             } else {
-                Swal.fire({
-                    title: 'Error al guardar',
-                    text: result.error || "No se pudo completar la operación.",
-                    icon: 'error',
-                    confirmButtonColor: '#004176'
-                });
+                Swal.fire({ title: 'Error al guardar', text: result.error || "No se pudo completar la operación.", icon: 'error', confirmButtonColor: '#004176' });
             }
         } catch (error) {
             console.error(error);
-            Swal.fire({
-                title: 'Error de conexión',
-                text: 'No se pudo contactar al servidor para guardar.',
-                icon: 'error',
-                confirmButtonColor: '#004176'
-            });
+            Swal.fire({ title: 'Error de conexión', text: 'No se pudo contactar al servidor para guardar.', icon: 'error', confirmButtonColor: '#004176' });
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;

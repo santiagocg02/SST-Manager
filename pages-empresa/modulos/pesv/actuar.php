@@ -548,7 +548,7 @@ body{
 // ITEMS DE PESV - ACTUAR EXTRAÍDOS DE LA IMAGEN
 // Se agruparon en los pasos 23 y 24 según la estructura oficial del PESV
 const pesvItems = [
-    { paso:"23", actividad:"Mejora continua, acciones preventivas y correctivas", soporte:"", isHeader:true },
+    { paso:"23", actividad:"Mejora continua, acciones preventivas y correctivas", soporte:"1.php", isHeader:true },
     { paso:"", actividad:"Procedimiento de Mejora continua, acciones preventivas y correctivas", soporte:"actuar-23-1.php", isHeader:false },
     { paso:"", actividad:"Acciones correctivas - oportunidades de mejora", soporte:"actuar-23-2.php", isHeader:false },
     { paso:"", actividad:"Matriz de seguimiento y cierre de hallazgos", soporte:"actuar-23-3.php", isHeader:false },
@@ -677,7 +677,7 @@ document.addEventListener("click",(e)=>{
     const btn = e.target.closest("button[data-file]");
 
     if(btn && btn.dataset.file){
-        frame.src = `./soporte-pesv/${btn.dataset.file}`;
+        frame.src = `./soporte-actuar/${btn.dataset.file}`;
         drawer.show();
     }
 });

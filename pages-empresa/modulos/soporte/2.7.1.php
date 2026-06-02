@@ -14,7 +14,6 @@ function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 $api = new ConexionAPI();
 $token = $_SESSION["token"] ?? "";
 $empresa = (int)($_SESSION["id_empresa"] ?? 0);
-// Ajusta el ID de este ítem según tu base de datos (Ej: 31 para "Requisitos Legales")
 $idItem = isset($_GET['item']) ? (int)$_GET['item'] : 31; 
 
 // --- Lógica de Empresa Optimizada (Logo, Nombres y Firmas) ---
@@ -32,7 +31,6 @@ if ($empresa > 0) {
         $nombreEmpresaLogeada = $empData['nombre_empresa'] ?? 'NOMBRE DE LA EMPRESA';
         $logoEmpresaUrl = $empData['logo_url'] ?? '';
         
-        // Priorizando campos _rl y _sst
         $nombreRL = $empData['nombre_rl'] ?? $empData['representante_legal'] ?? '';
         $firmaRL = $empData['firma_rl'] ?? $empData['firma_representante'] ?? '';
         $nombreSST = $empData['nombre_sst'] ?? $empData['responsable_sst'] ?? '';
@@ -58,16 +56,22 @@ if (is_string($camposCrudos)) {
 } elseif (is_array($camposCrudos)) {
     $datosCampos = $camposCrudos;
 }
+
+// Función auxiliar para repoblar inputs/textareas con datos de la API o valores por defecto
+function getValue($key, $default, $datosCampos) {
+    return isset($datosCampos[$key]) ? $datosCampos[$key] : $default;
+}
 ?>
 <!doctype html>
 <html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>2.7.1 - Procedimiento de Identificación, Evaluación y Seguimiento a Requisitos Legales</title>
+    <title>2.7.1 - PROCEDIMIENTO DE IDENTIFICACIÓN, EVALUACIÓN Y SEGUIMIENTO A REQUISITOS LEGALES</title>
 
     <link rel="stylesheet" href="../../../assets/css/toolbar.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
@@ -92,52 +96,27 @@ if (is_string($camposCrudos)) {
             padding: 0 12px;
         }
 
-        .toolbar{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            gap:10px;
-            margin-bottom:16px;
-            flex-wrap:wrap;
-            background: #d9dde2;
-            padding: 10px 16px;
-            border: 1px solid #c8cdd3;
-            border-radius: 6px;
+        .sst-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
         }
-        .btn-action{
-            border:1px solid #cfd6e4;
-            background:#fff;
-            color: #2f62b6;
-            padding:6px 12px;
-            border-radius:6px;
-            font-weight:800;
-            cursor:pointer;
-            font-size:12px;
+        .sst-toolbar-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0;
+            color: #333;
+            text-transform: uppercase;
         }
-        .btn-action:hover { background: #eef4ff; }
-        .btn-primary-action{
-            border-color:#1b4fbd;
-            background:#1b4fbd;
-            color:#fff;
-            padding:6px 12px;
-            border-radius:6px;
-            font-weight:800;
-            cursor:pointer;
-            font-size:12px;
+        .sst-toolbar-actions {
+            display: flex;
+            gap: 10px;
         }
-        .btn-primary-action:hover { background: #0f3484; }
-        .btn-success-action {
-            border: 1px solid #198754;
-            background: #198754;
-            color: #fff;
-            padding:6px 12px;
-            border-radius:6px;
-            font-weight:800;
-            cursor:pointer;
-            font-size:12px;
-        }
-        .btn-success-action:hover { background: #146c43; }
-        .tiny{ font-size:11px; color:#6b7280; font-weight:700; }
 
         .sheet{
             background:#fff;
@@ -166,6 +145,7 @@ if (is_string($camposCrudos)) {
             padding:8px;
             vertical-align: middle;
             font-size: 13px;
+            text-transform: uppercase;
         }
 
         .logo-box{
@@ -177,21 +157,30 @@ if (is_string($camposCrudos)) {
             color:#666;
             background:#fafafa;
             padding: 5px;
+            text-transform: uppercase;
         }
 
-        .title-main{
-            font-size:18px;
+        .title-main-input{
+            font-size:16px;
             font-weight:700;
             text-align:center;
             text-transform:uppercase;
-            line-height:1.35;
-            margin:0;
+            border: none;
+            background: transparent;
+            width: 100%;
+            resize: none;
+            outline: none;
         }
 
-        .code-box{
+        .code-box-input{
             font-weight:700;
             text-align:center;
             font-size:14px;
+            border: none;
+            background: transparent;
+            width: 100%;
+            outline: none;
+            text-transform: uppercase;
         }
 
         .meta-input,
@@ -202,6 +191,7 @@ if (is_string($camposCrudos)) {
             border:1px solid #cfd8e3;
             border-radius:8px;
             font-size:14px;
+            text-transform: uppercase;
         }
 
         .meta-input,
@@ -247,15 +237,31 @@ if (is_string($camposCrudos)) {
             font-weight:700;
             background:#fff;
             padding: 10px;
+            text-transform: uppercase;
         }
 
-        .cover-title{
+        .cover-title-input{
             text-align:center;
             font-weight:700;
-            font-size:20px;
+            font-size:18px;
             text-transform:uppercase;
-            line-height:1.4;
+            border: none;
+            background: transparent;
+            width: 100%;
+            resize: none;
+            outline: none;
             margin-bottom:18px;
+        }
+
+        .cover-grid row g-3 {
+            text-transform: uppercase;
+        }
+
+        .muted-label {
+            text-transform: uppercase;
+            font-weight: bold;
+            font-size: 12px;
+            color: #4b5563;
         }
 
         .cover-grid{
@@ -285,13 +291,6 @@ if (is_string($camposCrudos)) {
             padding:14px;
         }
 
-        .section-body p{
-            margin-bottom:10px;
-            font-size:14px;
-            line-height:1.6;
-            text-align:justify;
-        }
-
         .table-clean{
             width:100%;
             border-collapse: collapse;
@@ -303,6 +302,7 @@ if (is_string($camposCrudos)) {
             padding:10px;
             vertical-align: top;
             font-size:14px;
+            text-transform: uppercase;
         }
 
         .table-clean th{
@@ -327,6 +327,7 @@ if (is_string($camposCrudos)) {
             color:var(--blue);
             display:block;
             margin-bottom:4px;
+            text-transform: uppercase;
         }
 
         .step-block{
@@ -345,24 +346,13 @@ if (is_string($camposCrudos)) {
             font-size:14px;
         }
 
-        .sub-list{
-            margin:0;
-            padding-left:18px;
-        }
-
-        .sub-list li{
-            margin-bottom:6px;
-            font-size:14px;
-            line-height:1.5;
-        }
-
         .convenciones{
             display:grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap:10px;
         }
 
-        .tag-box{
+        .tag-box-input{
             border-radius:10px;
             padding:10px 12px;
             font-weight:700;
@@ -371,62 +361,35 @@ if (is_string($camposCrudos)) {
             border:1px solid #dbe5f0;
             background:#f8fbff;
             text-align:center;
+            width: 100%;
+            outline: none;
         }
 
-        .registro-box{
-            border:1px dashed #9db1c7;
-            border-radius:12px;
-            padding:14px;
-            background:#f9fcff;
-            font-size:14px;
-            line-height:1.6;
+        .btn-agregar-punto {
+            background-color: #10B981;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
 
-        .muted-label{
-            font-size:12px;
-            color:#667085;
-            margin-bottom:4px;
-            display:block;
-            font-weight:600;
-        }
-
-        textarea{
-            resize:vertical;
-            min-height:90px;
-        }
-
-        .sign-grid{
-            display:grid;
-            grid-template-columns:1fr 1fr 1fr;
-            gap:18px;
-            margin-top:24px;
-        }
-
-        .sign{
-            border-top:1px solid #111;
-            padding-top:8px;
-            text-align:center;
-            min-height:65px;
-            font-size:12px;
-            font-weight:700;
-            position: relative;
+        .btn-agregar-punto:hover {
+            background-color: #059669;
         }
 
         @media print{
-            body{
-                background:#fff;
-            }
-            .page-wrap{
-                max-width:100%;
-                margin:0;
-                padding:0;
-            }
-            .toolbar, .print-hide{ display:none !important; }
-            .sheet{
-                border:none;
-                box-shadow:none;
-                border-radius:0;
-            }
+            body{ background:#fff; }
+            .page-wrap{ max-width:100%; margin:0; padding:0; }
+            .sst-toolbar{ display:none !important; }
+            .sheet{ border:none; box-shadow:none; border-radius:0; }
         }
     </style>
 </head>
@@ -434,22 +397,18 @@ if (is_string($camposCrudos)) {
 
 <div class="page-wrap">
     
-    
-<div class="sst-toolbar">
-  <h1 class="sst-toolbar-title">PROCEDIMIENTO REQ. LEGALES</h1>
-
-  <div class="sst-toolbar-actions">
-    <a href="#" class="btn btn-secondary btn-sm">Volver</a>
-
-    <button type="button" class="btn btn-success btn-sm">
-      <i class="fa-solid fa-save"></i> Guardar
-    </button>
-
-    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
-      <i class="fa-solid fa-print"></i> Imprimir
-    </button>
-  </div>
-</div>
+    <div class="sst-toolbar">
+        <h1 class="sst-toolbar-title">PROCEDIMIENTO REQUISITOS LEGALES</h1>
+        <div class="sst-toolbar-actions">
+            <a href="../../index.php" class="btn btn-secondary btn-sm">VOLVER</a>
+            <button type="button" id="btn-guardar-sst" class="btn btn-success btn-sm">
+                <i class="fa-solid fa-save"></i> GUARDAR
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+                <i class="fa-solid fa-print"></i> IMPRIMIR
+            </button>
+        </div>
+    </div>
 
     <form id="form-sst-dinamico">
         <div class="sheet">
@@ -459,35 +418,35 @@ if (is_string($camposCrudos)) {
                         <td rowspan="3" style="width:18%;">
                             <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? '' : 'border:none; background:transparent;' ?>">
                                 <?php if(!empty($logoEmpresaUrl)): ?>
-                                    <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 80px; object-fit: contain;">
+                                    <img src="<?= $logoEmpresaUrl ?>" alt="LOGO EMPRESA" style="max-width: 100%; max-height: 80px; object-fit: contain;">
                                 <?php else: ?>
                                     LOGO EMPRESA
                                 <?php endif; ?>
                             </div>
                         </td>
                         <td rowspan="3" style="width:52%;">
-                            <h1 class="title-main">SISTEMA DE GESTIÓN DE LA SEGURIDAD Y SALUD EN EL TRABAJO</h1>
+                            <textarea name="header_sistema_gestion" class="title-main-input" rows="2"><?= e(strtoupper(getValue('header_sistema_gestion', 'SISTEMA DE GESTIÓN DE LA SEGURIDAD Y SALUD EN EL TRABAJO', $datosCampos))) ?></textarea>
                         </td>
-                        <td style="width:15%; font-weight:700;">Versión</td>
+                        <td style="width:15%; font-weight:700;">VERSIÓN</td>
                         <td style="width:15%;">
-                            <input type="text" name="meta_version" class="meta-input" value="0">
+                            <input type="text" name="meta_version" class="meta-input" value="<?= e(strtoupper(getValue('meta_version', '0', $datosCampos))) ?>">
                         </td>
                     </tr>
                     <tr>
-                        <td style="font-weight:700;">Código</td>
+                        <td style="font-weight:700;">CÓDIGO</td>
                         <td>
-                            <input type="text" name="meta_codigo" class="meta-input" value="AN-XX-SST-20">
+                            <input type="text" name="meta_codigo" class="meta-input" value="<?= e(strtoupper(getValue('meta_codigo', 'AN-XX-SST-20', $datosCampos))) ?>">
                         </td>
                     </tr>
                     <tr>
-                        <td style="font-weight:700;">Fecha</td>
+                        <td style="font-weight:700;">FECHA</td>
                         <td>
-                            <input type="date" name="meta_fecha" id="metaFecha1" class="meta-input">
+                            <input type="date" name="meta_fecha" class="meta-input" value="<?= e(getValue('meta_fecha', date('Y-m-d'), $datosCampos)) ?>">
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="4" class="code-box">
-                            PROCEDIMIENTO DE IDENTIFICACIÓN, EVALUACIÓN Y SEGUIMIENTO A REQUISITOS LEGALES
+                        <td colspan="4">
+                            <input type="text" name="header_procedimiento_titulo" class="code-box-input" value="<?= e(strtoupper(getValue('header_procedimiento_titulo', 'PROCEDIMIENTO DE IDENTIFICACIÓN, EVALUACIÓN Y SEGUIMIENTO A REQUISITOS LEGALES', $datosCampos))) ?>">
                         </td>
                     </tr>
                 </table>
@@ -497,282 +456,131 @@ if (is_string($camposCrudos)) {
                 <div class="doc-cover">
                     <div class="cover-logo" style="<?= empty($logoEmpresaUrl) ? '' : 'border:none; background:transparent;' ?>">
                         <?php if(!empty($logoEmpresaUrl)): ?>
-                            <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 100px; object-fit: contain;">
+                            <img src="<?= $logoEmpresaUrl ?>" alt="LOGO EMPRESA" style="max-width: 100%; max-height: 100px; object-fit: contain;">
                         <?php else: ?>
                             LOGO
                         <?php endif; ?>
                     </div>
 
-                    <div class="cover-title">
-                        PROCEDIMIENTO DE IDENTIFICACIÓN, EVALUACIÓN Y SEGUIMIENTO A REQUISITOS LEGALES
-                    </div>
+                    <textarea name="cover_titulo" class="cover-title-input" rows="2"><?= e(strtoupper(getValue('cover_titulo', 'PROCEDIMIENTO DE IDENTIFICACIÓN, EVALUACIÓN Y SEGUIMIENTO A REQUISITOS LEGALES', $datosCampos))) ?></textarea>
 
                     <div class="cover-grid row g-3">
                         <div class="col-md-6">
-                            <label class="muted-label">Versión</label>
-                            <input type="text" name="cover_version" class="line-input" value="0">
+                            <label class="muted-label">VERSIÓN</label>
+                            <input type="text" name="cover_version" class="line-input" value="<?= e(strtoupper(getValue('cover_version', '0', $datosCampos))) ?>">
                         </div>
                         <div class="col-md-6">
-                            <label class="muted-label">Fecha</label>
-                            <input type="date" name="cover_fecha" id="metaFecha2" class="line-input">
+                            <label class="muted-label">FECHA</label>
+                            <input type="date" name="cover_fecha" class="line-input" value="<?= e(getValue('cover_fecha', date('Y-m-d'), $datosCampos)) ?>">
                         </div>
                         <div class="col-12">
-                            <label class="muted-label">Nombre de la empresa</label>
-                            <input type="text" name="cover_empresa" class="line-input" value="<?= htmlspecialchars($nombreEmpresaLogeada) ?>" placeholder="NOMBRE DE LA EMPRESA">
+                            <label class="muted-label">NOMBRE DE LA EMPRESA</label>
+                            <input type="text" name="cover_empresa" class="line-input" value="<?= e(strtoupper(getValue('cover_empresa', $nombreEmpresaLogeada, $datosCampos))) ?>" placeholder="NOMBRE DE LA EMPRESA">
                         </div>
                     </div>
                 </div>
 
                 <div class="section-card">
-                    <div class="section-title">Objetivo</div>
+                    <div class="section-title">OBJETIVO</div>
                     <div class="section-body">
-                        <textarea name="txt_objetivo" class="form-control" rows="4">Identificar, tener acceso a los requisitos legales y otros que en materia de Seguridad y Salud en el Trabajo (SST), verificando el cumplimiento de aquellos que aplican a las actividades y servicios desarrollados por la compañía. Así mismo, fijar los lineamientos para mantener actualizada la información y coordinar las comunicaciones relacionadas, con el fin de asegurar el cumplimiento de los requisitos legales y de otra índole en Seguridad y Salud en el Trabajo.</textarea>
+                        <textarea name="txt_objetivo" class="form-control" rows="4"><?= e(strtoupper(getValue('txt_objetivo', 'IDENTIFICAR, TENER ACCESO A LOS REQUISITOS LEGALES Y OTROS QUE EN MATERIA DE SEGURIDAD Y SALUD EN EL TRABAJO (SST), VERIFICANDO EL CUMPLIMIENTO DE AQUELLOS QUE APLICAN A LAS ACTIVIDADES Y SERVICIOS DESARROLLADOS POR LA COMPAÑÍA. ASÍ MISMO, FIJAR LOS LINEAMIENTOS PARA MANTENER ACTUALIZADA LA INFORMACIÓN Y COORDINAR LAS COMUNICACIONES RELACIONADAS, CON EL FIN DE ASEGURAR EL CUMPLIMIENTO DE LOS REQUISITOS LEGALES Y DE OTRA ÍNDOLE EN SEGURIDAD Y SALUD EN EL TRABAJO.', $datosCampos))) ?></textarea>
                     </div>
                 </div>
 
                 <div class="section-card">
-                    <div class="section-title">Alcance</div>
+                    <div class="section-title">ALCANCE</div>
                     <div class="section-body">
-                        <textarea name="txt_alcance" class="form-control" rows="3">El alcance de este documento aplica a la identificación, actualización, verificación y comunicación de los requisitos legales y otros aplicables en Seguridad y Salud en el Trabajo.</textarea>
+                        <textarea name="txt_alcance" class="form-control" rows="3"><?= e(strtoupper(getValue('txt_alcance', 'EL ALCANCE DE ESTE DOCUMENTO APLICA A LA IDENTIFICACIÓN, ACTUALIZACIÓN, VERIFICACIÓN Y COMUNICACIÓN DE LOS REQUISITOS LEGALES Y OTROS APLICABLES EN SEGURIDAD Y SALUD EN EL TRABAJO.', $datosCampos))) ?></textarea>
                     </div>
                 </div>
 
                 <div class="section-card">
-                    <div class="section-title">Responsabilidades</div>
+                    <div class="section-title">RESPONSABILIDADES</div>
                     <div class="section-body">
                         <div class="table-responsive">
-                            <table class="table-clean">
+                            <table class="table-clean" id="tabla-responsabilidades">
                                 <thead>
                                     <tr>
-                                        <th style="width:30%;">Responsable</th>
-                                        <th>Responsabilidades</th>
+                                        <th style="width:30%;">RESPONSABLE</th>
+                                        <th>RESPONSABILIDADES</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
                                         <td>
-                                            <input type="text" name="resp_cargo[]" class="line-input" value="Encargado del SG-SST">
+                                            <input type="text" name="resp_cargo_1" class="line-input" value="<?= e(strtoupper(getValue('resp_cargo_1', 'ENCARGADO DEL SG-SST', $datosCampos))) ?>">
                                         </td>
                                         <td>
-                                            <textarea name="resp_desc[]" class="form-control" rows="4">Identificar, evaluar cumplimiento y mantener actualizados los requisitos legales aplicables en materia de SST.
-Alimentar la matriz de requisitos legales y otros.
-Realizar la evaluación del cumplimiento legal.</textarea>
+                                            <textarea name="resp_desc_1" class="form-control" rows="4"><?= e(strtoupper(getValue('resp_desc_1', "IDENTIFICAR, EVALUAR CUMPLIMIENTO Y MANTENER ACTUALIZADOS LOS REQUISITOS LEGALES APLICABLES EN MATERIA DE SST.\nALIMENTAR LA MATRIZ DE REQUISITOS LEGALES Y OTROS.\nREALIZAR LA EVALUACIÓN DEL CUMPLIMIENTO LEGAL.", $datosCampos))) ?></textarea>
                                         </td>
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="text" name="resp_cargo[]" class="line-input" value="Encargado del SG-SST, Asesor Externo">
+                                            <input type="text" name="resp_cargo_2" class="line-input" value="<?= e(strtoupper(getValue('resp_cargo_2', 'ENCARGADO DEL SG-SST, ASESOR EXTERNO', $datosCampos))) ?>">
                                         </td>
                                         <td>
-                                            <textarea name="resp_desc[]" class="form-control" rows="2">Evaluar el cumplimiento legal.</textarea>
+                                            <textarea name="resp_desc_2" class="form-control" rows="2"><?= e(strtoupper(getValue('resp_desc_2', 'EVALUAR EL CUMPLIMIENTO LEGAL.', $datosCampos))) ?></textarea>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
+                            <button type="button" class="btn-agregar-punto" onclick="agregarFilaResponsabilidad()">➕ AGREGAR NUEVO RESPONSABLE</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="section-card">
-                    <div class="section-title">Glosario</div>
+                    <div class="section-title">GLOSARIO</div>
                     <div class="section-body">
-                        <div class="glossary-list">
+                        <div class="glossary-list" id="lista-glosario">
                             <div class="glossary-item">
-                                <strong>Artículo</strong>
-                                <textarea name="glos_articulo" class="form-control" rows="2">Cada una de las partes más o menos independientes en que se divide un escrito jurídico, como una ley o reglamento.</textarea>
+                                <input type="text" name="glos_tit_articulo" class="line-input fw-bold mb-1 text-primary border-0 bg-transparent p-0" value="<?= e(strtoupper(getValue('glos_tit_articulo', 'ARTÍCULO', $datosCampos))) ?>">
+                                <textarea name="glos_articulo" class="form-control" rows="2"><?= e(strtoupper(getValue('glos_articulo', 'CADA UNA DE LAS PARTES MÁS O MENOS INDEPENDIENTES EN QUE SE DIVIDE UN ESCRITO JURÍDICO, COMO UNA LEY O REGLAMENTO.', $datosCampos))) ?></textarea>
                             </div>
                             <div class="glossary-item">
-                                <strong>Circular</strong>
-                                <textarea name="glos_circular" class="form-control" rows="2">Escrito dirigido a varias personas para comunicar algo.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>Código</strong>
-                                <textarea name="glos_codigo" class="form-control" rows="2">Colección sistemática de leyes.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>Decreto</strong>
-                                <textarea name="glos_decreto" class="form-control" rows="2">Acto administrativo expedido por funcionarios en ejercicio de funciones administrativas. Por lo general son expedidos por el Presidente, Gobernadores y Alcaldes, entre otros.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>Decreto - Ley</strong>
-                                <textarea name="glos_decreto_ley" class="form-control" rows="2">Acto expedido por el Presidente de la República que tiene la misma fuerza que una ley, pero que por mandato de la Constitución en algunos casos particulares, se asimilan a leyes expedidas por el Congreso.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>EPS</strong>
-                                <textarea name="glos_eps" class="form-control" rows="2">Entidad Promotora de Salud.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>ICONTEC</strong>
-                                <textarea name="glos_icontec" class="form-control" rows="2">Instituto colombiano de normas técnicas.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>Jurisprudencia</strong>
-                                <textarea name="glos_jurisprudencia" class="form-control" rows="2">Decisiones de carácter general y definitivo tomadas por los órganos jurisdiccionales del país.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>Legislación</strong>
-                                <textarea name="glos_legislacion" class="form-control" rows="2">Conjunto de leyes por la que se rige una materia.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>Ley</strong>
-                                <textarea name="glos_ley" class="form-control" rows="2">Regla, norma, disposición emanada del poder legislativo.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>Normatividad</strong>
-                                <textarea name="glos_normatividad" class="form-control" rows="2">Es el marco regulatorio nacional que existe en el ordenamiento jurídico y que regula los distintos comportamientos y acciones de toda persona natural o jurídica.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>Otros compromisos</strong>
-                                <textarea name="glos_otros" class="form-control" rows="2">Requisitos adicionales a las obligaciones legales.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>Requisito legal</strong>
-                                <textarea name="glos_req_legal" class="form-control" rows="2">Condición(es) que establece la ley para el ejercicio del(los) derecho(s) de la organización.</textarea>
-                            </div>
-                            <div class="glossary-item">
-                                <strong>Resolución</strong>
-                                <textarea name="glos_resolucion" class="form-control" rows="2">Acto administrativo por el cual las diferentes entidades de la Administración Pública adoptan decisiones en el ejercicio de sus funciones.</textarea>
+                                <input type="text" name="glos_tit_circular" class="line-input fw-bold mb-1 text-primary border-0 bg-transparent p-0" value="<?= e(strtoupper(getValue('glos_tit_circular', 'CIRCULAR', $datosCampos))) ?>">
+                                <textarea name="glos_circular" class="form-control" rows="2"><?= e(strtoupper(getValue('glos_circular', 'ESCRITO DIRIGIDO A VARIAS PERSONAS PARA COMUNICAR ALGO.', $datosCampos))) ?></textarea>
                             </div>
                         </div>
+                        <button type="button" class="btn-agregar-punto" onclick="agregarItemGlosario()">➕ AGREGAR TÉRMINO AL GLOSARIO</button>
                     </div>
                 </div>
 
                 <div class="section-card">
-                    <div class="section-title">Procedimiento</div>
+                    <div class="section-title">PROCEDIMIENTO</div>
                     <div class="section-body">
 
                         <div class="step-block">
-                            <h6>1. Identificación de los requisitos legales</h6>
-                            <textarea name="paso1_desc" class="form-control mb-3" rows="3">El encargado del SG-SST identifica los requisitos legales y de otra índole aplicables en SST.</textarea>
+                            <input type="text" name="paso1_titulo" class="line-input fw-bold mb-2 text-primary border-0 bg-transparent p-0" style="font-size:14px;" value="<?= e(strtoupper(getValue('paso1_titulo', '1. IDENTIFICACIÓN DE LOS REQUISITOS LEGALES', $datosCampos))) ?>">
+                            <textarea name="paso1_desc" class="form-control mb-3" rows="3"><?= e(strtoupper(getValue('paso1_desc', 'EL ENCARGADO DEL SG-SST IDENTIFICA LOS REQUISITOS LEGALES Y DE OTRA ÍNDOLE APLICABLES EN SST.', $datosCampos))) ?></textarea>
 
-                            <label class="muted-label">Fuentes de información para actualización y consulta</label>
+                            <label class="muted-label">FUENTES DE INFORMACIÓN PARA ACTUALIZACIÓN Y CONSULTA</label>
                             <div class="table-responsive">
-                                <table class="table-clean">
+                                <table class="table-clean" id="tabla-fuentes">
                                     <thead>
                                         <tr>
                                             <th style="width:50px;">#</th>
-                                            <th>Entidad / Fuente</th>
-                                            <th>Enlace / Referencia</th>
+                                            <th>ENTIDAD / FUENTE</th>
+                                            <th>ENLACE / REFERENCIA</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td class="text-center">1</td>
-                                            <td><input type="text" name="fuente_entidad[]" class="line-input" value="Ministerio del Trabajo"></td>
-                                            <td><input type="text" name="fuente_enlace[]" class="line-input" value="www.mintrabajo.com.co"></td>
+                                            <td class="text-center N-fila">1</td>
+                                            <td><input type="text" name="fuente_entidad_1" class="line-input border-0 bg-transparent p-1" value="<?= e(strtoupper(getValue('fuente_entidad_1', 'MINISTERIO DEL TRABAJO', $datosCampos))) ?>"></td>
+                                            <td><input type="text" name="fuente_enlace_1" class="line-input border-0 bg-transparent p-1" value="<?= e(strtoupper(getValue('fuente_enlace_1', 'WWW.MINTRABAJO.COM.CO', $datosCampos))) ?>"></td>
                                         </tr>
                                         <tr>
-                                            <td class="text-center">2</td>
-                                            <td><input type="text" name="fuente_entidad[]" class="line-input" value="Ministerio de Transporte"></td>
-                                            <td><input type="text" name="fuente_enlace[]" class="line-input" value="www.mintransporte.gov.co"></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="text-center">3</td>
-                                            <td><input type="text" name="fuente_entidad[]" class="line-input" value="ICONTEC"></td>
-                                            <td><input type="text" name="fuente_enlace[]" class="line-input" value="www.icontec.org"></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="text-center">4</td>
-                                            <td><input type="text" name="fuente_entidad[]" class="line-input" value="Consejo Colombiano de Seguridad"></td>
-                                            <td><input type="text" name="fuente_enlace[]" class="line-input" value="www.laseguridad.ws"></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="text-center">5</td>
-                                            <td><input type="text" name="fuente_entidad[]" class="line-input" value="Legis"></td>
-                                            <td><input type="text" name="fuente_enlace[]" class="line-input" value="www.legis.com"></td>
-                                        </tr>
-                                        <tr>
-                                            <td class="text-center">6</td>
-                                            <td><input type="text" name="fuente_entidad[]" class="line-input" value=""></td>
-                                            <td><input type="text" name="fuente_enlace[]" class="line-input" value=""></td>
+                                            <td class="text-center N-fila">2</td>
+                                            <td><input type="text" name="fuente_entidad_2" class="line-input border-0 bg-transparent p-1" value="<?= e(strtoupper(getValue('fuente_entidad_2', 'MINISTERIO DE TRANSPORTE', $datosCampos))) ?>"></td>
+                                            <td><input type="text" name="fuente_enlace_2" class="line-input border-0 bg-transparent p-1" value="<?= e(strtoupper(getValue('fuente_enlace_2', 'WWW.MINTRANSPORTE.GOV.CO', $datosCampos))) ?>"></td>
                                         </tr>
                                     </tbody>
                                 </table>
-                            </div>
-
-                            <div class="mt-3">
-                                <label class="muted-label">Observación</label>
-                                <textarea name="paso1_obs" class="form-control" rows="3">Los requisitos de SST y de otra índole que apliquen se registran en la matriz de identificación de requisitos legales.</textarea>
+                                <button type="button" class="btn-agregar-punto" onclick="agregarFilaFuente()">➕ AGREGAR NUEVA FUENTE</button>
                             </div>
                         </div>
 
-                        <div class="step-block">
-                            <h6>2. Actualización</h6>
-                            <textarea name="paso2_desc" class="form-control" rows="5">El encargado del SG-SST consulta periódicamente en las fuentes descritas anteriormente la información actualizada sobre las normas jurídicas en SST, aplicables a las actividades de la organización. La actualización se realizará por lo menos cada 6 meses o si se conoce antes un requisito a tener en cuenta.
-
-Se deben consultar cuando se tengan cambios en la matriz de identificación de peligros y valoración de riesgos, entre otros, y se hace una revisión de los requisitos legales aplicables.
-
-Cuando se hayan presentado actualizaciones en la identificación de peligros que lleven al cumplimiento de nuevos requisitos legales.</textarea>
-
-                            <div class="mt-3">
-                                <label class="muted-label">Convenciones</label>
-                                <div class="convenciones">
-                                    <div class="tag-box">Normativa adicionada</div>
-                                    <div class="tag-box">Normativa derogada</div>
-                                    <div class="tag-box">Normativa modificada</div>
-                                    <div class="tag-box">Normativa compilada</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="step-block">
-                            <h6>3. Análisis de la información y aplicabilidad en la empresa</h6>
-                            <textarea name="paso3_desc" class="form-control" rows="3">El encargado del SG-SST analiza si el requisito que se identifica aplica a la compañía y genera las acciones para dar cumplimiento.</textarea>
-                        </div>
-
-                        <div class="step-block">
-                            <h6>4. Verificación del cumplimiento de los requisitos</h6>
-                            <textarea name="paso4_desc" class="form-control" rows="4">El encargado del SG-SST con el apoyo del asesor jurídico de la organización y/o externo verificará el cumplimiento de los requisitos legales con frecuencia semestral, dejando evidencia en la matriz de identificación y evaluación de requisitos legales y otros en SST.
-
-En caso de evidenciar desviaciones en el cumplimiento de los requisitos legales o de otra índole, se generarán las acciones necesarias para llegar a su cumplimiento y se informará al responsable de su implementación.</textarea>
-                        </div>
-
-                        <div class="step-block mb-0">
-                            <h6>5. Comunicación de los requisitos legales</h6>
-                            <textarea name="paso5_desc" class="form-control" rows="3">Una vez identificados los requisitos (nuevo requisito o falta de cumplimiento), el encargado del SG-SST divulga a las áreas involucradas las acciones para el cumplimiento del requisito a través de cualquiera de los siguientes medios: correo electrónico, reuniones, cartelera, capacitaciones y boletines.</textarea>
-                        </div>
-
-                    </div>
-                </div>
-
-                <div class="section-card">
-                    <div class="section-title">Registros</div>
-                    <div class="section-body">
-                        <div class="registro-box">
-                            <textarea name="txt_registros" class="form-control" rows="2">Matriz de identificación y evaluación de requisitos legales de Seguridad y Salud en el Trabajo y otra índole.</textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="sign-grid">
-                    <div class="sign">
-                        <div style="min-height: 40px; position:relative; margin-bottom:5px;">
-                            <?php if(!empty($firmaSST)): ?>
-                                <img src="<?= $firmaSST ?>" alt="Firma Elaborador" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
-                            <?php endif; ?>
-                        </div>
-                        ELABORÓ<br>
-                        <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreSST) ?></span>
-                    </div>
-                    
-                    <div class="sign">
-                        <div style="min-height: 40px; position:relative; margin-bottom:5px;">
-                            <?php if(!empty($firmaSST)): ?>
-                                <img src="<?= $firmaSST ?>" alt="Firma Revisor" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
-                            <?php endif; ?>
-                        </div>
-                        REVISÓ<br>
-                        <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreSST) ?></span>
-                    </div>
-
-                    <div class="sign">
-                        <div style="min-height: 40px; position:relative; margin-bottom:5px;">
-                            <?php if(!empty($firmaRL)): ?>
-                                <img src="<?= $firmaRL ?>" alt="Firma Aprobador" style="max-height: 40px; position:absolute; bottom:0; left:50%; transform:translateX(-50%);">
-                            <?php endif; ?>
-                        </div>
-                        APROBÓ<br>
-                        <span style="font-weight:normal; font-size:10px;"><?= htmlspecialchars($nombreRL) ?></span>
                     </div>
                 </div>
 
@@ -782,112 +590,66 @@ En caso de evidenciar desviaciones en el cumplimiento de los requisitos legales 
 </div>
 
 <script>
-    // Poner fecha de hoy por defecto si está vacía
-    function setHoy(){
-        const d = new Date();
-        const y = d.getFullYear();
-        const m = String(d.getMonth()+1).padStart(2,"0");
-        const dd = String(d.getDate()).padStart(2,"0");
-        document.getElementById("hoyTxt").textContent = `${y}/${m}/${dd}`;
+    // LÓGICA DINÁMICA PARA REPETICIÓN DE TABLAS Y ELEMENTOS
+    let contadorResp = 2;
+    function agregarFilaResponsabilidad() {
+        contadorResp++;
+        const tbody = document.querySelector("#tabla-responsabilidades tbody");
+        const nuevaFila = document.createElement("tr");
+        nuevaFila.innerHTML = `
+            <td>
+                <input type="text" name="resp_cargo_${contadorResp}" class="line-input" placeholder="INGRESE CARGO RESPONSABLE">
+            </td>
+            <td>
+                <textarea name="resp_desc_${contadorResp}" class="form-control" rows="3" placeholder="DESCRIPCIÓN DE LA RESPONSABILIDAD"></textarea>
+            </td>
+        `;
+        tbody.appendChild(nuevaFila);
 
-        const fmeta1 = document.getElementById("metaFecha1");
-        if (fmeta1 && !fmeta1.value) fmeta1.value = `${y}-${m}-${dd}`;
-
-        const fmeta2 = document.getElementById("metaFecha2");
-        if (fmeta2 && !fmeta2.value) fmeta2.value = `${y}-${m}-${dd}`;
+        // TRANSFORMAR AUTOMÁTICAMENTE LA ENTRADA A MAYÚSCULAS
+        nuevaFila.querySelectorAll("input, textarea").forEach(el => {
+            el.addEventListener("input", (e) => e.target.value = e.target.value.toUpperCase());
+        });
     }
-    setHoy();
 
-    // --- LÓGICA DE CARGADO DE DATOS DESDE PHP ---
-    document.addEventListener('DOMContentLoaded', function () {
-        let datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
-        if (typeof datosGuardados === 'string') {
-            try { datosGuardados = JSON.parse(datosGuardados); } catch(e) {}
+    function agregarItemGlosario() {
+        const lista = document.getElementById("lista-glosario");
+        const nuevoItem = document.createElement("div");
+        nuevoItem.className = "glossary-item mt-2";
+        
+        const txtTitulo = prompt("INGRESE EL NUEVO TÉRMINO/CONCEPTO:");
+        if (txtTitulo && txtTitulo.trim() !== "") {
+            const index = lista.children.length + 1;
+            nuevoItem.innerHTML = `
+                <input type="text" name="glos_tit_dinamico_${index}" class="line-input fw-bold mb-1 text-primary border-0 bg-transparent p-0" value="${txtTitulo.toUpperCase()}">
+                <textarea name="glos_desc_dinamico_${index}" class="form-control" rows="2" placeholder="DEFINICIÓN DEL TÉRMINO"></textarea>
+            `;
+            lista.appendChild(nuevoItem);
+            
+            nuevoItem.querySelector("textarea").addEventListener("input", (e) => e.target.value = e.target.value.toUpperCase());
         }
+    }
 
-        if (datosGuardados && Object.keys(datosGuardados).length > 0) {
-            for (const [key, value] of Object.entries(datosGuardados)) {
-                if (Array.isArray(value)) {
-                    let campos = document.querySelectorAll(`[name="${key}[]"]`);
-                    value.forEach((val, i) => {
-                        if (campos[i]) campos[i].value = typeof val === 'string' ? val.replace(/\\n/g, '\n') : val;
-                    });
-                } else {
-                    const campo = document.querySelector(`[name="${key}"]`);
-                    if (campo) {
-                        campo.value = typeof value === 'string' ? value.replace(/\\n/g, '\n') : value;
-                    }
-                }
-            }
-        }
-    });
+    function agregarFilaFuente() {
+        const tbody = document.querySelector("#tabla-fuentes tbody");
+        const totalFilas = tbody.children.length + 1;
+        const nuevaFila = document.createElement("tr");
+        nuevaFila.innerHTML = `
+            <td class="text-center">${totalFilas}</td>
+            <td><input type="text" name="fuente_entidad_${totalFilas}" class="line-input border-0 bg-transparent p-1" placeholder="NUEVA ENTIDAD"></td>
+            <td><input type="text" name="fuente_enlace_${totalFilas}" class="line-input border-0 bg-transparent p-1" placeholder="WWW.EJEMPLO.COM"></td>
+        `;
+        tbody.appendChild(nuevaFila);
 
-    // --- LÓGICA DE GUARDADO ---
-    document.getElementById('btnGuardar').addEventListener('click', async function() {
-        const btn = this;
-        const form = document.getElementById('form-sst-dinamico');
-        const formData = new FormData(form);
-        const datosJSON = {};
+        nuevaFila.querySelectorAll("input").forEach(el => {
+            el.addEventListener("input", (e) => e.target.value = e.target.value.toUpperCase());
+        });
+    }
 
-        for (const [key, value] of formData.entries()) {
-            if (key.endsWith('[]')) {
-                const cleanKey = key.replace('[]', '');
-                if (!datosJSON[cleanKey]) datosJSON[cleanKey] = [];
-                datosJSON[cleanKey].push(value);
-            } else {
-                datosJSON[key] = value;
-            }
-        }
-
-        const originalText = btn.innerHTML;
-        btn.innerHTML = 'Guardando...';
-        btn.disabled = true;
-
-        try {
-            const token = "<?= $token ?>";
-            const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
-
-            const response = await fetch(urlAPI, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify({
-                    id_empresa: <?= $empresa ?>,
-                    id_item_sst: <?= $idItem ?>,
-                    datos: datosJSON
-                })
-            });
-
-            const result = await response.json();
-
-            if (result.ok) {
-                Swal.fire({
-                    title: '¡Éxito!',
-                    text: 'Procedimiento guardado correctamente',
-                    icon: 'success',
-                    confirmButtonColor: '#198754'
-                });
-            } else {
-                Swal.fire({
-                    title: 'Error al guardar',
-                    text: result.error || "No se pudo completar la operación.",
-                    icon: 'error',
-                    confirmButtonColor: '#1b4fbd'
-                });
-            }
-        } catch (error) {
-            console.error(error);
-            Swal.fire({
-                title: 'Error de conexión',
-                text: 'No se pudo contactar al servidor para guardar.',
-                icon: 'error',
-                confirmButtonColor: '#1b4fbd'
-            });
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
+    // FORZAR MAYÚSCULAS DESDE EL INCIO EN LOS INPUTS YA EXISTENTES
+    document.querySelectorAll("input, textarea").forEach(el => {
+        if(el.type !== 'date') {
+            el.addEventListener("input", (e) => e.target.value = e.target.value.toUpperCase());
         }
     });
 </script>

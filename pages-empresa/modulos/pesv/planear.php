@@ -548,7 +548,7 @@ body{
 
 // ITEMS DE PESV - PLANEAR EXTRAÍDOS DE LA IMAGEN Y ACTUALIZADOS AL NUEVO MODELO
 const pesvItems = [
-    { paso:"1", actividad:"Líder del diseño e implementación del PESV", soporte:"pesv-1.php", isHeader:false },
+    { paso:"1", actividad:"Líder del diseño e implementación del PESV", soporte:"1.php", isHeader:false },
     { paso:"", actividad:"Perfil del Líder del PESV", soporte:"pesv-1-2.php", isHeader:false },
     { paso:"2", actividad:"Comité de Seguridad Vial", soporte:"pesv-2.php", isHeader:false },
     { paso:"", actividad:"Visión y alcance del PESV", soporte:"pesv-2-2.php", isHeader:false },
@@ -685,7 +685,7 @@ document.addEventListener("click",(e)=>{
     const btn = e.target.closest("button[data-file]");
 
     if(btn && btn.dataset.file){
-        frame.src = `./soporte-pesv/${btn.dataset.file}`;
+        frame.src = `./soporte-planear/${btn.dataset.file}`;
         drawer.show();
     }
 });
