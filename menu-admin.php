@@ -87,13 +87,37 @@ function puedeVer($idModulo, $rol, $permisos) {
 
   <div class="admin-frame">
     
-
     <div class="admin-header d-flex justify-content-between align-items-center pe-4">
       <div class="admin-title text-uppercase fw-bold">SSTManager</div>
       <div class="d-flex align-items-center gap-3">
           <span class="text-white small d-none d-md-block">
               Hola, <strong><?= htmlspecialchars($_SESSION["usuario"] ?? 'Usuario') ?></strong>
           </span>
+          <!-- BOTÓN ADICIONADO: Volver a validacion-menu.php -->
+       <style>
+  .btn-volver-custom {
+    border: 1.5px solid #28a745; /* Un verde un poco más brillante para que destaque sutilmente */
+    color: #28a745;
+    background: transparent;
+    font-size: 0.75rem; /* Tamaño compacto y profesional */
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    padding: 4px 12px;
+}
+
+.btn-volver-custom:hover {
+    background: #28a745;
+    color: #ffffff !important;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.4);
+    transform: translateY(-1px);
+}
+</style>
+
+<a href="validacion-menu.php" class="btn btn-sm btn-volver-custom text-uppercase fw-bold me-2">
+    <i class="fa-solid fa-table-cells me-1"></i> Inicio
+  </a>
+
           <a href="logout.php" class="btn btn-sm btn-outline-light text-uppercase">Cerrar Sesión</a>
       </div>
     </div> 
@@ -176,13 +200,9 @@ function puedeVer($idModulo, $rol, $permisos) {
 
   <script>
     // ===== MENU ACTIVO + SUBMENU FIJO (CON IFRAME) =====
-    // IMPORTANTE: Usamos sessionStorage para que al abrir una NUEVA pestaña vuelva a bienvenida
-
-    // Limpia el valor viejo si alguna vez usaste localStorage (una sola vez)
-    // localStorage.removeItem("menuActivo");
-
     const menuLinks = document.querySelectorAll(".admin-subitem");
     const frame = document.getElementById("contentFrame");
+    const btnVolverMenu = document.getElementById("btnVolverMenu");
 
     function activarMenu(link) {
       menuLinks.forEach(l => l.classList.remove("active"));
@@ -208,9 +228,16 @@ function puedeVer($idModulo, $rol, $permisos) {
     // Click: marca activo (el iframe lo cambia el target="contentFrame")
     menuLinks.forEach(link => {
       link.addEventListener("click", function() {
-        activarMenu(this);
+        activMenu(this);
       });
     });
+
+    // Limpiar el estado del menú al regresar a la validación
+    if (btnVolverMenu) {
+      btnVolverMenu.addEventListener("click", () => {
+        sessionStorage.removeItem("menuActivo");
+      });
+    }
 
     // Al cargar: si no hay nada guardado, mostramos bienvenida (administracion/pages/bienvenida.php)
     document.addEventListener("DOMContentLoaded", () => {
@@ -224,7 +251,7 @@ function puedeVer($idModulo, $rol, $permisos) {
       const link = Array.from(menuLinks).find(l => l.getAttribute("href") === guardado);
 
       if (link) {
-        activarMenu(link);
+        activMenu(link);
         frame.src = guardado;
       } else {
         // por si el link guardado ya no existe por permisos

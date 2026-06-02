@@ -1,8 +1,47 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
+}
+
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos para Indicadores SST
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 48; 
+
+// --- Lógica de Empresa (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
 }
 ?>
 <!DOCTYPE html>
@@ -11,7 +50,11 @@ if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Indicadores SST</title>
+    
+    <!-- Librerías añadidas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <style>
         *{box-sizing:border-box;margin:0;padding:0;font-family:Arial, Helvetica, sans-serif}
         body{background:#f2f4f7;padding:20px;color:#111}
@@ -31,7 +74,7 @@ if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
             border:1px solid #6b6b6b;padding:6px;vertical-align:middle
         }
         .encabezado td,.encabezado th{text-align:center}
-        .logo-box{width:140px;height:65px;border:2px dashed #c8c8c8;display:flex;align-items:center;justify-content:center;margin:auto;color:#999;font-weight:bold;font-size:14px;text-align:center}
+        .logo-box{width:140px;height:65px;display:flex;align-items:center;justify-content:center;margin:auto;color:#999;font-weight:bold;font-size:14px;text-align:center}
         .titulo-principal{font-size:16px;font-weight:700}
         .subtitulo{font-size:14px}
 
@@ -165,14 +208,9 @@ if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
             background:#fff;
         }
 
-        .save-msg{
-            margin:0 0 15px 0;padding:10px 14px;border-radius:8px;background:#e9f7ef;color:#166534;
-            border:1px solid #b7e4c7;font-size:14px;font-weight:700;
-        }
-
         @media print{
             body{background:#fff;padding:0}
-            .toolbar,.selector-wrap{display:none}
+            .toolbar,.selector-wrap, .print-hide {display:none !important;}
             .contenedor{box-shadow:none;border:none}
             .contenido{padding:8px}
             input, textarea, select{border:none !important;box-shadow:none !important}
@@ -181,25 +219,28 @@ if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
 </head>
 <body>
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>Indicadores SST</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="formIndicadores">Guardar</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Datos</button>
             <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
         </div>
     </div>
 
     <div class="contenido">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="formIndicadores" method="POST" action="">
+        <form id="formIndicadores">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:18%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:18%; padding:0;">
+                        <!-- Logo dinámico de la empresa -->
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:64%;">SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</td>
                     <td style="width:18%;font-weight:700;">0</td>
@@ -210,9 +251,9 @@ if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
                 </tr>
             </table>
 
-            <div class="selector-wrap">
+            <div class="selector-wrap print-hide">
                 <label for="selectorIndicador">Seleccione el indicador</label>
-                <select id="selectorIndicador" name="selector_indicador">
+                <select id="selectorIndicador">
                     <option value="plan_trabajo">PLAN DE TRABAJO SST</option>
                     <option value="tasa_prevalencia">TASA DE PREVALENCIA</option>
                 </select>
@@ -222,13 +263,13 @@ if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
                 <div>
                     <div class="seccion-title">Solo seleccione el nombre del indicador, tabla formulada</div>
                     <table class="tabla-ficha">
-                        <tr><td>PROCESO</td><td><input type="text" id="f_proceso" name="f_proceso"></td></tr>
-                        <tr><td>RESPONSABLE DEL PROCESO</td><td><input type="text" id="f_responsable" name="f_responsable"></td></tr>
-                        <tr><td>INDICADOR #</td><td><input type="text" id="f_indicador_num" name="f_indicador_num"></td></tr>
-                        <tr><td>PERIORICIDAD</td><td><input type="text" id="f_periodicidad" name="f_periodicidad"></td></tr>
-                        <tr><td>FUENTE DE LA INFORMACIÓN</td><td><input type="text" id="f_fuente" name="f_fuente"></td></tr>
-                        <tr><td>PERSONAS QUE DEBEN CONOCER</td><td><input type="text" id="f_personas" name="f_personas"></td></tr>
-                        <tr><td>OBJETIVO</td><td><textarea id="f_objetivo" name="f_objetivo"></textarea></td></tr>
+                        <tr><td>PROCESO</td><td><input type="text" id="f_proceso"></td></tr>
+                        <tr><td>RESPONSABLE DEL PROCESO</td><td><input type="text" id="f_responsable"></td></tr>
+                        <tr><td>INDICADOR #</td><td><input type="text" id="f_indicador_num"></td></tr>
+                        <tr><td>PERIORICIDAD</td><td><input type="text" id="f_periodicidad"></td></tr>
+                        <tr><td>FUENTE DE LA INFORMACIÓN</td><td><input type="text" id="f_fuente"></td></tr>
+                        <tr><td>PERSONAS QUE DEBEN CONOCER</td><td><input type="text" id="f_personas"></td></tr>
+                        <tr><td>OBJETIVO</td><td><textarea id="f_objetivo"></textarea></td></tr>
                     </table>
 
                     <div class="seccion-title">Tabla formulada</div>
@@ -319,10 +360,7 @@ const CONFIGS = {
             const meta = toNumber(row.meta);
             const ejecucion = programadas > 0 ? (cumplidas / programadas) * 100 : 0;
             const pte = Math.max(meta - ejecucion, 0);
-            return {
-                ejecucion,
-                pte
-            };
+            return { ejecucion, pte };
         },
         analysis(rows){
             const ejecuciones = rows.map(r => r.ejecucion);
@@ -378,10 +416,7 @@ const CONFIGS = {
             const meta = toNumber(row.meta);
             const ejecucion = trabajadores > 0 ? (casos / trabajadores) * 100000 : 0;
             const pte = Math.max(ejecucion - meta, 0);
-            return {
-                ejecucion,
-                pte
-            };
+            return { ejecucion, pte };
         },
         analysis(rows){
             const ejecuciones = rows.map(r => r.ejecucion);
@@ -397,6 +432,33 @@ const CONFIGS = {
 
 let chartIndicador = null;
 let currentKey = 'plan_trabajo';
+
+// INICIALIZAR DATOS DESDE LA BASE DE DATOS AL CARGAR
+const datosGuardados = <?= json_encode($datosCampos ?: new stdClass()) ?>;
+
+Object.keys(CONFIGS).forEach(indKey => {
+    const cfg = CONFIGS[indKey];
+    // Recuperar datos de las Fichas si existen
+    if (datosGuardados[`${indKey}_proceso`] !== undefined) cfg.proceso = datosGuardados[`${indKey}_proceso`];
+    if (datosGuardados[`${indKey}_responsable`] !== undefined) cfg.responsable = datosGuardados[`${indKey}_responsable`];
+    if (datosGuardados[`${indKey}_indicador_num`] !== undefined) cfg.indicador_num = datosGuardados[`${indKey}_indicador_num`];
+    if (datosGuardados[`${indKey}_periodicidad`] !== undefined) cfg.periodicidad = datosGuardados[`${indKey}_periodicidad`];
+    if (datosGuardados[`${indKey}_fuente`] !== undefined) cfg.fuente = datosGuardados[`${indKey}_fuente`];
+    if (datosGuardados[`${indKey}_personas`] !== undefined) cfg.personas = datosGuardados[`${indKey}_personas`];
+    if (datosGuardados[`${indKey}_objetivo`] !== undefined) cfg.objetivo = datosGuardados[`${indKey}_objetivo`];
+
+    // Recuperar datos de las filas
+    cfg.rows.forEach((row, i) => {
+        cfg.columns.forEach(col => {
+            if (col.key !== 'mes' && col.type !== 'computed') {
+                const savedVal = datosGuardados[`${indKey}_${i}_${col.key}`];
+                if (savedVal !== undefined) {
+                    row[col.key] = savedVal;
+                }
+            }
+        });
+    });
+});
 
 function toNumber(value){
     const n = parseFloat(value);
@@ -467,15 +529,12 @@ function renderTable(cfg){
                 if (col.type === 'computed') {
                     input.className = 'readonly';
                     input.readOnly = true;
-                } else if (col.type === 'numberPercent') {
-                    input.value = row[col.key] ?? 0;
                 } else {
                     input.value = row[col.key] ?? 0;
                 }
 
                 td.appendChild(input);
             }
-
             tr.appendChild(td);
         });
 
@@ -491,23 +550,6 @@ function renderTable(cfg){
     });
 
     tfoot.innerHTML = footCells.join('');
-}
-
-function getRowsFromDom(cfg){
-    return cfg.rows.map((row, rowIndex) => {
-        const newRow = { mes: row.mes };
-
-        cfg.columns.forEach(col => {
-            if (col.key === 'mes') return;
-
-            const input = document.querySelector(`input[data-row="${rowIndex}"][data-key="${col.key}"]`);
-            if (input && !input.readOnly) {
-                newRow[col.key] = toNumber(input.value);
-            }
-        });
-
-        return newRow;
-    });
 }
 
 function writeComputedValues(cfg, rows){
@@ -612,11 +654,10 @@ function renderChart(cfg, rows){
 
 function recalc(){
     const cfg = CONFIGS[currentKey];
-    const rows = getRowsFromDom(cfg);
-    writeComputedValues(cfg, rows);
-    updateFooters(cfg, rows);
-    renderChart(cfg, rows);
-    document.getElementById('analisisTendencial').textContent = cfg.analysis(rows);
+    writeComputedValues(cfg, cfg.rows);
+    updateFooters(cfg, cfg.rows);
+    renderChart(cfg, cfg.rows);
+    document.getElementById('analisisTendencial').textContent = cfg.analysis(cfg.rows);
 }
 
 function loadIndicator(key){
@@ -628,15 +669,116 @@ function loadIndicator(key){
     recalc();
 }
 
+// SINCRONIZAR DATOS DEL DOM AL OBJETO CONFIGS EN TIEMPO REAL
+document.addEventListener('input', function(e){
+    const cfg = CONFIGS[currentKey];
+    
+    // Capturar cambios en la ficha
+    if (e.target.id === 'f_proceso') cfg.proceso = e.target.value;
+    else if (e.target.id === 'f_responsable') cfg.responsable = e.target.value;
+    else if (e.target.id === 'f_indicador_num') cfg.indicador_num = e.target.value;
+    else if (e.target.id === 'f_periodicidad') cfg.periodicidad = e.target.value;
+    else if (e.target.id === 'f_fuente') cfg.fuente = e.target.value;
+    else if (e.target.id === 'f_personas') cfg.personas = e.target.value;
+    else if (e.target.id === 'f_objetivo') cfg.objetivo = e.target.value;
+
+    // Capturar cambios en la tabla
+    else if (e.target.matches('#tbodyIndicador input')) {
+        const rowIndex = e.target.dataset.row;
+        const colKey = e.target.dataset.key;
+        if (rowIndex !== undefined && colKey !== undefined) {
+            cfg.rows[rowIndex][colKey] = toNumber(e.target.value);
+            recalc();
+        }
+    }
+});
+
 document.getElementById('selectorIndicador').addEventListener('change', function(){
     loadIndicator(this.value);
 });
 
-document.addEventListener('input', function(e){
-    if (e.target.matches('#tbodyIndicador input')) {
-        recalc();
+// ----------------------------------------------------
+// INTEGRACIÓN DE GUARDADO CON FETCH API Y SWEETALERT2
+// ----------------------------------------------------
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    // Construir el JSON plano a partir de todos los indicadores en CONFIGS
+    const payload = {};
+    
+    Object.keys(CONFIGS).forEach(indKey => {
+        const cfg = CONFIGS[indKey];
+        
+        // Guardar la Ficha
+        payload[`${indKey}_proceso`] = cfg.proceso || '';
+        payload[`${indKey}_responsable`] = cfg.responsable || '';
+        payload[`${indKey}_indicador_num`] = cfg.indicador_num || '';
+        payload[`${indKey}_periodicidad`] = cfg.periodicidad || '';
+        payload[`${indKey}_fuente`] = cfg.fuente || '';
+        payload[`${indKey}_personas`] = cfg.personas || '';
+        payload[`${indKey}_objetivo`] = cfg.objetivo || '';
+
+        // Guardar las Filas
+        cfg.rows.forEach((row, i) => {
+            cfg.columns.forEach(col => {
+                if (col.key !== 'mes' && col.type !== 'computed') {
+                    payload[`${indKey}_${i}_${col.key}`] = row[col.key] || 0;
+                }
+            });
+        });
+    });
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: payload
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'Todos los indicadores fueron guardados correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 });
+// ----------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', function(){
     loadIndicator(document.getElementById('selectorIndicador').value);

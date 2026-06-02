@@ -1,13 +1,54 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
 }
 
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos para Accidentalidad
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 47; 
+
+// --- Lógica de Empresa (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// Función oldv() adaptada para leer de los datos cargados desde la API
 function oldv($key, $default = '')
 {
-    return isset($_POST[$key]) ? htmlspecialchars((string)$_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
+    global $datosCampos;
+    return (isset($datosCampos[$key]) && $datosCampos[$key] !== '') ? htmlspecialchars((string)$datosCampos[$key], ENT_QUOTES, 'UTF-8') : $default;
 }
 
 $meses = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
@@ -69,7 +110,11 @@ $campos = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accidentalidad</title>
+    
+    <!-- Librerías de gráficos y alertas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <style>
         *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif}
         body{background:#f2f4f7;padding:20px;color:#111}
@@ -86,7 +131,7 @@ $campos = [
         table{width:100%;border-collapse:collapse}
         .encabezado td,.encabezado th,.tabla-main td,.tabla-main th{border:1px solid #6b6b6b;padding:5px;vertical-align:middle}
         .encabezado td,.encabezado th{text-align:center}
-        .logo-box{width:140px;height:65px;border:2px dashed #c8c8c8;display:flex;align-items:center;justify-content:center;margin:auto;color:#999;font-weight:bold;font-size:14px;text-align:center}
+        .logo-box{width:140px;height:65px;display:flex;align-items:center;justify-content:center;margin:auto;color:#999;font-weight:bold;font-size:14px;text-align:center}
         .titulo-principal{font-size:16px;font-weight:700}
         .subtitulo{font-size:14px}
         .hero{background:#f5f5f5;border:1px solid #ddd;padding:16px;margin-top:12px}
@@ -132,13 +177,12 @@ $campos = [
         .chart-analysis{border-top:1px dashed #999;min-height:110px;padding:10px;font-size:12px;line-height:1.45}
         .mini-years{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;max-width:360px}
         .mini-years div{border:1px solid #8aa8db;background:#dbe8f8;text-align:center;font-size:11px;padding:4px;font-weight:700}
-        .save-msg{margin:0 0 15px 0;padding:10px 14px;border-radius:8px;background:#e9f7ef;color:#166534;border:1px solid #b7e4c7;font-size:14px;font-weight:700}
         .note{margin-top:8px;font-size:12px;color:#666}
         @media (max-width: 1400px){.grid-charts{grid-template-columns:repeat(2,1fr)}}
         @media (max-width: 900px){.grid-charts{grid-template-columns:1fr}.hero-top{flex-direction:column}}
         @media print{
             body{background:#fff;padding:0}
-            .toolbar{display:none}
+            .toolbar, .print-hide {display:none !important;}
             .contenedor{box-shadow:none;border:none}
             .formulario{padding:8px}
             .tabla-main input{border:none !important}
@@ -147,25 +191,28 @@ $campos = [
 </head>
 <body>
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>Accidentalidad</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="formAccidentalidad">Guardar</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Datos</button>
             <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
         </div>
     </div>
 
     <div class="formulario">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="formAccidentalidad" method="POST" action="">
+        <form id="formAccidentalidad">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:15%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:15%; padding:0;">
+                        <!-- Logo dinámico de la empresa -->
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:70%;">SISTEMA DE GESTION EN SEGURIDAD Y SALUD EN EL TRABAJO</td>
                     <td style="width:15%;font-weight:700;">0<br>RE-SST-33<br>XX/XX/2025</td>
@@ -260,6 +307,7 @@ $campos = [
                                         <input
                                             type="number"
                                             step="any"
+                                            name="<?= $year ?>_<?= $i ?>_<?= $key ?>"
                                             class="cell-input"
                                             data-year="<?= $year ?>"
                                             data-index="<?= $i ?>"
@@ -508,6 +556,70 @@ function recalcDashboard() {
     updateDaysWithoutAccidents();
     renderAllCharts(rows2024, rows2025);
 }
+
+// ----------------------------------------------------
+// INTEGRACIÓN DE GUARDADO CON FETCH API Y SWEETALERT2
+// ----------------------------------------------------
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('formAccidentalidad');
+    const formData = new FormData(form);
+    
+    // Convertimos el formulario en un objeto JSON limpio
+    const datosJSON = Object.fromEntries(formData.entries());
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'Los datos de accidentalidad fueron guardados correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+// ----------------------------------------------------
 
 document.addEventListener('input', function(e) {
     if (e.target.matches('.cell-input, #fechaActual, #ultimoAccidente')) {

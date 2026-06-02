@@ -1,13 +1,54 @@
 <?php
 session_start();
+
+// 1. SECUENCIA DE CONEXIÓN A LA API
+require_once '../../../includes/ConexionAPI.php';
+
 if (!isset($_SESSION['usuario']) || !isset($_SESSION['token'])) {
-    header('Location: ../../index.php');
+    header('Location: ../../../index.php');
     exit;
 }
 
+$api = new ConexionAPI();
+$token = $_SESSION["token"] ?? "";
+$empresa = (int)($_SESSION["id_empresa"] ?? 0);
+// Ajusta el ID de este ítem según tu base de datos para Ausentismo
+$idItem = isset($_GET['item']) ? (int)$_GET['item'] : 46; 
+
+// --- Lógica de Empresa (Logo) ---
+$logoEmpresaUrl = "";
+if ($empresa > 0) {
+    $resEmpresa = $api->solicitar("index.php?table=empresas&id=$empresa", "GET", null, $token);
+    if (isset($resEmpresa['data']) && !empty($resEmpresa['data'])) {
+        $empData = isset($resEmpresa['data'][0]) ? $resEmpresa['data'][0] : $resEmpresa['data'];
+        $logoEmpresaUrl = $empData['logo_url'] ?? '';
+    }
+}
+
+// 2. SOLICITAMOS LOS DATOS GUARDADOS PREVIAMENTE
+$resFormulario = $api->solicitar("formularios-dinamicos/empresa/$empresa/item/$idItem", "GET", null, $token);
+$datosCampos = [];
+$camposCrudos = null;
+
+if (isset($resFormulario['data']['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['data']['campos'];
+} elseif (isset($resFormulario['data']['campos'])) {
+    $camposCrudos = $resFormulario['data']['campos'];
+} elseif (isset($resFormulario['campos'])) {
+    $camposCrudos = $resFormulario['campos'];
+}
+
+if (is_string($camposCrudos)) {
+    $datosCampos = json_decode($camposCrudos, true);
+} elseif (is_array($camposCrudos)) {
+    $datosCampos = $camposCrudos;
+}
+
+// Función modificada para leer de los datos guardados en BD en lugar de POST
 function oldv($key, $default = '')
 {
-    return isset($_POST[$key]) ? htmlspecialchars((string)$_POST[$key], ENT_QUOTES, 'UTF-8') : $default;
+    global $datosCampos;
+    return (isset($datosCampos[$key]) && $datosCampos[$key] !== '') ? htmlspecialchars((string)$datosCampos[$key], ENT_QUOTES, 'UTF-8') : $default;
 }
 
 $meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
@@ -24,7 +65,18 @@ $causas = [
     'calamidad' => 'CALAMIDAD / LICENCIA POR LUTO'
 ];
 
+// Calcular cuántas filas de detalle existen guardadas en la base de datos
 $filasDetalle = 1;
+if (!empty($datosCampos)) {
+    foreach($datosCampos as $k => $v) {
+        if (preg_match('/^det_nombre_(\d+)$/', $k, $matches)) {
+            $num = (int)$matches[1];
+            if ($num > $filasDetalle) {
+                $filasDetalle = $num;
+            }
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -32,7 +84,11 @@ $filasDetalle = 1;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ausentismo</title>
+    
+    <!-- Librerías añadidas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <style>
         *{box-sizing:border-box;margin:0;padding:0;font-family:Arial, Helvetica, sans-serif;}
         body{background:#f2f4f7;padding:20px;color:#111;}
@@ -60,18 +116,13 @@ $filasDetalle = 1;
         .tabla-resumen td,.tabla-resumen th{
             border:1px solid #6b6b6b;padding:6px;vertical-align:top;
         }
-        .encabezado td,.encabezado th{text-align:center;}
+        .encabezado td,.encabezado th{text-align:center; vertical-align:middle;}
         .logo-box{
-            width:140px;height:65px;border:2px dashed #c8c8c8;display:flex;align-items:center;justify-content:center;
+            width:140px;height:65px;display:flex;align-items:center;justify-content:center;
             margin:auto;color:#999;font-weight:bold;font-size:14px;text-align:center;
         }
         .titulo-principal{font-size:16px;font-weight:700;}
         .subtitulo{font-size:14px;}
-
-        .save-msg{
-            margin:0 0 15px 0;padding:10px 14px;border-radius:8px;background:#e9f7ef;color:#166534;
-            border:1px solid #b7e4c7;font-size:14px;font-weight:700;
-        }
 
         .panel-top{
             margin-top:14px;
@@ -302,7 +353,7 @@ $filasDetalle = 1;
 
         @media print{
             body{background:#fff;padding:0;}
-            .toolbar,.topbar{display:none;}
+            .toolbar, .topbar, .print-hide {display:none !important;}
             .contenedor{box-shadow:none;border:none;}
             .formulario{padding:8px;}
             .tabla-wrap{overflow:visible;border:none;}
@@ -313,25 +364,28 @@ $filasDetalle = 1;
 <body>
 
 <div class="contenedor">
-    <div class="toolbar">
+    <div class="toolbar print-hide">
         <h1>Ausentismo</h1>
         <div class="acciones">
             <button class="btn btn-atras" type="button" onclick="history.back()">Atrás</button>
-            <button class="btn btn-guardar" type="submit" form="formAusentismo">Guardar</button>
+            <button class="btn btn-guardar" type="button" id="btnGuardar">Guardar Datos</button>
             <button class="btn btn-imprimir" type="button" onclick="window.print()">Imprimir</button>
         </div>
     </div>
 
     <div class="formulario">
-        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-            <div class="save-msg">Datos guardados correctamente en memoria del formulario.</div>
-        <?php endif; ?>
-
-        <form id="formAusentismo" method="POST" action="">
+        <form id="formAusentismo">
             <table class="encabezado">
                 <tr>
-                    <td rowspan="2" style="width:20%;">
-                        <div class="logo-box">TU LOGO<br>AQUÍ</div>
+                    <td rowspan="2" style="width:20%; padding:0;">
+                        <!-- Logo dinámico de la empresa -->
+                        <div class="logo-box" style="<?= empty($logoEmpresaUrl) ? 'border: 2px dashed #c8c8c8;' : 'border: none;' ?>">
+                            <?php if(!empty($logoEmpresaUrl)): ?>
+                                <img src="<?= $logoEmpresaUrl ?>" alt="Logo Empresa" style="max-width: 100%; max-height: 60px; object-fit: contain;">
+                            <?php else: ?>
+                                TU LOGO<br>AQUÍ
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="titulo-principal" style="width:60%;">SISTEMA DE GESTION EN SEGURIDAD Y SALUD EN EL TRABAJO</td>
                     <td style="width:20%; font-weight:700;">0</td>
@@ -403,7 +457,7 @@ $filasDetalle = 1;
                 </table>
             </div>
 
-            <div class="nota">Nota: Ingrese número de trabajadores, total de días trabajados y % de ausentismos del año anterior. Solo diligencie las filas azules. :contentReference[oaicite:1]{index=1}</div>
+            <div class="nota">Nota: Ingrese número de trabajadores, total de días trabajados y % de ausentismos del año anterior. Solo diligencie las filas azules.</div>
 
             <div class="tabla-wrap">
                 <table class="tabla-base" id="tablaMensual">
@@ -468,9 +522,9 @@ $filasDetalle = 1;
                 </div>
             </div>
 
-            <div class="nota">Nota: ingrese el Nombre, cédula, digite la fecha, días de ausentismo según causa. Solo diligencie las celdas con líneas azules. :contentReference[oaicite:2]{index=2}</div>
+            <div class="nota">Nota: ingrese el Nombre, cédula, digite la fecha, días de ausentismo según causa. Solo diligencie las celdas con líneas azules.</div>
 
-            <div class="topbar">
+            <div class="topbar print-hide">
                 <button type="button" class="btn btn-add" onclick="agregarFilaDetalle()">Agregar fila</button>
             </div>
 
@@ -522,7 +576,7 @@ $filasDetalle = 1;
                 </table>
             </div>
 
-            <div class="nota">Nota: todas las celdas se calculan automáticas, no ingresar datos. :contentReference[oaicite:3]{index=3}</div>
+            <div class="nota">Nota: todas las celdas se calculan automáticas, no ingresar datos.</div>
 
             <div class="grid-bottom">
                 <div class="bloque">
@@ -608,9 +662,70 @@ function setVal(name, value){
 function getVal(name){
     return document.querySelector(`[name="${name}"]`)?.value || '';
 }
-function monthIndex(m){
-    return MESES.indexOf(m);
-}
+
+// ----------------------------------------------------
+// INTEGRACIÓN DE GUARDADO CON FETCH API Y SWEETALERT2
+// ----------------------------------------------------
+document.getElementById('btnGuardar').addEventListener('click', async function() {
+    const btn = this;
+    const form = document.getElementById('formAusentismo');
+    const formData = new FormData(form);
+    
+    // Convertimos el formulario en un objeto JSON limpio
+    const datosJSON = Object.fromEntries(formData.entries());
+
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Guardando...';
+    btn.disabled = true;
+
+    try {
+        const token = "<?= $token ?>";
+        const urlAPI = "http://localhost/sstmanager-backend/public/formularios-dinamicos/guardar";
+
+        const response = await fetch(urlAPI, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                id_empresa: <?= $empresa ?>,
+                id_item_sst: <?= $idItem ?>,
+                datos: datosJSON
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'Los datos del ausentismo fueron guardados correctamente.',
+                icon: 'success',
+                confirmButtonColor: '#198754'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error al guardar',
+                text: result.error || "No se pudo completar la operación.",
+                icon: 'error',
+                confirmButtonColor: '#1b4fbd'
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo contactar al servidor para guardar.',
+            icon: 'error',
+            confirmButtonColor: '#1b4fbd'
+        });
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+// ----------------------------------------------------
 
 function recalcMensual(){
     let totalTrab = 0, totalHht = 0, totalDpeg = 0, totalDpa = 0, totalThpa = 0;
