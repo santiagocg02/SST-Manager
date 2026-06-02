@@ -12,6 +12,7 @@ $api = new ConexionAPI();
 $token = $_SESSION["token"];
 $rolSesion = $_SESSION["rol"] ?? '';
 $perfilIdSesion = $_SESSION["id_perfil"] ?? 0;
+$idEmpresaSesion = $_SESSION["id_empresa"] ?? null;
 $mensaje = "";
 
 // --- CARGA DE MATRIZ DE PERMISOS PARA EL USUARIO ACTUAL ---
@@ -58,14 +59,22 @@ $MOD_PERMISOS = 14;
 // 2. PROCESAR FORMULARIO DE PERFIL (POST/PUT - Módulo 3)
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["nombre_perfil"])) {
     $id = $_POST["id_perfil"] ?? "";
+    
+    // Si es Master y no hay empresa definida en la sesión, se guarda como null (Perfil Global)
+    $idEmpGuardar = ($rolSesion === "Master" && empty($idEmpresaSesion)) ? null : (int)$idEmpresaSesion;
+
     $datos = [
         "nombre_perfil" => trim($_POST["nombre_perfil"]),
         "descripcion"   => trim($_POST["descripcion"] ?? ""),
-        "estado"        => isset($_POST["status"]) ? 1 : 0
+        "estado"        => isset($_POST["status"]) ? 1 : 0,
+        "id_empresa"    => $idEmpGuardar 
     ];
 
     $endpoint = "index.php?table=perfiles" . (!empty($id) ? "&id=$id" : "");
     $metodo = !empty($id) ? "PUT" : "POST";
+    
+    if(!empty($id)) unset($datos["id_empresa"]); // No cambiar empresa al editar un perfil existente
+
     $resultado = $api->solicitar($endpoint, $metodo, $datos, $token);
 
     if (isset($resultado['status']) && ($resultado['status'] == 200 || $resultado['status'] == 201)) {
@@ -77,17 +86,69 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["nombre_perfil"])) {
 }
 
 // 3. CARGA DE DATOS PARA LA TABLA Y MODAL
-$resPerfiles = $api->solicitar("index.php?table=perfiles", "GET", null, $token);
+$urlPerfiles = "index.php?table=perfiles";
+
+// Si NO es Master, filtramos la petición a la API
+if ($rolSesion !== "Master") {
+    $urlPerfiles .= "&id_empresa=" . $idEmpresaSesion;
+}
+
+$resPerfiles = $api->solicitar($urlPerfiles, "GET", null, $token);
 $listaPerfiles = (isset($resPerfiles['status']) && $resPerfiles['status'] == 200) ? $resPerfiles['data'] : [];
 
 $resModulos = $api->solicitar("index.php?table=modulos", "GET", null, $token);
 $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] == 200) ? $resModulos['data'] : [];
+
+// --- DICCIONARIO DE EMPRESAS Y PLANES ---
+$mapaEmpresas = []; 
+$resEmpresas = $api->solicitar("index.php?table=empresas", "GET", null, $token);
+$todasLasEmpresas = (isset($resEmpresas['status']) && $resEmpresas['status'] == 200) ? ($resEmpresas['data'] ?? []) : [];
+
+// Llenamos el mapa de empresas para poder mostrar el nombre en la tabla
+foreach ($todasLasEmpresas as $emp) {
+    $mapaEmpresas[$emp['id_empresa']] = $emp['nombre_empresa'];
+}
+
+// SOLO FILTRAMOS SI EL USUARIO NO ES MASTER
+if ($rolSesion !== "Master" && !empty($idEmpresaSesion)) {
+    $idPlanEmpresa = 0;
+    
+    foreach ($todasLasEmpresas as $emp) {
+        if (isset($emp['id_empresa']) && $emp['id_empresa'] == $idEmpresaSesion) {
+            $idPlanEmpresa = (int)($emp['id_plan'] ?? 0);
+        }
+    }
+
+    // Filtrar localmente los perfiles por seguridad adicional
+    $listaPerfiles = array_filter($listaPerfiles, function($p) use ($idEmpresaSesion) {
+        return isset($p['id_empresa']) && $p['id_empresa'] == $idEmpresaSesion;
+    });
+
+    // Extraer los IDs de los módulos permitidos por ese plan
+    $modulosPlanIds = [];
+    if ($idPlanEmpresa > 0) {
+        $resPlan = $api->solicitar("planes/permisos/$idPlanEmpresa", "GET", null, $token);
+        $datosPlan = $resPlan['data'] ?? $resPlan;
+        if (is_array($datosPlan)) {
+            foreach ($datosPlan as $p) {
+                $modulosPlanIds[] = (int)$p['id_modulo'];
+            }
+        }
+    }
+
+    // Filtrar la lista maestra de módulos para el modal basado en el plan
+    if (!empty($modulosPlanIds)) {
+        $listaModulosMaestra = array_filter($listaModulosMaestra, function($m) use ($modulosPlanIds) {
+            return in_array((int)$m['id_modulo'], $modulosPlanIds);
+        });
+    }
+}
 ?>
 <!doctype html>
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>SST Manager - Gestión de Perfiles</title>
+    <title>SST Manager - Gestión de Perfiles Administrador</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../assets/css/main-style.css">
@@ -103,7 +164,7 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
 <body class="cal-wrap">
 
 <div class="container-fluid">
-    <h2 class="mb-4"><i class="fa-solid fa-user-shield me-2"></i>Gestión de Perfiles y Accesos</h2>
+    <h2 class="mb-4"><i class="fa-solid fa-user-shield me-2"></i>Gestión de Perfiles y Accesos (Admin)</h2>
 
     <?php if($mensaje): echo "<div class='alert alert-danger'>$mensaje</div>"; endif; ?>
 
@@ -147,6 +208,7 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
                     <tr>
                         <th width="80" class="ps-3">ID</th>
                         <th>Nombre del Perfil</th>
+                        <th>Empresa a la que Pertenece</th>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
@@ -155,6 +217,15 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
                     <tr>
                         <td class="ps-3"><?= $p['id_perfil'] ?></td>
                         <td class="fw-bold"><?= htmlspecialchars($p['nombre_perfil']) ?></td>
+                        <td>
+                            <?php if (isset($p['id_empresa']) && isset($mapaEmpresas[$p['id_empresa']])): ?>
+                                <span class="badge bg-info text-dark" style="font-size: 0.85em;">
+                                    <?= htmlspecialchars($mapaEmpresas[$p['id_empresa']]) ?>
+                                </span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary" style="font-size: 0.85em;">Sistema (Global)</span>
+                            <?php endif; ?>
+                        </td>
                         <td class="text-center">
                             <?php if (puedeVer($MOD_PERMISOS, $rolSesion, $misPermisos)): ?>
                                 <button class="btn btn-sm btn-primary px-3" 
@@ -232,7 +303,6 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
     const API_URL = "/sstmanager-backend/public/index.php"; 
     const modalPerm = new bootstrap.Modal(document.getElementById('modalPermisos'));
 
-    // Validación inicial de creación de perfiles
     document.addEventListener("DOMContentLoaded", function() {
         if (!PER_PUEDE_CREAR) document.getElementById('btnGuardar').style.display = 'none';
     });
@@ -265,7 +335,6 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
         document.getElementById('perm_id_perfil').value = id;
         document.getElementById('tituloModal').innerHTML = `Accesos para: <strong>${nombre}</strong>`;
         
-        // Controlar botón Sincronizar y checkboxes
         document.getElementById('btnSincronizar').style.display = ACC_PUEDE_CREAR ? 'block' : 'none';
 
         fetch(`${API_URL}?table=perfiles&action=permisos&id=${id}`, {
@@ -276,7 +345,7 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
             const list = data.data || data;
             document.querySelectorAll('.check-perm').forEach(c => {
                 c.checked = false;
-                c.disabled = !ACC_PUEDE_CREAR; // Bloquea si no puede sincronizar
+                c.disabled = !ACC_PUEDE_CREAR; 
             });
             if(Array.isArray(list)) {
                 list.forEach(p => {

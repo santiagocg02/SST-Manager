@@ -477,7 +477,7 @@ body{
     <div class="topbar">
 
         <div class="topbar-left">
-            <h2>PLAN DE TRABAJO - ÍTEMS</h2>
+            <h2>Diseño y Planificación  del SG - SST</h2>
             <div class="badge-count" id="countBadge">0</div>
         </div>
 

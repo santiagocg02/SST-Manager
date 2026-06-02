@@ -166,8 +166,21 @@ $listaModulosMaestra = (isset($resModulos['status']) && $resModulos['status'] ==
                     </thead>
                     <tbody>
                         <?php 
-                        $padres = array_filter($listaModulosMaestra, fn($m) => empty($m['id_padre']));
-                        $hijos = array_filter($listaModulosMaestra, fn($m) => !empty($m['id_padre']));
+                        // 1. Definimos los nombres de los módulos que NO deben aparecer
+                        $excluidos = ['módulos', 'modulos', 'planes', 'administracion', 'administración'];
+
+                        // 2. Filtramos los padres para que ignoren los excluidos
+                        $padres = array_filter($listaModulosMaestra, function($m) use ($excluidos) {
+                            $nombre = strtolower(trim($m['nombre_modulo']));
+                            return empty($m['id_padre']) && !in_array($nombre, $excluidos);
+                        });
+
+                        // 3. Filtramos los hijos por si "Módulos" o "Planes" son sub-módulos
+                        $hijos = array_filter($listaModulosMaestra, function($m) use ($excluidos) {
+                            $nombre = strtolower(trim($m['nombre_modulo']));
+                            return !empty($m['id_padre']) && !in_array($nombre, $excluidos);
+                        });
+
                         foreach ($padres as $pad):  
                         ?>
                             <tr class="row-modulo-padre table-light">

@@ -125,12 +125,11 @@ if (is_string($camposCrudos)) {
         <table class="sst-table">
           <tr>
             <td style="width: 20%; text-align: center; font-weight: 800; font-size: 13px;">
-              F-JUR-002-2025
+              <input name="codigo_formato" class="sst-input center bold" style="font-size: 13px;" type="text" value="F-JUR-002-2025">
             </td>
             <td colspan="3" style="width: 60%;">
               <div class="header-main">
-                CONTRATO PRESTACIÓN DE SERVICIOS<br>
-                IMPLEMENTACIÓN DEL SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO (SG-SST) E IMPLEMENTACION RECURSOS HUMANOS
+                <textarea name="titulo_contrato" class="editable-block center bold" style="font-size: 14px; text-align: center;">CONTRATO PRESTACIÓN DE SERVICIOS&#13;&#10;IMPLEMENTACIÓN DEL SISTEMA DE GESTIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO (SG-SST) E IMPLEMENTACION RECURSOS HUMANOS</textarea>
               </div>
             </td>
             <td style="width: 20%; text-align: center; font-weight: 800; font-size: 13px;">
